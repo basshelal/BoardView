@@ -1,0 +1,3 @@
+rootProject.name='BoardView'
+include ':app'
+include ':boardview'

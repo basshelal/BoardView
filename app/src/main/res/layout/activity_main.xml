@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.github.basshelal.boardview.BoardListViewContainer
+    <com.github.basshelal.boardview.BoardViewContainer
         android:id="@+id/boardViewContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

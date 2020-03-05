@@ -9,9 +9,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.view_itemview.view.*
 
 /**
- * The list that displays [ItemView]s
+ * The list that displays ItemViews, this is nothing different from an ordinary RecyclerView
  */
-class BoardListView
+class BoardList
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
@@ -26,26 +26,28 @@ class BoardListView
     }
 }
 
+/**
+ * The adapter responsible for displaying ItemViews
+ */
+open class BoardListAdapter<VH : BoardViewItemVH> : BaseAdapter<VH>() {
 
-open class BoardListViewAdapter : BaseAdapter<BoardListViewVH>() {
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardListViewVH {
-        return BoardListViewVH(View.inflate(parent.context, R.layout.view_itemview, null))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        return BoardViewItemVH(View.inflate(parent.context, R.layout.view_itemview, null)) as VH
     }
 
     override fun getItemCount(): Int {
-        return 100
+        return 500
     }
 
-    override fun onBindViewHolder(holder: BoardListViewVH, position: Int) {
+    override fun onBindViewHolder(holder: VH, position: Int) {
         holder.textView.text = "Item #$position"
     }
 
 }
 
 /**
- * Contains the [ItemView]
+ * Contains the ItemView in each list, these are like cards
  */
-open class BoardListViewVH(itemView: View) : BaseViewHolder(itemView) {
+open class BoardViewItemVH(itemView: View) : BaseViewHolder(itemView) {
     val textView: TextView = itemView.cardText_textView
 }

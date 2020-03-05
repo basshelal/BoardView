@@ -31,12 +31,12 @@ open class BoardViewAdapter : BaseAdapter<BoardViewVH>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
         return BoardViewVH(View.inflate(parent.context, R.layout.view_boardlistview, null)).also {
-            it.itemView.boardListView.adapter = BoardListViewAdapter()
+            it.itemView.boardListView.adapter = BoardListAdapter<BoardViewItemVH>()
         }
     }
 
     override fun getItemCount(): Int {
-        return 50
+        return 100
     }
 
     override fun onBindViewHolder(holder: BoardViewVH, position: Int) {

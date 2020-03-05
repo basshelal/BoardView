@@ -11,8 +11,9 @@ import com.github.basshelal.boardview.drag.DragShadow
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 
 /**
- * The container that will contain [BoardView] as well as the [DragShadow]s for dragging
- * functionality of [BoardListView] and [ItemView]
+ * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
+ * functionality of [BoardList]s and ItemViews, this is how we do dragging, if the caller only
+ * wants a Board with no drag they use [BoardView]
  */
 class BoardViewContainer
 @JvmOverloads constructor(
@@ -31,12 +32,21 @@ class BoardViewContainer
      * smart about how we deal with onInterceptTouchEvent and onTouchEvent
      * */
 
-    override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
-        return super.onInterceptTouchEvent(ev)
+    /*
+     * For touch shit, in all cases we will still need a super call because that's how "default"
+     * behavior is done, so we need to just know when it's our time to handle (dragging shit) and
+     * when it's not we just return super (which will call it obviously)
+     */
+
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+        // return true here to tell system that I will handle all subsequent touch events
+        // they will thus not go down to my children in that case
+        return super.onInterceptTouchEvent(event)
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        // return false to tell system to stop sending events
         return super.onTouchEvent(event)
     }
 }
@@ -59,5 +69,6 @@ abstract class BoardContainerAdapter<
 
 
     // When we need new List Adapters
-    abstract fun onCreateListAdapter(position: Int): BoardListViewAdapter
+    abstract fun onCreateListAdapter(position: Int): com.github.basshelal.boardview
+    .BoardListAdapter<BoardViewItemVH>
 }

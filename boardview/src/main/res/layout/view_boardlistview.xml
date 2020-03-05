@@ -3,9 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.github.basshelal.boardview.BoardListView
+    <com.github.basshelal.boardview.BoardList
         android:id="@+id/boardListView"
-        android:layout_width="match_parent"
+        android:layout_width="100dp"
         android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

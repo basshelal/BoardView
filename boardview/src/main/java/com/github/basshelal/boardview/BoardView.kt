@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.view_boardlistview.view.*
 
-class BoardView
+open class BoardView
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
@@ -30,7 +30,7 @@ open class BoardViewAdapter : BaseAdapter<BoardViewVH>() {
      */
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
-        return BoardViewVH(View.inflate(parent.context, R.layout.view_boardlistview, null)).also {
+        return BoardViewVH(View.inflate(parent.context, R.layout.view_boardcolumn, null)).also {
             it.itemView.boardListView.adapter = BoardListAdapter<BoardViewItemVH>()
         }
     }
@@ -45,4 +45,7 @@ open class BoardViewAdapter : BaseAdapter<BoardViewVH>() {
 
 }
 
+/**
+ * ViewHolder for the [BoardColumn]
+ */
 open class BoardViewVH(itemView: View) : BaseViewHolder(itemView)

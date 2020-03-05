@@ -6,7 +6,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
-import androidx.recyclerview.widget.RecyclerView
 import com.github.basshelal.boardview.drag.DragShadow
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 
@@ -19,6 +18,8 @@ class BoardViewContainer
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
+
+    var adapter: BoardContainerAdapter? = null
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -53,10 +54,7 @@ class BoardViewContainer
 
 
 // TODO: 04-Mar-20 Draft API here!
-abstract class BoardContainerAdapter<
-        ItemVH : RecyclerView.ViewHolder,
-        BoardListAdapter : RecyclerView.Adapter<ItemVH>,
-        ListVH : RecyclerView.ViewHolder> {
+abstract class BoardContainerAdapter {
     // either have 1 huge adapter for dealing with everything, or multiple adapters
 
     // =====BoardListViews=====
@@ -67,8 +65,7 @@ abstract class BoardContainerAdapter<
     // When we need to create a new ListAdapter
     // onCreateListAdapter(position: Int): BoardListViewAdapter
 
-
     // When we need new List Adapters
-    abstract fun onCreateListAdapter(position: Int): com.github.basshelal.boardview
-    .BoardListAdapter<BoardViewItemVH>
+    abstract fun <VH : BoardViewItemVH, A : BoardListAdapter<VH>>
+            onCreateListAdapter(position: Int): BoardListAdapter<BoardViewItemVH>
 }

@@ -3,13 +3,18 @@ package com.github.basshelal.boardview
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
-import android.widget.FrameLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 
 /**
  * The [View] that [BoardView] will be displaying, this contains a header, a [BoardList] and
  * a footer
  */
-class BoardColumn
+open class BoardColumn
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr)
+) : ConstraintLayout(context, attrs, defStyleAttr) {
+
+    init {
+        View.inflate(context, R.layout.view_boardcolumn, this)
+    }
+}

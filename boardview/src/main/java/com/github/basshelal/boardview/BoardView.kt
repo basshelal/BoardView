@@ -12,13 +12,35 @@ open class BoardView
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
-    override fun onFinishInflate() {
-        super.onFinishInflate()
-
-        layoutManager = LinearLayoutManager(context, HORIZONTAL, false).also {
+    init {
+        layoutManager = InternalLayoutManager(context).also {
+            it.orientation = HORIZONTAL
             it.isItemPrefetchEnabled = true
             it.initialPrefetchItemCount = 5
         }
+    }
+
+    /**
+     * You are not supposed to set the [LayoutManager] of BoardView, this is managed internally!
+     * You can change properties of the [LayoutManager] by calling [getLayoutManager].
+     */
+    override fun setLayoutManager(lm: LayoutManager?) {
+        if (lm is InternalLayoutManager) {
+            super.setLayoutManager(lm)
+        } else if (lm != null)
+            logE("You are not allowed to set the Layout Manager of BoardView!\n" +
+                    "Passed in ${lm::class.simpleName}")
+    }
+
+    /**
+     * The passed in [adapter] must be a descendant of [BoardAdapter].
+     */
+    override fun setAdapter(adapter: Adapter<*>?) {
+        if (adapter is BoardAdapter) {
+            super.setAdapter(adapter)
+        } else if (adapter != null)
+            logE("BoardView adapter must be a descendant of BoardAdapter!\n" +
+                    "passed in adapter is of type ${adapter::class.simpleName}")
     }
 }
 
@@ -62,3 +84,5 @@ open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
     var list: View? = null
     var footer: View? = null
 }
+
+internal class InternalLayoutManager(context: Context) : LinearLayoutManager(context)

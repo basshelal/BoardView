@@ -203,16 +203,8 @@ inline fun RecyclerView.Adapter<*>.notifySwapped(fromPosition: Int, toPosition: 
     notifyItemInserted(toPosition)
 }
 
-inline fun Any.logE(message: Any?, tag: String = this::class.simpleName.toString()) {
+inline fun logE(message: Any?, tag: String = "BoardView") {
     if (BuildConfig.DEBUG) Log.e(tag, message.toString())
-}
-
-inline fun Any.logD(message: Any?, tag: String = this::class.simpleName.toString()) {
-    if (BuildConfig.DEBUG) Log.d(tag, message.toString())
-}
-
-inline fun Any.logI(message: Any?, tag: String = this::class.simpleName.toString()) {
-    if (BuildConfig.DEBUG) Log.i(tag, message.toString())
 }
 
 inline fun Any.log(message: Any?, tag: String = this::class.simpleName.toString()) {

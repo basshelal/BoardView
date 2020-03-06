@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 
@@ -57,12 +58,21 @@ abstract class BoardAdapter(
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
-        // create BoardColumn (probably from xml), use adapter to create Header and Footer,
-        // call onViewHolderCreated()
-        val viewHolder = BoardViewVH(View.inflate(parent.context, R.layout.view_boardcolumn, null))
-                .also {
-                    it.itemView.boardListView.adapter = adapter?.onCreateListAdapter(1)
-                }
+        val view = View.inflate(parent.context, R.layout.view_boardcolumn, null) as ConstraintLayout
+        val viewHolder = BoardViewVH(view).also { vh ->
+            adapter?.onCreateListAdapter()?.also {
+                vh.itemView.boardListView.adapter = it
+            }
+            vh.list = vh.itemView.boardListView
+        }
+        adapter?.onCreateListHeader(view)?.also {
+            view.header_frameLayout.addView(it)
+            viewHolder.header = it
+        }
+        adapter?.onCreateFooter(view)?.also {
+            view.footer_frameLayout.addView(it)
+            viewHolder.footer = it
+        }
         onViewHolderCreated(viewHolder)
         return viewHolder
     }

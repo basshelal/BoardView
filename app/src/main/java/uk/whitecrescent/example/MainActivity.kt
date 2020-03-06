@@ -1,6 +1,8 @@
 package uk.whitecrescent.example
 
+import android.graphics.Color
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -29,16 +31,18 @@ class ExampleBoardContainerAdapter : BoardContainerAdapter() {
         return ExampleBoardAdapter(this)
     }
 
-    override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
+    override fun onCreateListAdapter(): BoardListAdapter<*> {
         return ExampleBoardListAdapter()
     }
 
-    override fun onCreateListHeader(position: Int): View? {
-        return null
+    override fun onCreateListHeader(parentView: ViewGroup): View? {
+        return LayoutInflater.from(parentView.context)
+                .inflate(R.layout.view_itemview, parentView, false)
     }
 
-    override fun onCreateFooter(position: Int): View? {
-        return null
+    override fun onCreateFooter(parentView: ViewGroup): View? {
+        return LayoutInflater.from(parentView.context)
+                .inflate(R.layout.view_itemview, parentView, false)
     }
 
 }
@@ -54,7 +58,7 @@ class ExampleBoardAdapter(adapter: ExampleBoardContainerAdapter) : BoardAdapter(
     }
 
     override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
-
+        holder.header?.setBackgroundColor(Color.RED)
     }
 }
 

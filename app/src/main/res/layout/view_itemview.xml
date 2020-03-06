@@ -5,6 +5,7 @@
     android:layout_height="match_parent">
 
     <TextView
+        android:text="HELLO WORLD!"
         android:id="@+id/cardText_textView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

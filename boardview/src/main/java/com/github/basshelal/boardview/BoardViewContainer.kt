@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.basshelal.boardview.drag.DragShadow
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
@@ -65,13 +66,14 @@ abstract class BoardContainerAdapter {
     // When we need new List Adapters! These are simple RecyclerView Adapters that will display
     // the Items, this is the caller's responsibility as these can be reused from existing code
     // TODO: 06-Mar-20 If we make callers use their own Adapters change the return type
-    abstract fun onCreateListAdapter(position: Int): BoardListAdapter<*>
+    abstract fun onCreateListAdapter(): BoardListAdapter<*>
 
-    // When we create BoardColumns
-
-    // return null if you don't want a header or footer
-    abstract fun onCreateListHeader(position: Int): View?
-    abstract fun onCreateFooter(position: Int): View?
+    /**
+     * Called when a new BoardView Column is created
+     * @return the header View or null if you do not want a header
+     */
+    abstract fun onCreateListHeader(parentView: ViewGroup): View?
+    abstract fun onCreateFooter(parentView: ViewGroup): View?
 
     // Touch and Drag Shit callbacks here TODO
 }

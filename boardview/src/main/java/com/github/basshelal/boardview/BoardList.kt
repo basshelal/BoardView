@@ -3,11 +3,6 @@ package com.github.basshelal.boardview
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.TextView
-import kotlinx.android.synthetic.main.view_itemview.view.*
 
 /**
  * The list that displays ItemViews, this is nothing different from an ordinary RecyclerView
@@ -54,27 +49,14 @@ class BoardList
  * The adapter responsible for displaying ItemViews, this is nothing different from an ordinary Adapter
  */
 // TODO: 06-Mar-20 Probably remove later! Callers use their own Adapters
-open class BoardListAdapter<VH : BoardViewItemVH> : BaseAdapter<VH>() {
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        return BoardViewItemVH(View.inflate(parent.context, R.layout.view_itemview, null)).also {
-            it.itemView.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-        } as VH
-    }
-
-    override fun getItemCount(): Int {
-        return 500
-    }
-
-    override fun onBindViewHolder(holder: VH, position: Int) {
-        holder.textView.text = "Item #$position"
-    }
+abstract class BoardListAdapter<VH : BoardViewItemVH>(
+        internal var adapter: BoardContainerAdapter? = null
+) : BaseAdapter<VH>() {
 
 }
 
 /**
  * Contains the ItemView in each list, these are like cards
  */
-open class BoardViewItemVH(itemView: View) : BaseViewHolder(itemView) {
-    val textView: TextView = itemView.cardText_textView
-}
+// TODO: 06-Mar-20 Probably remove later
+open class BoardViewItemVH(itemView: View) : BaseViewHolder(itemView)

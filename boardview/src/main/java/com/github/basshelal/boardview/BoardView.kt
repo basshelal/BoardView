@@ -5,7 +5,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.android.synthetic.main.view_boardlistview.view.*
+import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 
 open class BoardView
 @JvmOverloads constructor(
@@ -44,7 +44,9 @@ open class BoardView
     }
 }
 
-open class BoardAdapter : BaseAdapter<BoardViewVH>() {
+abstract class BoardAdapter(
+        var adapter: BoardContainerAdapter? = null
+) : BaseAdapter<BoardViewVH>() {
 
     /*
      * If we don't keep any references to Views or Contexts we could technically keep all the
@@ -55,9 +57,11 @@ open class BoardAdapter : BaseAdapter<BoardViewVH>() {
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
+        // create BoardColumn (probably from xml), use adapter to create Header and Footer,
+        // call onViewHolderCreated()
         val viewHolder = BoardViewVH(View.inflate(parent.context, R.layout.view_boardcolumn, null))
                 .also {
-                    it.itemView.boardListView.adapter = BoardListAdapter<BoardViewItemVH>()
+                    it.itemView.boardListView.adapter = adapter?.onCreateListAdapter(1)
                 }
         onViewHolderCreated(viewHolder)
         return viewHolder
@@ -66,14 +70,6 @@ open class BoardAdapter : BaseAdapter<BoardViewVH>() {
     // callback for caller to do stuff after onCreateViewHolder is called
     open fun onViewHolderCreated(holder: BoardViewVH) {}
 
-    override fun getItemCount(): Int {
-        return 100
-    }
-
-    override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
-
-    }
-
 }
 
 /**
@@ -81,8 +77,14 @@ open class BoardAdapter : BaseAdapter<BoardViewVH>() {
  */
 open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
     var header: View? = null
+        internal set
     var list: View? = null
+        internal set
     var footer: View? = null
+        internal set
 }
 
+/**
+ * [LinearLayoutManager] used to block caller setting the Layout Manager themselves
+ */
 internal class InternalLayoutManager(context: Context) : LinearLayoutManager(context)

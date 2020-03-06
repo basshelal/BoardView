@@ -20,12 +20,13 @@ class BoardViewContainer
 ) : ConstraintLayout(context, attrs, defStyleAttr) {
 
     var adapter: BoardContainerAdapter? = null
+        set(value) {
+            field = value
+            boardView.adapter = value?.getBoardViewAdapter()
+        }
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
-
-        boardView.adapter = BoardAdapter()
-        //boardView.adapter = adapter?.getBoardViewAdapter()
     }
 
     /*
@@ -71,4 +72,6 @@ abstract class BoardContainerAdapter {
     // return null if you don't want a header or footer
     abstract fun onCreateListHeader(position: Int): View?
     abstract fun onCreateFooter(position: Int): View?
+
+    // Touch and Drag Shit callbacks here TODO
 }

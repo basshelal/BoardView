@@ -24,7 +24,8 @@ class BoardViewContainer
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
 
-        boardView.adapter = BoardViewAdapter()
+        boardView.adapter = BoardAdapter()
+        //boardView.adapter = adapter?.getBoardViewAdapter()
     }
 
     /*
@@ -55,17 +56,18 @@ class BoardViewContainer
 
 // TODO: 04-Mar-20 Draft API here!
 abstract class BoardContainerAdapter {
-    // either have 1 huge adapter for dealing with everything, or multiple adapters
 
-    // =====BoardListViews=====
-    // onCreateBoardListView
-    // onBindBoardListView
-    // getBoardListCount
+    // The single Board Adapter, we're only doing this so that it can be customizable by caller
+    // and also have all the functionality of a RecyclerView.Adapter
+    abstract fun getBoardViewAdapter(): BoardAdapter
 
-    // When we need to create a new ListAdapter
-    // onCreateListAdapter(position: Int): BoardListViewAdapter
+    // When we need new List Adapters! These are simple RecyclerView Adapters that will display
+    // the Items, this is the caller's responsibility as these can be reused from existing code
+    abstract fun onCreateListAdapter(position: Int): BoardListAdapter<*>
 
-    // When we need new List Adapters
-    abstract fun <VH : BoardViewItemVH, A : BoardListAdapter<VH>>
-            onCreateListAdapter(position: Int): BoardListAdapter<BoardViewItemVH>
+    // When we create BoardColumns
+
+    // return null if you don't want a header or footer
+    abstract fun onCreateListHeader(position: Int): View?
+    abstract fun onCreateFooter(position: Int): View?
 }

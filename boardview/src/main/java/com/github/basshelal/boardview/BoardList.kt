@@ -2,6 +2,7 @@ package com.github.basshelal.boardview
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -16,6 +17,14 @@ class BoardList
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
+    override fun setAdapter(adapter: Adapter<*>?) {
+        if (adapter is BoardListAdapter) {
+            super.setAdapter(adapter)
+        } else if (adapter != null)
+            Log.e("BoardView", "BoardList adapter must be a descendant of BoardListAdapter" +
+                    "passed in adapter is of type ${adapter::class.simpleName}")
+    }
+
     override fun onFinishInflate() {
         super.onFinishInflate()
 
@@ -27,7 +36,7 @@ class BoardList
 }
 
 /**
- * The adapter responsible for displaying ItemViews
+ * The adapter responsible for displaying ItemViews, this is nothing different from an ordinary Adapter
  */
 open class BoardListAdapter<VH : BoardViewItemVH> : BaseAdapter<VH>() {
 

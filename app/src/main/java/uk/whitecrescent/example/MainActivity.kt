@@ -37,12 +37,12 @@ class ExampleBoardContainerAdapter : BoardContainerAdapter() {
 
     override fun onCreateListHeader(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_header, parentView, false)
+                .inflate(R.layout.view_header, parentView, false).also { it.setOnClickListener { } }
     }
 
     override fun onCreateFooter(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_footer, parentView, false)
+                .inflate(R.layout.view_footer, parentView, false).also { it.setOnClickListener { } }
     }
 
 }
@@ -65,7 +65,8 @@ class ExampleBoardAdapter(adapter: ExampleBoardContainerAdapter) : BoardAdapter(
 class ExampleBoardListAdapter : BoardListAdapter<ItemVH>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
-        return ItemVH(View.inflate(parent.context, R.layout.view_itemview, null))
+        return ItemVH(LayoutInflater.from(parent.context)
+                .inflate(R.layout.view_itemview, parent, false))
     }
 
     override fun getItemCount(): Int {

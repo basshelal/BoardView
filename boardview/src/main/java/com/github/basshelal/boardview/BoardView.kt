@@ -5,7 +5,9 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 
 open class BoardView
@@ -60,18 +62,27 @@ abstract class BoardAdapter(
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
         val view = View.inflate(parent.context, R.layout.view_boardcolumn, null) as ConstraintLayout
         val viewHolder = BoardViewVH(view).also { vh ->
-            adapter?.onCreateListAdapter()?.also {
-                vh.itemView.boardListView.adapter = it
-            }
+            adapter?.onCreateListAdapter()?.also { vh.itemView.boardListView.adapter = it }
             vh.list = vh.itemView.boardListView
         }
+        // Header
         adapter?.onCreateListHeader(view)?.also {
             view.header_frameLayout.addView(it)
             viewHolder.header = it
+            viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                topToBottom = view.header_frameLayout.id
+                height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+            }
         }
+        // Footer
         adapter?.onCreateFooter(view)?.also {
+            it.id = View.generateViewId()
             view.footer_frameLayout.addView(it)
             viewHolder.footer = it
+            viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                // bottomToTop = view.footer_frameLayout.id
+                // height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+            }
         }
         onViewHolderCreated(viewHolder)
         return viewHolder
@@ -88,7 +99,7 @@ abstract class BoardAdapter(
 open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
     var header: View? = null
         internal set
-    var list: View? = null
+    var list: RecyclerView? = null
         internal set
     var footer: View? = null
         internal set

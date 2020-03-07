@@ -69,7 +69,7 @@ class ExampleBoardListAdapter : BoardListAdapter<ItemVH>() {
     }
 
     override fun getItemCount(): Int {
-        return 500
+        return 99
     }
 
     override fun onBindViewHolder(holder: ItemVH, position: Int) {

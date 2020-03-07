@@ -1,6 +1,5 @@
 package uk.whitecrescent.example
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +12,7 @@ import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.boardview.BoardViewItemVH
 import com.github.basshelal.boardview.BoardViewVH
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.view_header.view.*
 import kotlinx.android.synthetic.main.view_itemview.view.*
 
 class MainActivity : AppCompatActivity() {
@@ -37,12 +37,12 @@ class ExampleBoardContainerAdapter : BoardContainerAdapter() {
 
     override fun onCreateListHeader(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_itemview, parentView, false)
+                .inflate(R.layout.view_header, parentView, false)
     }
 
     override fun onCreateFooter(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_itemview, parentView, false)
+                .inflate(R.layout.view_footer, parentView, false)
     }
 
 }
@@ -58,7 +58,7 @@ class ExampleBoardAdapter(adapter: ExampleBoardContainerAdapter) : BoardAdapter(
     }
 
     override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
-        holder.header?.setBackgroundColor(Color.RED)
+        holder.itemView.header_textView.text = "Header #$position"
     }
 }
 

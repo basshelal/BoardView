@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.github.basshelal.boardview
 
 import android.annotation.SuppressLint
@@ -8,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.basshelal.boardview.drag.DragShadow
+import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 
 /**
@@ -28,6 +31,21 @@ class BoardViewContainer
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
+
+        itemDragShadow()
+        listDragShadow()
+    }
+
+    private inline fun itemDragShadow() {
+        itemDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
+
+        }
+    }
+
+    private inline fun listDragShadow() {
+        listDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
+
+        }
     }
 
     /*
@@ -45,13 +63,20 @@ class BoardViewContainer
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
         // return true here to tell system that I will handle all subsequent touch events
         // they will thus not go down to my children in that case
-        return super.onInterceptTouchEvent(event)
+        return true
     }
 
+    // return false to tell system to stop sending events
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        // return false to tell system to stop sending events
-        return super.onTouchEvent(event)
+        logE("TOUCH $now")
+        val result: Boolean
+        if (itemDragShadow.dragBehavior.dragState == ObservableDragBehavior.DragState.DRAGGING) {
+            result = true
+        } else {
+            result = boardView.dispatchTouchEvent(event)
+        }
+        return result
     }
 }
 

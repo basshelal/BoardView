@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/header_cardView"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    app:cardBackgroundColor="#0088ff"
-    app:cardCornerRadius="8dp">
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="#00ffff"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="8dp">
 
     <TextView
-        android:id="@+id/cardText_textView"
+        android:id="@+id/header_textView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="12dp"
+        android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="HELLO WORLD!"
-        android:textAlignment="center"
-        android:textSize="18sp"
-        tools:text="Hello World" />
+        android:text="HEADER!"
+        android:textColor="@android:color/black"
+        android:textSize="22sp" />
 
 </androidx.cardview.widget.CardView>

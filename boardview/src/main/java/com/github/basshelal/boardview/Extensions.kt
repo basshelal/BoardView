@@ -45,6 +45,8 @@ inline val Number.D: Double get() = this.toDouble()
 inline val Number.F: Float get() = this.toFloat()
 inline val Number.L: Long get() = this.toLong()
 
+inline val now: Long get() = System.currentTimeMillis()
+
 inline operator fun <reified V : View?> V?.invoke(block: V.() -> Unit) = this?.apply(block)
 
 inline fun View.shortSnackBar(string: String) = Snackbar.make(this, string, Snackbar.LENGTH_SHORT).show()

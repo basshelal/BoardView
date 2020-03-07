@@ -5,20 +5,20 @@
     android:layout_height="match_parent">
 
     <com.github.basshelal.boardview.BoardView
-        android:id="@+id/boardView"
+        android:id="@+id/_boardView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
     <!--            Item Drag Shadow            -->
     <com.github.basshelal.boardview.drag.DragShadow
-        android:id="@+id/itemDragShadow"
+        android:id="@+id/item_dragShadow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:ignore="MissingConstraints" />
 
     <!--            List Drag Shadow            -->
     <com.github.basshelal.boardview.drag.DragShadow
-        android:id="@+id/listDragShadow"
+        android:id="@+id/list_dragShadow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:ignore="MissingConstraints" />

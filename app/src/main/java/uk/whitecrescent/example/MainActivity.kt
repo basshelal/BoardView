@@ -21,18 +21,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        boardViewContainer.adapter = ExampleBoardContainerAdapter()
+        boardViewContainer.adapter = ExampleBoardContainerAdapter(exampleBoard)
     }
 }
 
-class ExampleBoardContainerAdapter : BoardContainerAdapter() {
+class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
 
     override fun getBoardViewAdapter(): BoardAdapter {
         return ExampleBoardAdapter(this)
     }
 
     override fun onCreateListAdapter(): BoardListAdapter<*> {
-        return ExampleBoardListAdapter()
+        return ExampleBoardListAdapter(this)
     }
 
     override fun onCreateListHeader(parentView: ViewGroup): View? {
@@ -47,22 +47,28 @@ class ExampleBoardContainerAdapter : BoardContainerAdapter() {
 
 }
 
-class ExampleBoardAdapter(adapter: ExampleBoardContainerAdapter) : BoardAdapter(adapter) {
+class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
+    : BoardAdapter(exampleAdapter) {
 
     override fun onViewHolderCreated(holder: BoardViewVH) {
 
     }
 
     override fun getItemCount(): Int {
-        return 100
+        return exampleAdapter.board.boardLists.size
     }
 
     override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
-        holder.itemView.header_textView.text = "Header #$position"
+        val boardList = exampleAdapter.board.boardLists[position]
+        holder.itemView.header_textView.text = boardList.name
+        (holder.boardListAdapter as ExampleBoardListAdapter).boardListId = boardList.id
     }
 }
 
-class ExampleBoardListAdapter : BoardListAdapter<ItemVH>() {
+class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
+    : BoardListAdapter<ItemVH>(exampleAdapter) {
+
+    var boardListId: Int = 0
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
         return ItemVH(LayoutInflater.from(parent.context)
@@ -74,7 +80,8 @@ class ExampleBoardListAdapter : BoardListAdapter<ItemVH>() {
     }
 
     override fun onBindViewHolder(holder: ItemVH, position: Int) {
-        holder.textView.text = "Item #$position"
+        val listItem = exampleAdapter.board.boardLists[boardListId].items[position]
+        holder.textView.text = listItem.value
     }
 
 }

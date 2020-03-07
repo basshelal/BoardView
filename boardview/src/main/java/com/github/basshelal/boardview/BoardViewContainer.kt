@@ -27,7 +27,12 @@ class BoardViewContainer
         set(value) {
             field = value
             boardView.adapter = value?.getBoardViewAdapter()
+            value?.boardViewContainer = this
         }
+
+    inline val boardView: BoardView get() = this._boardView
+    inline val itemDragShadow: DragShadow get() = this.item_dragShadow
+    inline val listDragShadow: DragShadow get() = this.list_dragShadow
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -69,7 +74,7 @@ class BoardViewContainer
     // return false to tell system to stop sending events
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        logE("TOUCH $now")
+        //logE("TOUCH $now")
         val result: Boolean
         if (itemDragShadow.dragBehavior.dragState == ObservableDragBehavior.DragState.DRAGGING) {
             result = true
@@ -81,8 +86,10 @@ class BoardViewContainer
 }
 
 
-// TODO: 04-Mar-20 Draft API here!
 abstract class BoardContainerAdapter {
+
+    lateinit var boardViewContainer: BoardViewContainer
+        internal set
 
     // The single Board Adapter, we're only doing this so that it can be customizable by caller
     // and also have all the functionality of a RecyclerView.Adapter
@@ -90,7 +97,6 @@ abstract class BoardContainerAdapter {
 
     // When we need new List Adapters! These are simple RecyclerView Adapters that will display
     // the Items, this is the caller's responsibility as these can be reused from existing code
-    // TODO: 06-Mar-20 If we make callers use their own Adapters change the return type
     abstract fun onCreateListAdapter(): BoardListAdapter<*>
 
     /**

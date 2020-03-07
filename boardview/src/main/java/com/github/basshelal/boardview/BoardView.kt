@@ -62,7 +62,10 @@ abstract class BoardAdapter(
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
         val view = View.inflate(parent.context, R.layout.view_boardcolumn, null) as ConstraintLayout
         val viewHolder = BoardViewVH(view).also { vh ->
-            adapter?.onCreateListAdapter()?.also { vh.itemView.boardListView.adapter = it }
+            adapter?.onCreateListAdapter()?.also {
+                vh.itemView.boardListView.adapter = it
+                vh.boardListAdapter = it
+            }
             vh.list = vh.itemView.boardListView
         }
         // Header
@@ -100,6 +103,8 @@ open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
     var header: View? = null
         internal set
     var list: RecyclerView? = null
+        internal set
+    var boardListAdapter: BoardListAdapter<*>? = null
         internal set
     var footer: View? = null
         internal set

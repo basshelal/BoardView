@@ -21,18 +21,6 @@ class BoardList
     }
 
     /**
-     * You are not supposed to set the [LayoutManager] of BoardList, this is managed internally!
-     * You can change properties of the [LayoutManager] by calling [getLayoutManager].
-     */
-    override fun setLayoutManager(lm: LayoutManager?) {
-        if (lm is InternalLayoutManager) {
-            super.setLayoutManager(lm)
-        } else if (lm != null)
-            logE("You are not allowed to set the Layout Manager of BoardList!\n" +
-                    "Passed in ${lm::class.simpleName}")
-    }
-
-    /**
      * The passed in [adapter] must be a descendant of [BoardListAdapter].
      */
     override fun setAdapter(adapter: Adapter<*>?) {
@@ -50,7 +38,10 @@ class BoardList
  */
 abstract class BoardListAdapter<VH : BoardViewItemVH>(
         var adapter: BoardContainerAdapter? = null
-) : BaseAdapter<VH>()
+) : BaseAdapter<VH>() {
+
+    abstract fun bindAdapter(holder: BoardViewVH, position: Int)
+}
 
 /**
  * Contains the ItemView in each list, these are like cards

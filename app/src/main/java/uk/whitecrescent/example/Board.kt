@@ -11,13 +11,17 @@ data class BoardList(
         var id: Int,
         var name: String,
         val items: List<StringListItem>
-)
+) {
+    operator fun get(index: Int) = items[index]
+}
 
 data class Board<T>(
         var id: Int,
         var name: String,
         val boardLists: List<BoardList>
-)
+) {
+    operator fun get(index: Int) = boardLists[index]
+}
 
 val boardListsSize = 100
 val itemsSize = 100

@@ -97,7 +97,7 @@ abstract class BoardContainerAdapter {
 
     // When we need new List Adapters! These are simple RecyclerView Adapters that will display
     // the Items, this is the caller's responsibility as these can be reused from existing code
-    abstract fun onCreateListAdapter(): BoardListAdapter<*>
+    abstract fun onCreateListAdapter(position: Int): BoardListAdapter<*>
 
     /**
      * Called when a new BoardView Column is created
@@ -105,6 +105,9 @@ abstract class BoardContainerAdapter {
      */
     abstract fun onCreateListHeader(parentView: ViewGroup): View?
     abstract fun onCreateFooter(parentView: ViewGroup): View?
+
+    // Return true when the given boardListAdapter is correct for the position, false otherwise
+    abstract fun matchListAdapter(boardListAdapter: BoardListAdapter<*>, position: Int): Boolean
 
     // Touch and Drag Shit callbacks here TODO
 }

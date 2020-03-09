@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 
 open class BoardView
@@ -21,18 +20,6 @@ open class BoardView
             it.isItemPrefetchEnabled = true
             it.initialPrefetchItemCount = 5
         }
-    }
-
-    /**
-     * You are not supposed to set the [LayoutManager] of BoardView, this is managed internally!
-     * You can change properties of the [LayoutManager] by calling [getLayoutManager].
-     */
-    override fun setLayoutManager(lm: LayoutManager?) {
-        if (lm is InternalLayoutManager) {
-            super.setLayoutManager(lm)
-        } else if (lm != null)
-            logE("You are not allowed to set the Layout Manager of BoardView!\n" +
-                    "Passed in ${lm::class.simpleName}")
     }
 
     /**
@@ -56,16 +43,14 @@ abstract class BoardAdapter(
      * ListAdapters in memory like what we've done in Waqti
      */
 
+    val adapters = HashSet<BoardListAdapter<*>>()
+
     // We handle the creation because we return BoardVH that contains columns
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
         val view = View.inflate(parent.context, R.layout.view_boardcolumn, null) as ConstraintLayout
         val viewHolder = BoardViewVH(view).also { vh ->
-            adapter?.onCreateListAdapter()?.also {
-                vh.itemView.boardListView.adapter = it
-                vh.boardListAdapter = it
-            }
             vh.list = vh.itemView.boardListView
         }
         // Header
@@ -94,6 +79,30 @@ abstract class BoardAdapter(
     // callback for caller to do stuff after onCreateViewHolder is called
     open fun onViewHolderCreated(holder: BoardViewVH) {}
 
+    final override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
+
+        logE(adapters.size)
+
+        logE("pos: ${holder.adapterPosition}")
+
+        holder.list?.adapter.also { current ->
+            if (current == null) {
+                adapter?.onCreateListAdapter(position)?.also {
+                    adapters.add(it)
+                    holder.list?.adapter = it
+                }
+            } else {
+                // TODO: 09-Mar-20 We need to rebind the data whilst somehow keeping the layout position the same
+                (holder.list?.adapter as BoardListAdapter).bindAdapter(holder, position)
+                holder.list?.adapter?.notifyDataSetChanged()
+                // above is because we need to rebind the adapter contents
+            }
+        }
+        onViewHolderBound(holder, position)
+    }
+
+    // callback for caller to do stuff after onBindViewHolder is called
+    open fun onViewHolderBound(holder: BoardViewVH, position: Int) {}
 }
 
 /**
@@ -102,7 +111,7 @@ abstract class BoardAdapter(
 open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
     var header: View? = null
         internal set
-    var list: RecyclerView? = null
+    var list: BoardList? = null
         internal set
     var boardListAdapter: BoardListAdapter<*>? = null
         internal set

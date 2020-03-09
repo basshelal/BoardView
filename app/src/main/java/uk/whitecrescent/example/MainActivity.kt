@@ -23,6 +23,15 @@ class MainActivity : AppCompatActivity() {
 
         boardViewContainer.adapter = ExampleBoardContainerAdapter(exampleBoard)
     }
+
+
+    // TODO: 07-Mar-20 To solve the Adapters problem we can either require that Adapters have IDs
+    //  which match something in the data structure or (better) we adda another function in the
+    //  BoardContiner that returns a Boolean representing whether this adapter (one we have in
+    //  the pool) matches or "is sufficient" for this position, true if it's good and false if
+    //  not, internally we can do a loop over the Adapter Set and in each onBind we can see
+    //  whether an adapter change or creation is needed or not
+
 }
 
 class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
@@ -31,8 +40,8 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         return ExampleBoardAdapter(this)
     }
 
-    override fun onCreateListAdapter(): BoardListAdapter<*> {
-        return ExampleBoardListAdapter(this)
+    override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
+        return ExampleBoardListAdapter(this, position)
     }
 
     override fun onCreateListHeader(parentView: ViewGroup): View? {
@@ -43,6 +52,12 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
     override fun onCreateFooter(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
                 .inflate(R.layout.view_footer, parentView, false).also { it.setOnClickListener { } }
+    }
+
+    override fun matchListAdapter(boardListAdapter: BoardListAdapter<*>, position: Int): Boolean {
+        val adapter = (boardListAdapter as ExampleBoardListAdapter)
+        val res = adapter.items.id == board[position].id
+        return res
     }
 
 }
@@ -58,17 +73,16 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         return exampleAdapter.board.boardLists.size
     }
 
-    override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
-        val boardList = exampleAdapter.board.boardLists[position]
+    override fun onViewHolderBound(holder: BoardViewVH, position: Int) {
+        val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
-        (holder.boardListAdapter as ExampleBoardListAdapter).boardListId = boardList.id
     }
 }
 
-class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
+class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, val position: Int)
     : BoardListAdapter<ItemVH>(exampleAdapter) {
 
-    var boardListId: Int = 0
+    var items = exampleAdapter.board[position]
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
         return ItemVH(LayoutInflater.from(parent.context)
@@ -80,8 +94,12 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
     }
 
     override fun onBindViewHolder(holder: ItemVH, position: Int) {
-        val listItem = exampleAdapter.board.boardLists[boardListId].items[position]
+        val listItem = items[position]
         holder.textView.text = listItem.value
+    }
+
+    override fun bindAdapter(holder: BoardViewVH, position: Int) {
+        items = exampleAdapter.board[position]
     }
 
 }

@@ -13,7 +13,7 @@ class BoardList
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
     init {
-        layoutManager = InternalLayoutManager(context).also {
+        layoutManager = SafeLinearLayoutManager(context).also {
             it.orientation = VERTICAL
             it.isItemPrefetchEnabled = true
             it.initialPrefetchItemCount = 15

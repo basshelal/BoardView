@@ -37,11 +37,6 @@ abstract class BoardAdapter(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<BoardViewVH>() {
 
-    /*
-     * If we don't keep any references to Views or Contexts we could technically keep all the
-     * ListAdapters in memory like what we've done in Waqti
-     */
-
     val adapters = HashSet<BoardListAdapter<*>>()
     val layoutStates = HashMap<Int, LinearState>()
 
@@ -99,25 +94,21 @@ abstract class BoardAdapter(
 
     override fun onViewAttachedToWindow(holder: BoardViewVH) {
         layoutStates[holder.adapterPosition].also {
-            logE("At ${holder.adapterPosition}")
             if (it == null) {
-                logE("New ${holder.adapterPosition}")
-                holder.list?.layoutManager?.saveState()?.also { layoutStates[holder.adapterPosition] = it }
+                holder.list?.layoutManager?.saveState()?.also {
+                    holder.list?.scrollToStart()
+                    layoutStates[holder.adapterPosition] = it
+                }
             } else {
-                logE("Restoring ${holder.adapterPosition}")
                 holder.list?.layoutManager?.restoreState(it)
             }
         }
-        logE("Size: ${layoutStates.size}")
     }
 
     override fun onViewDetachedFromWindow(holder: BoardViewVH) {
-        logE("At ${holder.adapterPosition}")
         holder.list?.layoutManager?.saveState()?.also {
-            logE("Saving ${holder.adapterPosition}")
             layoutStates[holder.adapterPosition] = it
         }
-        logE("Size: ${layoutStates.size}")
     }
 }
 

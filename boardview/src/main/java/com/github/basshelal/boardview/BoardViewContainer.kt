@@ -4,6 +4,8 @@ package com.github.basshelal.boardview
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
+import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -46,20 +48,40 @@ class BoardViewContainer
     private inline fun itemDragShadow() {
         itemDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
+            override fun onUpdateLocation(dragView: View, touchPoint: PointF) {
+                findItemViewHolderUnderRaw(touchPoint.x, touchPoint.y)
+                        ?.itemView?.setBackgroundColor(Color.RED)
+            }
+
         }
     }
 
     private inline fun listDragShadow() {
         listDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
+            override fun onUpdateLocation(dragView: View, touchPoint: PointF) {
+                findBoardViewHolderUnderRaw(touchPoint.x, touchPoint.y)
+                        ?.itemView?.setBackgroundColor(Color.RED)
+            }
+
         }
     }
 
-    /*
-     * We should do all of the dragging shit here, not anywhere else!
-     * Also I think we don't need to keep references to MotionEvents or obtain new ones if we're
-     * smart about how we deal with onInterceptTouchEvent and onTouchEvent
-     * */
+    inline fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewItemVH? {
+        return findBoardViewHolderUnderRaw(rawX, rawY)?.let { boardVH ->
+            boardVH.list?.let { boardList ->
+                boardList.findChildViewUnderRaw(rawX, rawY)?.let { view ->
+                    boardList.getChildViewHolder(view) as? BoardViewItemVH
+                }
+            }
+        }
+    }
+
+    inline fun findBoardViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewVH? {
+        return boardView.findChildViewUnderRaw(rawX, rawY)?.let {
+            boardView.getChildViewHolder(it) as? BoardViewVH
+        }
+    }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
         // return true here to tell system that I will handle all subsequent touch events
@@ -87,6 +109,7 @@ class BoardViewContainer
         itemDragShadow.updateToMatch(vh.itemView)
         itemDragShadow.updateLayoutParams {
             width = WRAP_CONTENT
+            height = WRAP_CONTENT
         }
         itemDragShadow.dragBehavior.startDrag()
     }
@@ -94,7 +117,8 @@ class BoardViewContainer
     inline fun startDraggingList(vh: BoardViewVH) {
         listDragShadow.updateToMatch(vh.itemView)
         listDragShadow.updateLayoutParams {
-            // width = WRAP_CONTENT
+            width = WRAP_CONTENT
+            height = WRAP_CONTENT
         }
         listDragShadow.dragBehavior.startDrag()
     }

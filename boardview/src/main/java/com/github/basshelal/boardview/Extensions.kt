@@ -151,6 +151,13 @@ inline fun View.rightVerticalRect(left: Float): RectF {
     return this.globalVisibleRectF.also { it.left = left }
 }
 
+inline fun RecyclerView.findChildViewUnderRaw(rawX: Float, rawY: Float): View? {
+    val rect = this.globalVisibleRectF
+    val x = rawX - rect.left
+    val y = rawY - rect.top
+    return this.findChildViewUnder(x, y)
+}
+
 inline fun RecyclerView.scrollToEnd() {
     if (this.adapter != null) {
         this.scrollToPosition(adapter!!.lastPosition)

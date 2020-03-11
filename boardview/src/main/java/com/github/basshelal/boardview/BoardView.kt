@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.updateLayoutParams
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
@@ -92,11 +93,12 @@ abstract class BoardAdapter(
     // callback for caller to do stuff after onBindViewHolder is called
     open fun onViewHolderBound(holder: BoardViewVH, position: Int) {}
 
+    @CallSuper
     override fun onViewAttachedToWindow(holder: BoardViewVH) {
         layoutStates[holder.adapterPosition].also {
             if (it == null) {
                 holder.list?.layoutManager?.saveState()?.also {
-                    holder.list?.scrollToStart()
+                    holder.list?.layoutManager?.scrollToPosition(0)
                     layoutStates[holder.adapterPosition] = it
                 }
             } else {
@@ -105,6 +107,7 @@ abstract class BoardAdapter(
         }
     }
 
+    @CallSuper
     override fun onViewDetachedFromWindow(holder: BoardViewVH) {
         holder.list?.layoutManager?.saveState()?.also {
             layoutStates[holder.adapterPosition] = it

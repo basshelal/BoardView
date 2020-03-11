@@ -11,6 +11,7 @@ import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.boardview.BoardViewItemVH
 import com.github.basshelal.boardview.BoardViewVH
+import com.github.basshelal.boardview.shortSnackBar
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.view_header.view.*
 import kotlinx.android.synthetic.main.view_itemview.view.*
@@ -23,15 +24,6 @@ class MainActivity : AppCompatActivity() {
 
         boardViewContainer.adapter = ExampleBoardContainerAdapter(exampleBoard)
     }
-
-
-    // TODO: 07-Mar-20 To solve the Adapters problem we can either require that Adapters have IDs
-    //  which match something in the data structure or (better) we adda another function in the
-    //  BoardContiner that returns a Boolean representing whether this adapter (one we have in
-    //  the pool) matches or "is sufficient" for this position, true if it's good and false if
-    //  not, internally we can do a loop over the Adapter Set and in each onBind we can see
-    //  whether an adapter change or creation is needed or not
-
 }
 
 class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
@@ -66,7 +58,10 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
     : BoardAdapter(exampleAdapter) {
 
     override fun onViewHolderCreated(holder: BoardViewVH) {
-
+        holder.header?.setOnLongClickListener {
+            exampleAdapter.boardViewContainer.startDraggingList(holder)
+            true
+        }
     }
 
     override fun getItemCount(): Int {
@@ -86,7 +81,14 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
         return ItemVH(LayoutInflater.from(parent.context)
-                .inflate(R.layout.view_itemview, parent, false))
+                .inflate(R.layout.view_itemview, parent, false)).also { vh ->
+            vh.itemView.setOnLongClickListener {
+                val pos = vh.adapterPosition
+                it.shortSnackBar("Clicked ${items[pos].value} at List ${items.name}")
+                exampleAdapter.boardViewContainer.startDraggingItem(vh)
+                true
+            }
+        }
     }
 
     override fun getItemCount(): Int {

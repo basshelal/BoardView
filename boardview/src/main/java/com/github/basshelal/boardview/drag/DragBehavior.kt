@@ -2,7 +2,6 @@
 
 package com.github.basshelal.boardview.drag
 
-import android.annotation.SuppressLint
 import android.graphics.PointF
 import android.view.MotionEvent
 import android.view.View
@@ -127,7 +126,6 @@ open class DragBehavior(val view: View) {
         afterEndAnimation()
     }
 
-    @SuppressLint("Recycle")
     open fun startDragFromView(otherView: View) {
         require(otherView in this.view.parentViewGroup!!.childrenRecursiveSequence()) {
             """"The passed in view must be a descendant of this DragView's parent! 
@@ -207,8 +205,10 @@ open class ObservableDragBehavior(view: View) : DragBehavior(view) {
     enum class DragState {
         /** View is idle, no movement */
         IDLE,
+
         /** View is being dragged by user, movement from user */
         DRAGGING,
+
         /** View is settling into final position, movement is not from user */
         SETTLING
     }

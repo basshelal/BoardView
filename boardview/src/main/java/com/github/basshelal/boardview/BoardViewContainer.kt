@@ -10,9 +10,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.updateLayoutParams
 import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
@@ -107,19 +105,11 @@ class BoardViewContainer
 
     inline fun startDraggingItem(vh: BoardViewItemVH) {
         itemDragShadow.updateToMatch(vh.itemView)
-        itemDragShadow.updateLayoutParams {
-            width = WRAP_CONTENT
-            height = WRAP_CONTENT
-        }
         itemDragShadow.dragBehavior.startDrag()
     }
 
     inline fun startDraggingList(vh: BoardViewVH) {
         listDragShadow.updateToMatch(vh.itemView)
-        listDragShadow.updateLayoutParams {
-            width = WRAP_CONTENT
-            height = WRAP_CONTENT
-        }
         listDragShadow.dragBehavior.startDrag()
     }
 }

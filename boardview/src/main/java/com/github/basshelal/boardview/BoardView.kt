@@ -15,7 +15,7 @@ open class BoardView
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
     init {
-        layoutManager = SafeLinearLayoutManager(context).also {
+        layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = HORIZONTAL
             it.isItemPrefetchEnabled = true
             it.initialPrefetchItemCount = 5
@@ -60,7 +60,6 @@ abstract class BoardAdapter(
         }
         // Footer
         adapter?.onCreateFooter(view)?.also {
-            it.id = View.generateViewId()
             view.footer_frameLayout.addView(it)
             viewHolder.footer = it
             viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
@@ -83,7 +82,7 @@ abstract class BoardAdapter(
                     holder.list?.adapter = it
                 }
             } else {
-                (holder.list?.adapter as BoardListAdapter).bindAdapter(holder, position)
+                holder.boardListAdapter?.bindAdapter(holder, position)
                 holder.list?.rebindAll()
             }
         }
@@ -123,8 +122,7 @@ open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
         internal set
     var list: BoardList? = null
         internal set
-    var boardListAdapter: BoardListAdapter<*>? = null
-        internal set
     var footer: View? = null
         internal set
+    inline val boardListAdapter: BoardListAdapter<*>? get() = list?.adapter as? BoardListAdapter
 }

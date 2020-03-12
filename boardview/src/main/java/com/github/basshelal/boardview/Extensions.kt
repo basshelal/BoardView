@@ -130,6 +130,12 @@ inline val View.globalVisibleRect: Rect
 inline val View.globalVisibleRectF: RectF
     get() = Rect().also { this.getGlobalVisibleRect(it) }.toRectF()
 
+inline val RectF.detailedString: String
+    get() = "L: $left, T: $top, R: $right, B: $bottom"
+
+inline val Rect.detailedString: String
+    get() = "L: $left, T: $top, R: $right, B: $bottom"
+
 inline fun <reified T : View> View.find(@IdRes id: Int, apply: T.() -> Unit): T = find<T>(id).apply(apply)
 
 inline val ViewGroup.allChildren: List<View>

@@ -24,7 +24,7 @@ abstract class BaseRecyclerView
      * You can however, change properties of the [LayoutManager] by calling [getLayoutManager].
      */
     override fun setLayoutManager(lm: LayoutManager?) {
-        if (lm is SafeLinearLayoutManager) {
+        if (lm is SaveRestoreLinearLayoutManager) {
             super.setLayoutManager(lm)
         } else if (lm != null)
             logE("You are not allowed to set the Layout Manager of ${this::class.qualifiedName}\n" +
@@ -32,10 +32,10 @@ abstract class BaseRecyclerView
     }
 
     /**
-     * Because BoardView's [LayoutManager] is managed internally, it is guaranteed to be a [SafeLinearLayoutManager]
+     * Because BoardView's [LayoutManager] is managed internally, it is guaranteed to be a [SaveRestoreLinearLayoutManager]
      */
-    override fun getLayoutManager(): SafeLinearLayoutManager? =
-            super.getLayoutManager() as? SafeLinearLayoutManager
+    override fun getLayoutManager(): SaveRestoreLinearLayoutManager? =
+            super.getLayoutManager() as? SaveRestoreLinearLayoutManager
 
     /**
      * Rebinds all visible ViewHolders
@@ -60,7 +60,7 @@ typealias LinearState = LinearLayoutManager.SavedState
 /**
  * [LinearLayoutManager] that can save and restore state correctly
  */
-open class SafeLinearLayoutManager(context: Context) : LinearLayoutManager(context) {
+open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManager(context) {
 
     var savedState: LinearState? = null
         internal set

@@ -8,14 +8,17 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.view.ViewCompat
 import androidx.core.view.drawToBitmap
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
-import com.github.basshelal.boardview.F
-import com.github.basshelal.boardview.globalVisibleRect
+import com.github.basshelal.boardview.globalVisibleRectF
+import com.github.basshelal.boardview.logE
 import com.github.basshelal.boardview.parentViewGroup
+import kotlin.math.abs
 
 /**
  * An [ImageView] used to represent the draggable "shadow" of any [View].
@@ -49,38 +52,50 @@ constructor(context: Context,
     val dragBehavior: ObservableDragBehavior = ObservableDragBehavior(this)
 
     inline infix fun updateToMatch(view: View) {
-        updateToMatchLayoutParamsOf(view)
         updateToMatchBitmapOf(view)
+        updateLayoutParams()
         updateToMatchPositionOf(view)
         this.bringToFront()
     }
 
-    inline infix fun updateToMatchLayoutParamsOf(view: View) {
-        if (view.layoutParams != null) {
-            if (this.layoutParams == null) {
-                this.layoutParams = ViewGroup.LayoutParams(
-                        view.layoutParams.width,
-                        view.layoutParams.height
-                )
-            } else {
-                updateLayoutParams {
-                    width = view.layoutParams.width
-                    height = view.layoutParams.height
-                }
+    inline fun updateLayoutParams() {
+        if (this.layoutParams == null) {
+            this.layoutParams = ViewGroup.LayoutParams(
+                    WRAP_CONTENT,
+                    WRAP_CONTENT
+            )
+        } else {
+            updateLayoutParams {
+                width = WRAP_CONTENT
+                height = WRAP_CONTENT
             }
         }
     }
 
     inline infix fun updateToMatchBitmapOf(view: View) {
-        this.setImageBitmap(view.drawToBitmap())
+        if (ViewCompat.isLaidOut(this))
+            this.setImageBitmap(view.drawToBitmap())
     }
 
     inline infix fun updateToMatchPositionOf(view: View) {
-        val parentBounds = this.parentViewGroup!!.globalVisibleRect
-        val viewBounds = view.globalVisibleRect
+        this.parentViewGroup?.also { parentVG ->
+            val parentBounds = parentVG.globalVisibleRectF
+            val viewBounds = view.globalVisibleRectF
 
-        this.x = viewBounds.left.F - parentBounds.left.F
-        this.y = viewBounds.top.F - parentBounds.top.F
+            if (abs(viewBounds.bottom - viewBounds.top) < view.height) {
+                logE("HEIGHT MISMATCH")
+            }
+            if (abs(viewBounds.right - viewBounds.left) < view.width) {
+                logE("WIDTH MISMATCH")
+            }
+
+            this.x = viewBounds.left - parentBounds.left
+            this.y = viewBounds.top - parentBounds.top
+
+            // TODO: 12-Mar-20 What if the other view's top is not visible but the bottom is
+            //  same thing with left
+
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

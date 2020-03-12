@@ -16,9 +16,7 @@ import androidx.core.view.drawToBitmap
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import com.github.basshelal.boardview.globalVisibleRectF
-import com.github.basshelal.boardview.logE
 import com.github.basshelal.boardview.parentViewGroup
-import kotlin.math.abs
 
 /**
  * An [ImageView] used to represent the draggable "shadow" of any [View].
@@ -79,22 +77,37 @@ constructor(context: Context,
 
     inline infix fun updateToMatchPositionOf(view: View) {
         this.parentViewGroup?.also { parentVG ->
-            val parentBounds = parentVG.globalVisibleRectF
+            val thisParentBounds = parentVG.globalVisibleRectF
             val viewBounds = view.globalVisibleRectF
+            val viewParentBounds = view.parentViewGroup?.globalVisibleRectF ?: thisParentBounds
 
-            if (abs(viewBounds.bottom - viewBounds.top) < view.height) {
-                logE("HEIGHT MISMATCH")
+            var shiftX = 0F
+            var shiftY = 0F
+
+            val originalWidth = view.width
+            val visibleWidth = viewBounds.right - viewBounds.left
+            if (visibleWidth < originalWidth) {
+                // Left is hidden
+                if (viewBounds.left <= viewParentBounds.left) shiftX = originalWidth - visibleWidth
+                // We do nothing if right is hidden because x is set in terms of left
             }
-            if (abs(viewBounds.right - viewBounds.left) < view.width) {
-                logE("WIDTH MISMATCH")
+
+            val originalHeight = view.height
+            val visibleHeight = viewBounds.bottom - viewBounds.top
+            if (visibleHeight < originalHeight) {
+                // Top is hidden
+                if (viewBounds.top <= viewParentBounds.top) shiftY = originalHeight - visibleHeight
+                // We do nothing if bottom is hidden because y is set in terms of top
             }
 
-            this.x = viewBounds.left - parentBounds.left
-            this.y = viewBounds.top - parentBounds.top
+            // TODO: 12-Mar-20 Is it possible to chop the bitmap to resemble the currently visible parts of the view??
+            /*this.setImageBitmap((this.drawable as BitmapDrawable).bitmap.applyCanvas {
+                translate(viewBounds.left, viewBounds.top)
+                draw(this)
+            })*/
 
-            // TODO: 12-Mar-20 What if the other view's top is not visible but the bottom is
-            //  same thing with left
-
+            this.x = viewBounds.left - thisParentBounds.left - shiftX
+            this.y = viewBounds.top - thisParentBounds.top - shiftY
         }
     }
 

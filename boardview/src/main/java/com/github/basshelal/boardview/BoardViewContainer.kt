@@ -36,6 +36,11 @@ class BoardViewContainer
     inline val itemDragShadow: DragShadow get() = this.item_dragShadow
     inline val listDragShadow: DragShadow get() = this.list_dragShadow
 
+    var touchPointF = PointF()
+
+    var draggingItemVH: BoardViewItemVH? = null
+    var draggingBoardViewVH: BoardViewVH? = null
+
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
 
@@ -46,22 +51,50 @@ class BoardViewContainer
     private inline fun itemDragShadow() {
         itemDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
-            override fun onUpdateLocation(dragView: View, touchPoint: PointF) {
-                findItemViewHolderUnderRaw(touchPoint.x, touchPoint.y)
-                        ?.itemView?.setBackgroundColor(Color.RED)
+            override fun onStartDrag(dragView: View) {
+                draggingItemVH = findItemViewHolderUnderRaw(touchPointF.x, touchPointF.y)
+                draggingItemVH?.itemView?.setBackgroundColor(Color.MAGENTA)
             }
 
+            override fun onUpdateLocation(dragView: View, touchPoint: PointF) {
+                findItemViewHolderUnderRaw(touchPoint.x, touchPoint.y)?.also { newVH ->
+                    if (newVH != draggingItemVH) {
+                        draggingItemVH?.itemView?.setBackgroundColor(Color.TRANSPARENT)
+                        newVH.itemView.setBackgroundColor(Color.CYAN)
+                        draggingItemVH = newVH
+                    }
+                }
+            }
+
+            override fun onEndDrag(dragView: View) {
+                draggingItemVH = null
+            }
         }
     }
 
     private inline fun listDragShadow() {
         listDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
-            override fun onUpdateLocation(dragView: View, touchPoint: PointF) {
-                findBoardViewHolderUnderRaw(touchPoint.x, touchPoint.y)
-                        ?.itemView?.setBackgroundColor(Color.RED)
+            override fun onStartDrag(dragView: View) {
+                draggingBoardViewVH = findBoardViewHolderUnderRaw(touchPointF.x, touchPointF.y)
+                draggingBoardViewVH?.itemView?.setBackgroundColor(Color.MAGENTA)
             }
 
+            override fun onUpdateLocation(dragView: View, touchPoint: PointF) {
+                findBoardViewHolderUnderRaw(touchPoint.x, touchPoint.y)?.also { newVH ->
+                    if (newVH != draggingBoardViewVH) {
+                        draggingBoardViewVH?.itemView?.setBackgroundColor(Color.TRANSPARENT)
+                        newVH.itemView.setBackgroundColor(Color.CYAN)
+                        swapBoardViewHolders(draggingBoardViewVH!!, newVH)
+                        // TODO: 13-Mar-20 Do shit after the animation of swap is finished somehow!
+                        draggingBoardViewVH = newVH
+                    }
+                }
+            }
+
+            override fun onEndDrag(dragView: View) {
+                draggingBoardViewVH = null
+            }
         }
     }
 
@@ -90,6 +123,7 @@ class BoardViewContainer
     // return false to tell system to stop sending events
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        touchPointF.set(event.rawX, event.rawY)
         val result: Boolean
         if (itemDragShadow.dragBehavior.dragState == ObservableDragBehavior.DragState.DRAGGING) {
             itemDragShadow.dragBehavior.onTouchEvent(event)
@@ -111,6 +145,18 @@ class BoardViewContainer
     inline fun startDraggingList(vh: BoardViewVH) {
         listDragShadow.updateToMatch(vh.itemView)
         listDragShadow.dragBehavior.startDrag()
+    }
+
+    fun swapItemViewHolders(old: BoardViewItemVH, new: BoardViewItemVH) {
+        // TODO: 13-Mar-20 Do stuff when they're both in the same list
+        // TODO: 13-Mar-20 Do more complicated stuff when they're both in different lists
+    }
+
+    fun swapBoardViewHolders(old: BoardViewVH, new: BoardViewVH) {
+        (boardView.adapter as? BoardAdapter)?.apply {
+            notifyItemChanged(old.adapterPosition)
+            notifyItemChanged(new.adapterPosition)
+        }
     }
 }
 

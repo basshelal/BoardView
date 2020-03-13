@@ -4,6 +4,8 @@ package com.github.basshelal.boardview.drag
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -15,6 +17,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.drawToBitmap
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
+import com.github.basshelal.boardview.I
 import com.github.basshelal.boardview.globalVisibleRectF
 import com.github.basshelal.boardview.parentViewGroup
 
@@ -100,20 +103,73 @@ constructor(context: Context,
                 // We do nothing if bottom is hidden because y is set in terms of top
             }
 
-            // TODO: 12-Mar-20 Is it possible to chop the bitmap to resemble the currently visible parts of the view??
-            /*this.setImageBitmap((this.drawable as BitmapDrawable).bitmap.applyCanvas {
-                translate(viewBounds.left, viewBounds.top)
-                draw(this)
-            })*/
-
             this.x = viewBounds.left - thisParentBounds.left - shiftX
             this.y = viewBounds.top - thisParentBounds.top - shiftY
+        }
+    }
+
+    // Same as updateToMatchPositionOf except this one crops the bitmap
+    inline infix fun updateToMatchVisibilityOf(view: View) {
+        this.parentViewGroup?.also { parentVG ->
+            val thisParentBounds = parentVG.globalVisibleRectF
+            val viewBounds = view.globalVisibleRectF
+            val viewParentBounds = view.parentViewGroup?.globalVisibleRectF ?: thisParentBounds
+
+            val originalWidth = view.width
+            val visibleWidth = viewBounds.right - viewBounds.left
+
+            var bitmapX = 0
+            var bitmapY = 0
+            var bitmapWidth = view.width
+            var bitmapHeight = view.height
+
+            if (visibleWidth < originalWidth) {
+                // Left is hidden
+                if (viewBounds.left <= viewParentBounds.left) {
+                    bitmapX = (originalWidth - visibleWidth).I
+                }
+                // Right is hidden
+                if (viewBounds.right >= viewParentBounds.right) {
+                    bitmapX = 0
+                }
+                bitmapWidth = visibleWidth.I
+            }
+
+            val originalHeight = view.height
+            val visibleHeight = viewBounds.bottom - viewBounds.top
+            if (visibleHeight < originalHeight) {
+                // Top is hidden
+                if (viewBounds.top <= viewParentBounds.top) {
+                    bitmapY = (originalHeight - visibleHeight).I
+                }
+                // Bottom is hidden
+                if (viewBounds.bottom >= viewParentBounds.bottom) {
+                    bitmapY = 0
+                }
+                bitmapHeight = visibleHeight.I
+            }
+
+            resizeImage(
+                    bitmapX, bitmapY,
+                    bitmapWidth, bitmapHeight
+            )
+
+            this.x = viewBounds.left - thisParentBounds.left
+            this.y = viewBounds.top - thisParentBounds.top
+
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         return super.onTouchEvent(event) || dragBehavior.onTouchEvent(event)
+    }
+
+    inline fun resizeImage(x: Int, y: Int, width: Int, height: Int) {
+        this.setImageBitmap(
+                Bitmap.createBitmap((this.drawable as BitmapDrawable).bitmap,
+                        x, y, width, height)
+        )
     }
 
 }

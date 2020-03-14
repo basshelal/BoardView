@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.view.children
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -75,3 +76,5 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
         return savedState
     }
 }
+
+open class BaseItemAnimator : DefaultItemAnimator()

@@ -52,6 +52,15 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         return res
     }
 
+    override fun onSwapBoardViewHolders(old: BoardViewVH, new: BoardViewVH) {
+        val from = old.adapterPosition
+        val to = new.adapterPosition
+        val oldVal = board[from]
+        val newVal = board[to]
+        board[from] = newVal
+        board[to] = oldVal
+    }
+
 }
 
 class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)

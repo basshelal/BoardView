@@ -7,6 +7,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Point
 import android.graphics.PointF
 import android.graphics.Rect
@@ -33,10 +34,14 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
+import org.jetbrains.anko.Orientation
 import org.jetbrains.anko.childrenRecursiveSequence
+import org.jetbrains.anko.configuration
 import org.jetbrains.anko.contentView
+import org.jetbrains.anko.displayMetrics
 import org.jetbrains.anko.find
 import org.jetbrains.anko.inputMethodManager
+import org.jetbrains.anko.windowManager
 import kotlin.math.max
 import kotlin.math.min
 
@@ -128,7 +133,13 @@ inline val View.globalVisibleRect: Rect
     get() = Rect().also { this.getGlobalVisibleRect(it) }
 
 inline val View.globalVisibleRectF: RectF
-    get() = Rect().also { this.getGlobalVisibleRect(it) }.toRectF()
+    get() = globalVisibleRect.toRectF()
+
+inline val View.localVisibleRect: Rect
+    get() = Rect().also { this.getLocalVisibleRect(it) }
+
+inline val View.localVisibleRectF: RectF
+    get() = localVisibleRect.toRectF()
 
 inline val RectF.detailedString: String
     get() = "L: $left, T: $top, R: $right, B: $bottom"
@@ -137,6 +148,22 @@ inline val Rect.detailedString: String
     get() = "L: $left, T: $top, R: $right, B: $bottom"
 
 inline fun <reified T : View> View.find(@IdRes id: Int, apply: T.() -> Unit): T = find<T>(id).apply(apply)
+
+inline val View.millisPerFrame get() = 1000F / context.windowManager.defaultDisplay.refreshRate
+
+// Screen width that the context is able to use, this doesn't include navigation bars
+inline val View.usableWidth: Int get() = context.displayMetrics.widthPixels
+
+// Screen height that the context is able to use, this doesn't include navigation bars
+inline val View.usableHeight: Int get() = context.displayMetrics.heightPixels
+
+inline val View.orientation: Orientation
+    get() = when (context.configuration.orientation) {
+        Configuration.ORIENTATION_LANDSCAPE -> Orientation.LANDSCAPE
+        Configuration.ORIENTATION_PORTRAIT -> Orientation.PORTRAIT
+        else -> if (usableHeight >= usableWidth)
+            Orientation.PORTRAIT else Orientation.LANDSCAPE
+    }
 
 inline val ViewGroup.allChildren: List<View>
     get() = this.childrenRecursiveSequence().toList()

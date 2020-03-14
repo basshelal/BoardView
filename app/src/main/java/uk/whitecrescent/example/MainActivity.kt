@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.BoardAdapter
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardListAdapter
@@ -55,10 +56,12 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
     override fun onSwapBoardViewHolders(old: BoardViewVH, new: BoardViewVH) {
         val from = old.adapterPosition
         val to = new.adapterPosition
-        val oldVal = board[from]
-        val newVal = board[to]
-        board[from] = newVal
-        board[to] = oldVal
+        if (from != NO_POSITION && to != NO_POSITION) {
+            val oldVal = board[from]
+            val newVal = board[to]
+            board[from] = newVal
+            board[to] = oldVal
+        }
     }
 
 }

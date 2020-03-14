@@ -22,6 +22,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
+import android.view.animation.Interpolator
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -156,6 +157,18 @@ inline val View.usableWidth: Int get() = context.displayMetrics.widthPixels
 
 // Screen height that the context is able to use, this doesn't include navigation bars
 inline val View.usableHeight: Int get() = context.displayMetrics.heightPixels
+
+inline val View.realScreenWidth: Int
+    get() = Point().also {
+        context.windowManager.defaultDisplay.getRealSize(it)
+    }.x
+
+inline val View.realScreenHeight: Int
+    get() = Point().also {
+        context.windowManager.defaultDisplay.getRealSize(it)
+    }.y
+
+inline operator fun Interpolator.get(float: Float) = this.getInterpolation(float)
 
 inline val View.orientation: Orientation
     get() = when (context.configuration.orientation) {

@@ -10,6 +10,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.isVisible
@@ -23,6 +24,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
@@ -55,6 +57,8 @@ class BoardViewContainer
 
     private val boardVHSwaps = HashMap<ViewHolderSwap<BoardViewVH>, Boolean>()
     private val itemVHSwaps = HashMap<ViewHolderSwap<BoardViewItemVH>, Boolean>()
+
+    private val interpolator = AccelerateDecelerateInterpolator()
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -95,7 +99,7 @@ class BoardViewContainer
                     checkForHorizontalScroll(touchPointF)
                     findBoardViewHolderUnderRaw(touchPointF.x, touchPointF.y)?.also { newVH ->
                         draggingBoardViewVH?.also { draggingVH ->
-                            swapBoardViewHoldersView(draggingVH, newVH)
+                            // swapBoardViewHoldersView(draggingVH, newVH)
                         }
                     }
                 }
@@ -221,18 +225,36 @@ class BoardViewContainer
     }
 
     fun checkForHorizontalScroll(touchPoint: PointF) {
-        val scrollBy = updateRatePerMilli.I
-        val width = boardView.globalVisibleRectF.width() / 6F
-        val leftBounds = boardView.globalVisibleRectF.also { it.right = width }
-        val rightBounds = boardView.globalVisibleRectF.also { it.left = it.width() - width }
+        val maxScrollBy = (updateRatePerMilli * 2F).roundToInt()
+        val width = boardView.globalVisibleRectF.width() / 5F
+        val leftBounds = boardView.globalVisibleRectF.also {
+            it.right = width
+            it.left = 0F
+            it.top = 0F
+            it.bottom = realScreenHeight.F
+        }
+        val rightBounds = boardView.globalVisibleRectF.also {
+            it.left = it.width() - width
+            it.right = realScreenWidth.F
+            it.top = 0F
+            it.bottom = realScreenHeight.F
+        }
+        val leftMost = boardView.globalVisibleRectF.left
+        val rightMost = boardView.globalVisibleRectF.right
+        var scrollBy = 0
         when {
             leftBounds.contains(touchPoint) -> {
-                boardView.scrollBy(-scrollBy, 0)
+                val mult = interpolator[
+                        1F - (touchPoint.x - leftMost) / (leftBounds.right - leftMost)]
+                scrollBy = -(maxScrollBy * mult).roundToInt()
             }
             rightBounds.contains(touchPoint) -> {
-                boardView.scrollBy(scrollBy, 0)
+                val mult = interpolator[
+                        (touchPoint.x - rightBounds.left) / (rightMost - rightBounds.left)]
+                scrollBy = (maxScrollBy * mult).roundToInt()
             }
         }
+        boardView.scrollBy(scrollBy, 0)
     }
 
     inline fun doAfterFinishAnimation(crossinline block: (BoardView) -> Unit) {

@@ -264,63 +264,70 @@ class BoardViewContainer
     fun horizontalScroll(touchPoint: PointF) {
         val maxScrollBy = (updateRatePerMilli * 2F).roundToInt()
         val width = boardView.globalVisibleRectF.width() / 5F
-        val leftBounds = boardView.globalVisibleRectF.also {
-            it.right = width
+        val outsideLeftBounds = boardView.globalVisibleRectF.also {
+            it.right = it.left
             it.left = 0F
-            it.top = 0F
-            it.bottom = realScreenHeight.F
+        }
+        val leftBounds = boardView.globalVisibleRectF.also {
+            it.right = it.left + width
+        }
+        val outsideRightBounds = boardView.globalVisibleRectF.also {
+            it.left = it.right
+            it.right = realScreenWidth.F
         }
         val rightBounds = boardView.globalVisibleRectF.also {
-            it.left = it.width() - width
-            it.right = realScreenWidth.F
-            it.top = 0F
-            it.bottom = realScreenHeight.F
+            it.left = it.right - width
         }
-        val leftMost = boardView.globalVisibleRectF.left
-        val rightMost = boardView.globalVisibleRectF.right
         var scrollBy = 0
         when {
-            leftBounds.contains(touchPoint) -> {
+            touchPoint in leftBounds -> {
                 val mult = interpolator[
-                        1F - (touchPoint.x - leftMost) / (leftBounds.right - leftMost)]
+                        1F - (touchPoint.x - leftBounds.left) / (leftBounds.right - leftBounds.left)]
                 scrollBy = -(maxScrollBy * mult).roundToInt()
             }
-            rightBounds.contains(touchPoint) -> {
+            touchPoint in rightBounds -> {
                 val mult = interpolator[
-                        (touchPoint.x - rightBounds.left) / (rightMost - rightBounds.left)]
+                        (touchPoint.x - rightBounds.left) / (rightBounds.right - rightBounds.left)]
                 scrollBy = (maxScrollBy * mult).roundToInt()
             }
+            touchPoint in outsideLeftBounds -> scrollBy = -maxScrollBy
+            touchPoint in outsideRightBounds -> scrollBy = maxScrollBy
         }
         boardView.scrollBy(scrollBy, 0)
     }
 
     fun verticalScroll(touchPoint: PointF, boardList: BoardList) {
-        val maxScrollBy = (updateRatePerMilli * 2F).roundToInt()
-        val height = boardList.globalVisibleRectF.height() / 8F
-        val topBounds = boardList.globalVisibleRectF.also {
-            it.bottom = it.top + height
+        val maxScrollBy = (updateRatePerMilli * 1.5F).roundToInt()
+        val height = boardList.globalVisibleRectF.height() / 10F
+        val outsideTopBounds = boardList.globalVisibleRectF.also {
+            it.bottom = it.top
             it.top = 0F
         }
-        val bottomBounds = boardList.globalVisibleRectF.also {
-            it.top = it.height() - height
+        val topBounds = boardList.globalVisibleRectF.also {
+            it.bottom = it.top + height
+        }
+        val outsideBottomBounds = boardList.globalVisibleRectF.also {
+            it.top = it.bottom
             it.bottom = realScreenHeight.F
         }
-        val topMost = boardList.globalVisibleRectF.top
-        val bottomMost = boardList.globalVisibleRectF.bottom
+        val bottomBounds = boardList.globalVisibleRectF.also {
+            it.top = it.bottom - height
+        }
         var scrollBy = 0
         when {
-            topBounds.contains(touchPoint) -> {
+            touchPoint in topBounds -> {
                 val mult = interpolator[
-                        1F - (touchPoint.y - topMost) / (topBounds.bottom - topMost)]
+                        1F - (touchPoint.y - topBounds.top) / (topBounds.bottom - topBounds.top)]
                 scrollBy = -(maxScrollBy * mult).roundToInt()
             }
-            bottomBounds.contains(touchPoint) -> {
+            touchPoint in bottomBounds -> {
                 val mult = interpolator[
-                        (touchPoint.y - bottomBounds.top) / (bottomMost - bottomBounds.top)]
+                        (touchPoint.y - bottomBounds.top) / (bottomBounds.bottom - bottomBounds.top)]
                 scrollBy = (maxScrollBy * mult).roundToInt()
             }
+            touchPoint in outsideTopBounds -> scrollBy = -maxScrollBy
+            touchPoint in outsideBottomBounds -> scrollBy = maxScrollBy
         }
-        logE("$now $scrollBy")
         boardList.scrollBy(0, scrollBy)
     }
 

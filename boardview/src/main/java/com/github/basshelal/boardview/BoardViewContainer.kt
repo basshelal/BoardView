@@ -9,7 +9,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.graphics.contains
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
@@ -23,7 +22,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.floor
-import kotlin.math.roundToInt
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
@@ -46,28 +44,25 @@ class BoardViewContainer
     inline val itemDragShadow: DragShadow get() = this.item_dragShadow
     inline val listDragShadow: DragShadow get() = this.list_dragShadow
 
-    var touchPointF = PointF()
+    private var touchPointF = PointF()
 
-    var draggingItemVH: BoardViewItemVH? = null
+    private var draggingItemVH: BoardViewItemVH? = null
 
     // the column which the dragging Item belongs to, this will change when the item has been
     // dragged across to a new column
-    var draggingItemVHColumn: BoardViewColumnVH? = null
+    private var draggingItemVHColumn: BoardViewColumnVH? = null
 
-    var draggingColumnVH: BoardViewColumnVH? = null
+    private var draggingColumnVH: BoardViewColumnVH? = null
 
     // We update observers based on the screen refresh rate because animations are not able to
     // keep up with a faster update rate, this is only a problem with scrolling since we don't
     // want scrolling to be based on refresh rate (higher refresh rate screens scroll faster like
     // Fallout 76, country roads take me HOOOOOOOOME!) so we offset this by ensuring that the
     // scroll rate is constant no matter how high the refresh rate (1 px per 1 ms)
-    val updateRatePerMilli = floor(millisPerFrame)
-    val scrollRatePerMilli = 1F
+    private val updateRatePerMilli = floor(millisPerFrame)
 
     private val columnVHSwaps = HashMap<ViewHolderSwap<BoardViewColumnVH>, Boolean>()
     private val itemVHSwaps = HashMap<ViewHolderSwap<BoardViewItemVH>, Boolean>()
-
-    private val interpolator = LogarithmicInterpolator()
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -81,8 +76,8 @@ class BoardViewContainer
 
             val onNext = {
                 if (draggingItemVH != null && draggingItemVHColumn != null) {
-                    horizontalScroll(touchPointF)
-                    draggingItemVHColumn?.list?.also { verticalScroll(touchPointF, it) }
+                    boardView.horizontalScroll(touchPointF)
+                    draggingItemVHColumn?.list?.also { it.verticalScroll(touchPointF) }
 
                     draggingItemVH?.also { draggingVH ->
                         // swapItemViewHolders(draggingVH, newItemVH)
@@ -121,7 +116,7 @@ class BoardViewContainer
 
             val onNext = {
                 if (draggingColumnVH != null) {
-                    horizontalScroll(touchPointF)
+                    boardView.horizontalScroll(touchPointF)
                     findBoardViewHolderUnderRaw(touchPointF.x, touchPointF.y)?.also { newVH ->
                         draggingColumnVH?.also { draggingVH ->
                             swapBoardViewHoldersView(draggingVH, newVH)
@@ -159,7 +154,7 @@ class BoardViewContainer
     //  has set large margins we still want things to work properly
     //  This can be done using a simple find first algorithm
 
-    fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float)
+    private fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float)
             : Pair<BoardViewColumnVH?, BoardViewItemVH?> {
         var boardVH: BoardViewColumnVH? = null
         var itemVH: BoardViewItemVH? = null
@@ -172,7 +167,8 @@ class BoardViewContainer
         return Pair(boardVH, itemVH)
     }
 
-    fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, rawX: Float, rawY: Float): BoardViewItemVH? {
+    private fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, rawX: Float, rawY: Float):
+            BoardViewItemVH? {
         return boardVH.list?.let { boardList ->
             boardList.findChildViewUnderRaw(rawX, rawY)?.let { view ->
                 boardList.getChildViewHolder(view) as? BoardViewItemVH
@@ -180,7 +176,7 @@ class BoardViewContainer
         }
     }
 
-    fun findBoardViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewColumnVH? {
+    private fun findBoardViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewColumnVH? {
         return boardView.findChildViewUnderRaw(rawX, rawY)?.let {
             boardView.getChildViewHolder(it) as? BoardViewColumnVH
         }
@@ -261,86 +257,20 @@ class BoardViewContainer
         }
     }
 
-    // TODO: 15-Mar-20 Can we cache some of the bounds we keep using when scrolling because they
-    //  get recomputed every updateRate milliseconds! This is expensive even if the operations
-    //  themselves aren't too expensive (they aren't)
-
-    fun horizontalScroll(touchPoint: PointF) {
-        val maxScrollBy = (updateRatePerMilli * 2F).roundToInt()
-        val width = boardView.globalVisibleRectF.width() / 5F
-        val outsideLeftBounds = boardView.globalVisibleRectF.also {
-            it.right = it.left
-            it.left = 0F
-        }
-        val leftBounds = boardView.globalVisibleRectF.also {
-            it.right = it.left + width
-        }
-        val outsideRightBounds = boardView.globalVisibleRectF.also {
-            it.left = it.right
-            it.right = realScreenWidth.F
-        }
-        val rightBounds = boardView.globalVisibleRectF.also {
-            it.left = it.right - width
-        }
-        var scrollBy = 0
-        when {
-            touchPoint in leftBounds -> {
-                val mult = interpolator[
-                        1F - (touchPoint.x - leftBounds.left) / (leftBounds.right - leftBounds.left)]
-                scrollBy = -(maxScrollBy * mult).roundToInt()
-            }
-            touchPoint in rightBounds -> {
-                val mult = interpolator[
-                        (touchPoint.x - rightBounds.left) / (rightBounds.right - rightBounds.left)]
-                scrollBy = (maxScrollBy * mult).roundToInt()
-            }
-            touchPoint in outsideLeftBounds -> scrollBy = -maxScrollBy
-            touchPoint in outsideRightBounds -> scrollBy = maxScrollBy
-        }
-        boardView.scrollBy(scrollBy, 0)
-    }
-
-    fun verticalScroll(touchPoint: PointF, boardList: BoardList) {
-        val maxScrollBy = (updateRatePerMilli * 1.5F).roundToInt()
-        val height = boardList.globalVisibleRectF.height() / 10F
-        val outsideTopBounds = boardList.globalVisibleRectF.also {
-            it.bottom = it.top
-            it.top = 0F
-        }
-        val topBounds = boardList.globalVisibleRectF.also {
-            it.bottom = it.top + height
-        }
-        val outsideBottomBounds = boardList.globalVisibleRectF.also {
-            it.top = it.bottom
-            it.bottom = realScreenHeight.F
-        }
-        val bottomBounds = boardList.globalVisibleRectF.also {
-            it.top = it.bottom - height
-        }
-        var scrollBy = 0
-        when {
-            touchPoint in topBounds -> {
-                val mult = interpolator[
-                        1F - (touchPoint.y - topBounds.top) / (topBounds.bottom - topBounds.top)]
-                scrollBy = -(maxScrollBy * mult).roundToInt()
-            }
-            touchPoint in bottomBounds -> {
-                val mult = interpolator[
-                        (touchPoint.y - bottomBounds.top) / (bottomBounds.bottom - bottomBounds.top)]
-                scrollBy = (maxScrollBy * mult).roundToInt()
-            }
-            touchPoint in outsideTopBounds -> scrollBy = -maxScrollBy
-            touchPoint in outsideBottomBounds -> scrollBy = maxScrollBy
-        }
-        boardList.scrollBy(0, scrollBy)
-    }
-
     fun getBoardColumnID(holder: BoardViewColumnVH): Long {
         return boardView.boardAdapter?.getItemId(holder.adapterPosition) ?: RecyclerView.NO_ID
     }
 
     // TODO: 15-Mar-20 Write code that will save and restore state correctly
     //  we mainly need to save Layout States but possibly more as well
+
+    companion object {
+        val MAX_POOL_COUNT = 25
+        val POOL_ITEM_VH = object : RecyclerView.RecycledViewPool() {
+            override fun setMaxRecycledViews(viewType: Int, max: Int) =
+                    super.setMaxRecycledViews(viewType, MAX_POOL_COUNT)
+        }
+    }
 
 }
 

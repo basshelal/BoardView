@@ -1,13 +1,18 @@
 package com.github.basshelal.boardview
 
 import android.content.Context
+import android.graphics.PointF
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.graphics.contains
 import androidx.core.view.updateLayoutParams
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
+import kotlin.math.floor
+import kotlin.math.roundToInt
 
 open class BoardView
 @JvmOverloads constructor(
@@ -16,12 +21,61 @@ open class BoardView
 
     inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
 
+    // Horizontal Scrolling info
+    private val interpolator = LogarithmicInterpolator()
+    private val updateRatePerMilli = floor(millisPerFrame)
+    private val horizontalMaxScrollBy = (updateRatePerMilli * 2F).roundToInt()
+    private var horizontalScrollBoundWidth = 0F
+    private val outsideLeftScrollBounds = RectF()
+    private val leftScrollBounds = RectF()
+    private val outsideRightScrollBounds = RectF()
+    private val rightScrollBounds = RectF()
+
     init {
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = HORIZONTAL
             it.isItemPrefetchEnabled = true
             it.initialPrefetchItemCount = 5
         }
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+
+        horizontalScrollBoundWidth = this.globalVisibleRectF.width() / 5F
+        outsideLeftScrollBounds.set(this.globalVisibleRectF.also {
+            it.right = it.left
+            it.left = 0F
+        })
+        leftScrollBounds.set(this.globalVisibleRectF.also {
+            it.right = it.left + horizontalScrollBoundWidth
+        })
+        outsideRightScrollBounds.set(this.globalVisibleRectF.also {
+            it.left = it.right
+            it.right = realScreenWidth.F
+        })
+        rightScrollBounds.set(this.globalVisibleRectF.also {
+            it.left = it.right - horizontalScrollBoundWidth
+        })
+    }
+
+    fun horizontalScroll(touchPoint: PointF) {
+        var scrollBy = 0
+        when {
+            touchPoint in leftScrollBounds -> {
+                val mult = interpolator[
+                        1F - (touchPoint.x - leftScrollBounds.left) / (leftScrollBounds.right - leftScrollBounds.left)]
+                scrollBy = -(horizontalMaxScrollBy * mult).roundToInt()
+            }
+            touchPoint in rightScrollBounds -> {
+                val mult = interpolator[
+                        (touchPoint.x - rightScrollBounds.left) / (rightScrollBounds.right - rightScrollBounds.left)]
+                scrollBy = (horizontalMaxScrollBy * mult).roundToInt()
+            }
+            touchPoint in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy
+            touchPoint in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
+        }
+        this.scrollBy(scrollBy, 0)
     }
 
     /**

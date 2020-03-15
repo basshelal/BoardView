@@ -1,14 +1,14 @@
 package uk.whitecrescent.example
 
 data class ListItem<T>(
-        var id: Int,
+        var id: Long,
         var value: T
 )
 
 typealias StringListItem = ListItem<String>
 
 data class BoardList<T>(
-        var id: Int,
+        var id: Long,
         var name: String,
         val items: MutableList<ListItem<T>>
 ) {
@@ -19,7 +19,7 @@ data class BoardList<T>(
 }
 
 data class Board<T>(
-        var id: Int,
+        var id: Long,
         var name: String,
         val boardLists: MutableList<BoardList<T>>
 ) {
@@ -37,11 +37,11 @@ val exampleBoard = Board<String>(
         name = "My Board",
         boardLists = MutableList(boardListsSize) { listNumber ->
             BoardList(
-                    id = listNumber,
+                    id = listNumber.toLong(),
                     name = "List #$listNumber",
                     items = MutableList(itemsSize) { itemNumber ->
                         StringListItem(
-                                id = (listNumber * boardListsSize) + itemNumber,
+                                id = ((listNumber * boardListsSize) + itemNumber).toLong(),
                                 value = "Item #${(listNumber * boardListsSize) + itemNumber}")
                     })
         })

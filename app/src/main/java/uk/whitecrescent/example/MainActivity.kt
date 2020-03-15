@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.RecyclerView.NO_POSITION
+import androidx.recyclerview.widget.DiffUtil.DiffResult.NO_POSITION
 import com.github.basshelal.boardview.BoardAdapter
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardListAdapter
@@ -76,6 +76,10 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         }
     }
 
+    override fun getItemId(position: Int): Long {
+        return exampleAdapter.board[position].id
+    }
+
     override fun getItemCount(): Int {
         return exampleAdapter.board.boardLists.size
     }
@@ -101,6 +105,10 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
                 true
             }
         }
+    }
+
+    override fun getItemId(position: Int): Long {
+        return items[position].id
     }
 
     override fun getItemCount(): Int {

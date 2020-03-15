@@ -14,6 +14,8 @@ open class BoardView
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
+    inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
+
     init {
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = HORIZONTAL

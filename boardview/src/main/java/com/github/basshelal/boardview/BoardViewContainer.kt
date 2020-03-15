@@ -8,10 +8,10 @@ import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
@@ -48,15 +48,25 @@ class BoardViewContainer
     var touchPointF = PointF()
 
     var draggingItemVH: BoardViewItemVH? = null
+
+    // the column which the dragging Item belongs to, this will change when the item has been
+    // dragged across to a new column
+    var draggingItemVHColumn: BoardViewColumnVH? = null
+
     var draggingColumnVH: BoardViewColumnVH? = null
 
+    // We update observers based on the screen refresh rate because animations are not able to
+    // keep up with a faster update rate, this is only a problem with scrolling since we don't
+    // want scrolling to be based on refresh rate (higher refresh rate screens scroll faster like
+    // Fallout 76, country roads take me HOOOOOOOOME!) so we offset this by ensuring that the
+    // scroll rate is constant no matter how high the refresh rate (1 px per 1 ms)
     val updateRatePerMilli = floor(millisPerFrame)
     val scrollRatePerMilli = 1F
 
-    private val boardVHSwaps = HashMap<ViewHolderSwap<BoardViewColumnVH>, Boolean>()
+    private val columnVHSwaps = HashMap<ViewHolderSwap<BoardViewColumnVH>, Boolean>()
     private val itemVHSwaps = HashMap<ViewHolderSwap<BoardViewItemVH>, Boolean>()
 
-    private val interpolator = AccelerateDecelerateInterpolator()
+    private val interpolator = LogarithmicInterpolator()
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -69,18 +79,12 @@ class BoardViewContainer
         itemDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
             val onNext = {
-                if (draggingItemVH != null) {
+                if (draggingItemVH != null && draggingItemVHColumn != null) {
                     horizontalScroll(touchPointF)
-                    findItemViewHolderUnderRaw(touchPointF.x, touchPointF.y)?.also { newVH ->
-                        draggingItemVH?.also { draggingVH ->
-                            // we need to know which recyclerview to give vertical scroll so it
-                            // knows what to scroll
-                            // the problem is we don't yet have a way of associating ItemVHs with
-                            // ListAdapters or RecyclerViews, we can (and should) do this by
-                            // assigning IDs to adapters
-                            verticalScroll(touchPointF)
-                            // swapBoardViewHoldersView(draggingVH, newVH)
-                        }
+                    draggingItemVHColumn?.list?.also { verticalScroll(touchPointF, it) }
+
+                    draggingItemVH?.also { draggingVH ->
+                        // swapItemViewHolders(draggingVH, newItemVH)
                     }
                 }
             }
@@ -88,7 +92,9 @@ class BoardViewContainer
             var disposable: Disposable? = null
 
             override fun onStartDrag(dragView: View) {
-                draggingItemVH = findItemViewHolderUnderRaw(touchPointF.x, touchPointF.y)
+                val (column, item) = findItemViewHolderUnderRaw(touchPointF.x, touchPointF.y)
+                draggingItemVHColumn = column
+                draggingItemVH = item
                 itemDragShadow.isVisible = true
                 draggingItemVH?.itemView?.alpha = 1F
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
@@ -117,7 +123,7 @@ class BoardViewContainer
                     horizontalScroll(touchPointF)
                     findBoardViewHolderUnderRaw(touchPointF.x, touchPointF.y)?.also { newVH ->
                         draggingColumnVH?.also { draggingVH ->
-                            // swapBoardViewHoldersView(draggingVH, newVH)
+                            swapBoardViewHoldersView(draggingVH, newVH)
                         }
                     }
                 }
@@ -152,12 +158,23 @@ class BoardViewContainer
     // margins we still want things to work properly
     // This can be done using a simple find first algorithm
 
-    inline fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewItemVH? {
-        return findBoardViewHolderUnderRaw(rawX, rawY)?.let { boardVH ->
-            boardVH.list?.let { boardList ->
-                boardList.findChildViewUnderRaw(rawX, rawY)?.let { view ->
-                    boardList.getChildViewHolder(view) as? BoardViewItemVH
-                }
+    inline fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float)
+            : Pair<BoardViewColumnVH?, BoardViewItemVH?> {
+        var boardVH: BoardViewColumnVH? = null
+        var itemVH: BoardViewItemVH? = null
+        findBoardViewHolderUnderRaw(rawX, rawY)?.also {
+            boardVH = it
+            findItemViewHolderUnderRaw(it, rawX, rawY)?.also {
+                itemVH = it
+            }
+        }
+        return Pair(boardVH, itemVH)
+    }
+
+    inline fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, rawX: Float, rawY: Float): BoardViewItemVH? {
+        return boardVH.list?.let { boardList ->
+            boardList.findChildViewUnderRaw(rawX, rawY)?.let { view ->
+                boardList.getChildViewHolder(view) as? BoardViewItemVH
             }
         }
     }
@@ -204,22 +221,24 @@ class BoardViewContainer
     fun swapItemViewHolders(old: BoardViewItemVH, new: BoardViewItemVH) {
         // TODO: 13-Mar-20 Do stuff when they're both in the same list
         // TODO: 13-Mar-20 Do more complicated stuff when they're both in different lists
+        val from = old.adapterPosition
+        val to = new.adapterPosition
+
+        if (from != to && from != NO_POSITION && to != NO_POSITION) {
+            logE("Swapping from $from to $to")
+        }
     }
 
     fun swapBoardViewHoldersView(oldVH: BoardViewColumnVH, newVH: BoardViewColumnVH) {
-        val swap = ViewHolderSwap(oldVH, newVH)
-        if (newVH != oldVH && !boardVHSwaps.containsKey(swap)) {
-            boardVHSwaps[swap] = false
-        }
-        if (newVH != oldVH && boardVHSwaps[swap] == false
-                && boardView.itemAnimator?.isRunning == false) {
-            adapter?.onSwapBoardViewHolders(oldVH, newVH)
-            // below getting called too many times because our update rate is too fast for the
-            // Choreographer or animator!
-            swapBoardViewHoldersAdapter(oldVH, newVH)
-            doAfterFinishAnimation {
-                boardVHSwaps[swap] = true
-                boardVHSwaps.remove(swap)
+        if (newVH != oldVH) {
+            val swap = ViewHolderSwap(oldVH, newVH)
+            if (!columnVHSwaps.containsKey(swap)) columnVHSwaps[swap] = false
+            if (columnVHSwaps[swap] == false
+                    && boardView.itemAnimator?.isRunning == false) {
+                adapter?.onSwapBoardViewHolders(oldVH, newVH)
+                swapBoardViewHoldersAdapter(oldVH, newVH)
+                columnVHSwaps[swap] = true
+                columnVHSwaps.remove(swap)
             }
         }
     }
@@ -275,8 +294,38 @@ class BoardViewContainer
         boardView.scrollBy(scrollBy, 0)
     }
 
-    fun verticalScroll(touchPoint: PointF) {
-        // we need to know which recycler view we should be scrolling for
+    fun verticalScroll(touchPoint: PointF, boardList: BoardList) {
+        val maxScrollBy = (updateRatePerMilli * 2F).roundToInt()
+        val height = boardList.globalVisibleRectF.height() / 8F
+        val topBounds = boardList.globalVisibleRectF.also {
+            it.bottom = it.top + height
+            it.top = 0F
+        }
+        val bottomBounds = boardList.globalVisibleRectF.also {
+            it.top = it.height() - height
+            it.bottom = realScreenHeight.F
+        }
+        val topMost = boardList.globalVisibleRectF.top
+        val bottomMost = boardList.globalVisibleRectF.bottom
+        var scrollBy = 0
+        when {
+            topBounds.contains(touchPoint) -> {
+                val mult = interpolator[
+                        1F - (touchPoint.y - topMost) / (topBounds.bottom - topMost)]
+                scrollBy = -(maxScrollBy * mult).roundToInt()
+            }
+            bottomBounds.contains(touchPoint) -> {
+                val mult = interpolator[
+                        (touchPoint.y - bottomBounds.top) / (bottomMost - bottomBounds.top)]
+                scrollBy = (maxScrollBy * mult).roundToInt()
+            }
+        }
+        logE("$now $scrollBy")
+        boardList.scrollBy(0, scrollBy)
+    }
+
+    fun getBoardColumnID(holder: BoardViewColumnVH): Long {
+        return boardView.boardAdapter?.getItemId(holder.adapterPosition) ?: RecyclerView.NO_ID
     }
 
     inline fun doAfterFinishAnimation(crossinline block: (BoardView) -> Unit) {

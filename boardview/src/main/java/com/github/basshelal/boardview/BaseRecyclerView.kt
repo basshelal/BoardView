@@ -49,7 +49,14 @@ abstract class BaseRecyclerView
 /**
  * Base class for all [RecyclerView.Adapter]s in this library for shared functionality
  */
-abstract class BaseAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>()
+abstract class BaseAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
+
+    init {
+        this.setHasStableIds(true)
+    }
+
+    abstract override fun getItemId(position: Int): Long
+}
 
 /**
  * Base class for all [RecyclerView.ViewHolder]s in this library for shared functionality

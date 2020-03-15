@@ -43,6 +43,7 @@ import org.jetbrains.anko.displayMetrics
 import org.jetbrains.anko.find
 import org.jetbrains.anko.inputMethodManager
 import org.jetbrains.anko.windowManager
+import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
 
@@ -167,6 +168,14 @@ inline val View.realScreenHeight: Int
     get() = Point().also {
         context.windowManager.defaultDisplay.getRealSize(it)
     }.y
+
+class LogarithmicInterpolator : Interpolator {
+    override fun getInterpolation(input: Float): Float {
+        // kotlin.math.log(x = (4.0 * input.D) + 1.0, base = 5.0)
+        // log10((9.0 * input.D) + 1.0)
+        return log2(input + 1)
+    }
+}
 
 inline operator fun Interpolator.get(float: Float) = this.getInterpolation(float)
 

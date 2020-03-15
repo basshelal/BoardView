@@ -70,7 +70,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
 
     override fun onViewHolderCreated(holder: BoardViewColumnVH) {
         holder.header?.setOnLongClickListener {
-            exampleAdapter.boardViewContainer.startDraggingList(holder)
+            exampleAdapter.boardViewContainer.startDraggingColumn(holder)
             true
         }
     }

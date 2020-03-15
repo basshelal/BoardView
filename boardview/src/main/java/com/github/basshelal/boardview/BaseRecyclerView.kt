@@ -82,6 +82,27 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
         onRestoreInstanceState(state)
         return savedState
     }
+
+    override fun supportsPredictiveItemAnimations(): Boolean = false
 }
 
-open class BaseItemAnimator : DefaultItemAnimator()
+open class BaseItemAnimator : DefaultItemAnimator() {
+
+    val duration = 150L
+
+    override fun getAddDuration(): Long {
+        return duration
+    }
+
+    override fun getChangeDuration(): Long {
+        return duration
+    }
+
+    override fun getMoveDuration(): Long {
+        return duration
+    }
+
+    override fun getRemoveDuration(): Long {
+        return duration
+    }
+}

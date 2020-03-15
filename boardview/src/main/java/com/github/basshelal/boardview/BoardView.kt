@@ -180,5 +180,5 @@ open class BoardViewColumnVH(itemView: View) : BaseViewHolder(itemView) {
         internal set
     var footer: View? = null
         internal set
-    inline val boardListAdapter: BoardListAdapter<*>? get() = list?.adapter as? BoardListAdapter
+    inline val boardListAdapter: BoardListAdapter<*>? get() = list?.boardListAdapter
 }

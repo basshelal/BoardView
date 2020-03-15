@@ -57,10 +57,9 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         val from = old.adapterPosition
         val to = new.adapterPosition
         if (from != NO_POSITION && to != NO_POSITION) {
-            val oldVal = board[from]
-            val newVal = board[to]
-            board[from] = newVal
-            board[to] = oldVal
+            val value = board[from]
+            board.boardLists.removeAt(from)
+            board.boardLists.add(to, value)
         }
     }
 

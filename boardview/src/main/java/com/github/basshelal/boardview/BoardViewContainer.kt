@@ -46,11 +46,10 @@ class BoardViewContainer
 
     private var touchPointF = PointF()
 
-    private var draggingItemVH: BoardViewItemVH? = null
-
     // the column which the dragging Item belongs to, this will change when the item has been
     // dragged across to a new column
     private var draggingItemVHColumn: BoardViewColumnVH? = null
+    private var draggingItemVH: BoardViewItemVH? = null
 
     private var draggingColumnVH: BoardViewColumnVH? = null
 
@@ -79,8 +78,13 @@ class BoardViewContainer
                     boardView.horizontalScroll(touchPointF)
                     draggingItemVHColumn?.list?.also { it.verticalScroll(touchPointF) }
 
-                    draggingItemVH?.also { draggingVH ->
-                        // swapItemViewHolders(draggingVH, newItemVH)
+                    draggingItemVHColumn?.also { draggingColumn ->
+                        draggingItemVH?.also { draggingVH ->
+                            findItemViewHolderUnderRaw(touchPointF).also { (column, itemVH) ->
+                                if (column != null && itemVH != null)
+                                    swapItemViewHoldersView(draggingVH, itemVH, draggingColumn, column)
+                            }
+                        }
                     }
                 }
             }
@@ -88,7 +92,7 @@ class BoardViewContainer
             var disposable: Disposable? = null
 
             override fun onStartDrag(dragView: View) {
-                val (column, item) = findItemViewHolderUnderRaw(touchPointF.x, touchPointF.y)
+                val (column, item) = findItemViewHolderUnderRaw(touchPointF)
                 draggingItemVHColumn = column
                 draggingItemVH = item
                 itemDragShadow.isVisible = true
@@ -117,7 +121,7 @@ class BoardViewContainer
             val onNext = {
                 if (draggingColumnVH != null) {
                     boardView.horizontalScroll(touchPointF)
-                    findBoardViewHolderUnderRaw(touchPointF.x, touchPointF.y)?.also { newVH ->
+                    findBoardViewHolderUnderRaw(touchPointF)?.also { newVH ->
                         draggingColumnVH?.also { draggingVH ->
                             swapBoardViewHoldersView(draggingVH, newVH)
                         }
@@ -128,7 +132,7 @@ class BoardViewContainer
             var disposable: Disposable? = null
 
             override fun onStartDrag(dragView: View) {
-                draggingColumnVH = findBoardViewHolderUnderRaw(touchPointF.x, touchPointF.y)
+                draggingColumnVH = findBoardViewHolderUnderRaw(touchPointF)
                 listDragShadow.isVisible = true
                 draggingColumnVH?.itemView?.alpha = 1F
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
@@ -154,30 +158,29 @@ class BoardViewContainer
     //  has set large margins we still want things to work properly
     //  This can be done using a simple find first algorithm
 
-    private fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float)
+    private fun findItemViewHolderUnderRaw(point: PointF)
             : Pair<BoardViewColumnVH?, BoardViewItemVH?> {
         var boardVH: BoardViewColumnVH? = null
         var itemVH: BoardViewItemVH? = null
-        findBoardViewHolderUnderRaw(rawX, rawY)?.also {
+        findBoardViewHolderUnderRaw(point)?.also {
             boardVH = it
-            findItemViewHolderUnderRaw(it, rawX, rawY)?.also {
+            findItemViewHolderUnderRaw(it, point)?.also {
                 itemVH = it
             }
         }
         return Pair(boardVH, itemVH)
     }
 
-    private fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, rawX: Float, rawY: Float):
-            BoardViewItemVH? {
+    private fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, point: PointF): BoardViewItemVH? {
         return boardVH.list?.let { boardList ->
-            boardList.findChildViewUnderRaw(rawX, rawY)?.let { view ->
+            boardList.findChildViewUnderRaw(point.x, point.y)?.let { view ->
                 boardList.getChildViewHolder(view) as? BoardViewItemVH
             }
         }
     }
 
-    private fun findBoardViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewColumnVH? {
-        return boardView.findChildViewUnderRaw(rawX, rawY)?.let {
+    private fun findBoardViewHolderUnderRaw(point: PointF): BoardViewColumnVH? {
+        return boardView.findChildViewUnderRaw(point.x, point.y)?.let {
             boardView.getChildViewHolder(it) as? BoardViewColumnVH
         }
     }
@@ -188,7 +191,6 @@ class BoardViewContainer
         return true
     }
 
-    // return false to tell system to stop sending events
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         touchPointF.set(event.rawX, event.rawY)
@@ -214,14 +216,49 @@ class BoardViewContainer
         listDragShadow.dragBehavior.startDrag()
     }
 
-    fun swapItemViewHolders(old: BoardViewItemVH, new: BoardViewItemVH) {
-        // TODO: 13-Mar-20 Do stuff when they're both in the same list
-        // TODO: 13-Mar-20 Do more complicated stuff when they're both in different lists
-        val from = old.adapterPosition
-        val to = new.adapterPosition
+    fun swapItemViewHoldersView(oldItemVH: BoardViewItemVH, newItemVH: BoardViewItemVH,
+                                oldColumnVH: BoardViewColumnVH, newColumnVH: BoardViewColumnVH) {
+        if (oldItemVH != newItemVH) {
+            val swap = ViewHolderSwap(oldItemVH, newItemVH)
+            if (!itemVHSwaps.containsKey(swap)) itemVHSwaps[swap] = false
+            if (itemVHSwaps[swap] == false &&
+                    boardView.itemAnimator?.isRunning == false &&
+                    oldColumnVH.list?.itemAnimator?.isRunning == false &&
+                    newColumnVH.list?.itemAnimator?.isRunning == false) {
+                swapItemViewHoldersAdapter(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
+                itemVHSwaps[swap] = true
+                itemVHSwaps.remove(swap)
+            }
+        }
+    }
 
-        if (from != to && from != NO_POSITION && to != NO_POSITION) {
-            logE("Swapping from $from to $to")
+    fun swapItemViewHoldersAdapter(oldItemVH: BoardViewItemVH, newItemVH: BoardViewItemVH,
+                                   oldColumnVH: BoardViewColumnVH, newColumnVH: BoardViewColumnVH) {
+        val fromItem = oldItemVH.adapterPosition
+        val toItem = newItemVH.adapterPosition
+        val fromColumn = oldColumnVH.adapterPosition
+        val toColumn = newColumnVH.adapterPosition
+
+        if (fromItem != NO_POSITION && toItem != NO_POSITION &&
+                fromColumn != NO_POSITION && toColumn != NO_POSITION) {
+            logE("Swapping item $fromItem from column $fromColumn " +
+                    "to column $toColumn at item $toItem")
+
+            when {
+                // They are in the same list
+                fromColumn == toColumn -> {
+                    if (fromItem != toItem) {
+                        oldColumnVH.boardListAdapter?.notifyItemMoved(
+                                fromItem, toItem
+                        )
+                    }
+                }
+                // They are in different lists
+                fromColumn != toColumn -> {
+                    oldColumnVH.boardListAdapter?.notifyItemRemoved(fromItem)
+                    newColumnVH.boardListAdapter?.notifyItemInserted(toItem)
+                }
+            }
         }
     }
 
@@ -229,8 +266,8 @@ class BoardViewContainer
         if (newVH != oldVH) {
             val swap = ViewHolderSwap(oldVH, newVH)
             if (!columnVHSwaps.containsKey(swap)) columnVHSwaps[swap] = false
-            if (columnVHSwaps[swap] == false
-                    && boardView.itemAnimator?.isRunning == false) {
+            if (columnVHSwaps[swap] == false &&
+                    boardView.itemAnimator?.isRunning == false) {
                 adapter?.onSwapBoardViewHolders(oldVH, newVH)
                 swapBoardViewHoldersAdapter(oldVH, newVH)
                 columnVHSwaps[swap] = true
@@ -239,9 +276,9 @@ class BoardViewContainer
         }
     }
 
-    fun swapBoardViewHoldersAdapter(old: BoardViewColumnVH, new: BoardViewColumnVH) {
-        val from = old.adapterPosition
-        val to = new.adapterPosition
+    fun swapBoardViewHoldersAdapter(oldVH: BoardViewColumnVH, newVH: BoardViewColumnVH) {
+        val from = oldVH.adapterPosition
+        val to = newVH.adapterPosition
         val boardAdapter = boardView.adapter as? BoardAdapter
 
         if (from != to && from != NO_POSITION && to != NO_POSITION) {
@@ -266,7 +303,7 @@ class BoardViewContainer
 
     companion object {
         val MAX_POOL_COUNT = 25
-        val POOL_ITEM_VH = object : RecyclerView.RecycledViewPool() {
+        val ITEM_VH_POOL = object : RecyclerView.RecycledViewPool() {
             override fun setMaxRecycledViews(viewType: Int, max: Int) =
                     super.setMaxRecycledViews(viewType, MAX_POOL_COUNT)
         }

@@ -17,7 +17,9 @@ class BoardList
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
-    // Scrolling info
+    inline val boardListAdapter: BoardListAdapter<*>? get() = this.adapter as? BoardListAdapter
+
+    // Vertical Scrolling info
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)
     private val maxScrollBy = (updateRatePerMilli * 1.5F).roundToInt()
@@ -28,7 +30,7 @@ class BoardList
     private val bottomScrollBounds = RectF()
 
     init {
-        setRecycledViewPool(BoardViewContainer.POOL_ITEM_VH)
+        setRecycledViewPool(BoardViewContainer.ITEM_VH_POOL)
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = VERTICAL
             it.isItemPrefetchEnabled = true

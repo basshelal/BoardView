@@ -40,11 +40,12 @@ abstract class BoardListAdapter<VH : BoardViewItemVH>(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<VH>() {
 
-    abstract fun bindAdapter(holder: BoardViewVH, position: Int)
+    abstract fun bindAdapter(holder: BoardViewColumnVH, position: Int)
 }
 
 /**
  * Contains the ItemView in each list, these are like cards
+ * These are used in [BoardList] and its adapter [BoardListAdapter] but are also accessible by
+ * [BoardView] and its adapter [BoardAdapter] because they are a part of [BoardViewColumnVH]
  */
-// TODO: 06-Mar-20 Probably remove later
 open class BoardViewItemVH(itemView: View) : BaseViewHolder(itemView)

@@ -36,7 +36,7 @@ open class BoardView
 
 abstract class BoardAdapter(
         var adapter: BoardContainerAdapter? = null
-) : BaseAdapter<BoardViewVH>() {
+) : BaseAdapter<BoardViewColumnVH>() {
 
     val adapters = HashSet<BoardListAdapter<*>>()
     val layoutStates = HashMap<Int, LinearState>()
@@ -44,9 +44,9 @@ abstract class BoardAdapter(
     // We handle the creation because we return BoardVH that contains columns
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
-    final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewVH {
+    final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardViewColumnVH {
         val view = View.inflate(parent.context, R.layout.view_boardcolumn, null) as ConstraintLayout
-        val viewHolder = BoardViewVH(view).also { vh ->
+        val viewHolder = BoardViewColumnVH(view).also { vh ->
             vh.list = vh.itemView.boardListView
         }
         // Header
@@ -72,9 +72,9 @@ abstract class BoardAdapter(
     }
 
     // callback for caller to do stuff after onCreateViewHolder is called
-    open fun onViewHolderCreated(holder: BoardViewVH) {}
+    open fun onViewHolderCreated(holder: BoardViewColumnVH) {}
 
-    final override fun onBindViewHolder(holder: BoardViewVH, position: Int) {
+    final override fun onBindViewHolder(holder: BoardViewColumnVH, position: Int) {
         holder.list?.adapter.also { current ->
             if (current == null) {
                 adapter?.onCreateListAdapter(position)?.also {
@@ -90,10 +90,10 @@ abstract class BoardAdapter(
     }
 
     // callback for caller to do stuff after onBindViewHolder is called
-    open fun onViewHolderBound(holder: BoardViewVH, position: Int) {}
+    open fun onViewHolderBound(holder: BoardViewColumnVH, position: Int) {}
 
     @CallSuper
-    override fun onViewAttachedToWindow(holder: BoardViewVH) {
+    override fun onViewAttachedToWindow(holder: BoardViewColumnVH) {
         layoutStates[holder.adapterPosition].also {
             if (it == null) {
                 holder.list?.layoutManager?.saveState()?.also {
@@ -107,7 +107,7 @@ abstract class BoardAdapter(
     }
 
     @CallSuper
-    override fun onViewDetachedFromWindow(holder: BoardViewVH) {
+    override fun onViewDetachedFromWindow(holder: BoardViewColumnVH) {
         holder.list?.layoutManager?.saveState()?.also {
             layoutStates[holder.adapterPosition] = it
         }
@@ -115,9 +115,9 @@ abstract class BoardAdapter(
 }
 
 /**
- * ViewHolder for the [BoardColumn]
+ * ViewHolder for the [BoardColumn], these are used in [BoardView] and its adapter [BoardAdapter]
  */
-open class BoardViewVH(itemView: View) : BaseViewHolder(itemView) {
+open class BoardViewColumnVH(itemView: View) : BaseViewHolder(itemView) {
     var header: View? = null
         internal set
     var list: BoardList? = null

@@ -10,8 +10,8 @@ import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.BoardAdapter
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardListAdapter
+import com.github.basshelal.boardview.BoardViewColumnVH
 import com.github.basshelal.boardview.BoardViewItemVH
-import com.github.basshelal.boardview.BoardViewVH
 import com.github.basshelal.boardview.shortSnackBar
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.view_header.view.*
@@ -53,7 +53,7 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         return res
     }
 
-    override fun onSwapBoardViewHolders(old: BoardViewVH, new: BoardViewVH) {
+    override fun onSwapBoardViewHolders(old: BoardViewColumnVH, new: BoardViewColumnVH) {
         val from = old.adapterPosition
         val to = new.adapterPosition
         if (from != NO_POSITION && to != NO_POSITION) {
@@ -69,7 +69,7 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
 class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
     : BoardAdapter(exampleAdapter) {
 
-    override fun onViewHolderCreated(holder: BoardViewVH) {
+    override fun onViewHolderCreated(holder: BoardViewColumnVH) {
         holder.header?.setOnLongClickListener {
             exampleAdapter.boardViewContainer.startDraggingList(holder)
             true
@@ -80,7 +80,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         return exampleAdapter.board.boardLists.size
     }
 
-    override fun onViewHolderBound(holder: BoardViewVH, position: Int) {
+    override fun onViewHolderBound(holder: BoardViewColumnVH, position: Int) {
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
     }
@@ -112,7 +112,7 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
         holder.textView.text = listItem.value
     }
 
-    override fun bindAdapter(holder: BoardViewVH, position: Int) {
+    override fun bindAdapter(holder: BoardViewColumnVH, position: Int) {
         items = exampleAdapter.board[position]
     }
 

@@ -7,13 +7,13 @@ data class ListItem<T>(
 
 typealias StringListItem = ListItem<String>
 
-data class BoardList(
+data class BoardList<T>(
         var id: Int,
         var name: String,
-        val items: MutableList<StringListItem>
+        val items: MutableList<ListItem<T>>
 ) {
     operator fun get(index: Int) = items[index]
-    operator fun set(index: Int, value: StringListItem) {
+    operator fun set(index: Int, value: ListItem<T>) {
         items[index] = value
     }
 }
@@ -21,10 +21,10 @@ data class BoardList(
 data class Board<T>(
         var id: Int,
         var name: String,
-        val boardLists: MutableList<BoardList>
+        val boardLists: MutableList<BoardList<T>>
 ) {
     operator fun get(index: Int) = boardLists[index]
-    operator fun set(index: Int, value: BoardList) {
+    operator fun set(index: Int, value: BoardList<T>) {
         boardLists[index] = value
     }
 }

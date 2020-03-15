@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
+import com.github.basshelal.boardview.drag.ObservableDragBehavior.DragState.DRAGGING
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.Disposable
@@ -153,12 +154,12 @@ class BoardViewContainer
         }
     }
 
-    // We should take into account the white parts (empty areas) when finding the ViewHolder
-    // under a TouchPoint, especially for ItemViewHolders, since if the caller has set large
-    // margins we still want things to work properly
-    // This can be done using a simple find first algorithm
+    // TODO: 15-Mar-20 We should take into account the white parts (empty areas) when finding
+    //  the ViewHolder under a TouchPoint, especially for ItemViewHolders, since if the caller
+    //  has set large margins we still want things to work properly
+    //  This can be done using a simple find first algorithm
 
-    inline fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float)
+    fun findItemViewHolderUnderRaw(rawX: Float, rawY: Float)
             : Pair<BoardViewColumnVH?, BoardViewItemVH?> {
         var boardVH: BoardViewColumnVH? = null
         var itemVH: BoardViewItemVH? = null
@@ -171,7 +172,7 @@ class BoardViewContainer
         return Pair(boardVH, itemVH)
     }
 
-    inline fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, rawX: Float, rawY: Float): BoardViewItemVH? {
+    fun findItemViewHolderUnderRaw(boardVH: BoardViewColumnVH, rawX: Float, rawY: Float): BoardViewItemVH? {
         return boardVH.list?.let { boardList ->
             boardList.findChildViewUnderRaw(rawX, rawY)?.let { view ->
                 boardList.getChildViewHolder(view) as? BoardViewItemVH
@@ -179,7 +180,7 @@ class BoardViewContainer
         }
     }
 
-    inline fun findBoardViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewColumnVH? {
+    fun findBoardViewHolderUnderRaw(rawX: Float, rawY: Float): BoardViewColumnVH? {
         return boardView.findChildViewUnderRaw(rawX, rawY)?.let {
             boardView.getChildViewHolder(it) as? BoardViewColumnVH
         }
@@ -195,17 +196,16 @@ class BoardViewContainer
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         touchPointF.set(event.rawX, event.rawY)
-        val result: Boolean
-        if (itemDragShadow.dragBehavior.dragState == ObservableDragBehavior.DragState.DRAGGING) {
-            itemDragShadow.dragBehavior.onTouchEvent(event)
-            result = true
-        } else if (listDragShadow.dragBehavior.dragState == ObservableDragBehavior.DragState.DRAGGING) {
-            listDragShadow.dragBehavior.onTouchEvent(event)
-            result = true
-        } else {
-            result = boardView.dispatchTouchEvent(event)
+        return when {
+            // Item is being dragged, send all events to its onTouchEvent
+            itemDragShadow.dragBehavior.dragState == DRAGGING ->
+                itemDragShadow.dragBehavior.onTouchEvent(event)
+            // List is being dragged, send all events to its onTouchEvent
+            listDragShadow.dragBehavior.dragState == DRAGGING ->
+                listDragShadow.dragBehavior.onTouchEvent(event)
+            // Send all other events to BoardView (scrolling etc)
+            else -> boardView.dispatchTouchEvent(event)
         }
-        return result
     }
 
     inline fun startDraggingItem(vh: BoardViewItemVH) {
@@ -260,6 +260,10 @@ class BoardViewContainer
             }
         }
     }
+
+    // TODO: 15-Mar-20 Can we cache some of the bounds we keep using when scrolling because they
+    //  get recomputed every updateRate milliseconds! This is expensive even if the operations
+    //  themselves aren't too expensive (they aren't)
 
     fun horizontalScroll(touchPoint: PointF) {
         val maxScrollBy = (updateRatePerMilli * 2F).roundToInt()
@@ -335,9 +339,9 @@ class BoardViewContainer
         return boardView.boardAdapter?.getItemId(holder.adapterPosition) ?: RecyclerView.NO_ID
     }
 
-    inline fun doAfterFinishAnimation(crossinline block: (BoardView) -> Unit) {
-        boardView.itemAnimator?.isRunning { block(boardView) }
-    }
+    // TODO: 15-Mar-20 Write code that will save and restore state correctly
+    //  we mainly need to save Layout States but possibly more as well
+
 }
 
 // Represents a ViewHolder Swap which we can use to track if swaps are completed

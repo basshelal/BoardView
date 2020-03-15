@@ -64,9 +64,7 @@ open class DragBehavior(val view: View) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> onDown(event)
                 MotionEvent.ACTION_MOVE -> onMove(event)
-                MotionEvent.ACTION_UP -> endDrag()
-                MotionEvent.ACTION_CANCEL -> {
-                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> endDrag()
             }
             true
         } else false
@@ -139,6 +137,10 @@ open class DragBehavior(val view: View) {
         this.view.x = viewBounds.left.F - parentBounds.left.F
         this.view.y = viewBounds.top.F - parentBounds.top.F
         startDrag()
+    }
+
+    open fun returnTo(view: View) {
+        this.returnPoint.set(view.x, view.y)
     }
 
     companion object {

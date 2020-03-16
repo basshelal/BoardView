@@ -2,31 +2,48 @@ package com.github.basshelal.boardview
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
 
 abstract class BoardContainerAdapter {
 
+    /**
+     * The [BoardViewContainer] that this adapter is attached to.
+     */
     lateinit var boardViewContainer: BoardViewContainer
         internal set
 
-    // The single Board Adapter, we're only doing this so that it can be customizable by caller
-    // and also have all the functionality of a RecyclerView.Adapter
+    /**
+     * The [RecyclerView.Adapter] that will be used by [BoardView], there will only exist a single
+     * instance of this for any single [BoardViewContainer].
+     */
     abstract fun getBoardViewAdapter(): BoardAdapter
 
-    // When we need new List Adapters! These are simple RecyclerView Adapters that will display
-    // the Items, this is the caller's responsibility as these can be reused from existing code
+    /**
+     * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList] which
+     * contains [BoardItemViewHolder]s and is responsible for displaying the items in each column.
+     */
     abstract fun onCreateListAdapter(position: Int): BoardListAdapter<*>
 
     /**
      * Called when a new BoardView Column is created
-     * @return the header View or null if you do not want a header
+     *
+     * @param parentView the [ViewGroup] that contains the entire BoardView column
+     * @return the header [View] or null if you do not want a header
      */
     abstract fun onCreateListHeader(parentView: ViewGroup): View?
+
+    /**
+     * Called when a new BoardView Column is created
+     *
+     * @param parentView the [ViewGroup] that contains the entire BoardView column
+     * @return the footer [View] or null if you do not want a header
+     */
     abstract fun onCreateFooter(parentView: ViewGroup): View?
 
-    // Return true when the given boardListAdapter is correct for the position, false otherwise
-    abstract fun matchListAdapter(boardListAdapter: BoardListAdapter<*>, position: Int): Boolean
+    // Return true if they have successfully been swapped and false otherwise
+    open fun onSwapBoardViewHolders(oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
 
-    // Touch and Drag Shit callbacks here TODO
-
-    open fun onSwapBoardViewHolders(old: BoardViewColumnVH, new: BoardViewColumnVH) {}
+    // Return true if they have successfully been swapped and false otherwise
+    open fun onSwapItemViewHolders(oldItem: BoardItemViewHolder, newItem: BoardItemViewHolder,
+                                   oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
 }

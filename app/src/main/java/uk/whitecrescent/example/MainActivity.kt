@@ -8,10 +8,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil.DiffResult.NO_POSITION
 import com.github.basshelal.boardview.BoardAdapter
+import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter
+import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
-import com.github.basshelal.boardview.BoardViewColumnVH
-import com.github.basshelal.boardview.BoardViewItemVH
 import com.github.basshelal.boardview.shortSnackBar
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.view_header.view.*
@@ -47,20 +47,15 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
                 .inflate(R.layout.view_footer, parentView, false).also { it.setOnClickListener { } }
     }
 
-    override fun matchListAdapter(boardListAdapter: BoardListAdapter<*>, position: Int): Boolean {
-        val adapter = (boardListAdapter as ExampleBoardListAdapter)
-        val res = adapter.items.id == board[position].id
-        return res
-    }
-
-    override fun onSwapBoardViewHolders(old: BoardViewColumnVH, new: BoardViewColumnVH) {
-        val from = old.adapterPosition
-        val to = new.adapterPosition
-        if (from != NO_POSITION && to != NO_POSITION) {
+    override fun onSwapBoardViewHolders(oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
+        val from = oldColumn.adapterPosition
+        val to = newColumn.adapterPosition
+        return if (from != NO_POSITION && to != NO_POSITION) {
             val value = board[from]
             board.boardLists.removeAt(from)
             board.boardLists.add(to, value)
-        }
+            true
+        } else false
     }
 
 }
@@ -68,7 +63,7 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
 class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
     : BoardAdapter(exampleAdapter) {
 
-    override fun onViewHolderCreated(holder: BoardViewColumnVH) {
+    override fun onViewHolderCreated(holder: BoardColumnViewHolder) {
         holder.header?.setOnLongClickListener {
             exampleAdapter.boardViewContainer.startDraggingColumn(holder)
             true
@@ -83,7 +78,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         return exampleAdapter.board.boardLists.size
     }
 
-    override fun onViewHolderBound(holder: BoardViewColumnVH, position: Int) {
+    override fun onViewHolderBound(holder: BoardColumnViewHolder, position: Int) {
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
     }
@@ -119,12 +114,12 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
         holder.textView.text = listItem.value
     }
 
-    override fun bindAdapter(holder: BoardViewColumnVH, position: Int) {
+    override fun bindAdapter(holder: BoardColumnViewHolder, position: Int) {
         items = exampleAdapter.board[position]
     }
 
 }
 
-class ItemVH(itemView: View) : BoardViewItemVH(itemView) {
+class ItemVH(itemView: View) : BoardItemViewHolder(itemView) {
     val textView: TextView = itemView.cardText_textView
 }

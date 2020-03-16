@@ -6,6 +6,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.contains
+import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -62,9 +63,7 @@ class BoardList
      * The passed in [adapter] must be a descendant of [BoardListAdapter].
      */
     override fun setAdapter(adapter: Adapter<*>?) {
-        if (adapter is BoardListAdapter) {
-            super.setAdapter(adapter)
-        } else if (adapter != null)
+        if (adapter is BoardListAdapter) super.setAdapter(adapter) else if (adapter != null)
             logE("BoardList adapter must be a descendant of BoardListAdapter!\n" +
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
@@ -92,18 +91,33 @@ class BoardList
 }
 
 /**
- * The adapter responsible for displaying ItemViews, this is nothing different from an ordinary Adapter
+ * The adapter responsible for displaying ItemViews, this is nothing different from an ordinary
+ * Adapter.
+ *
+ * [BoardView] recycles the [BoardListAdapter]s it uses for performance reasons, hence, you must
+ * override [bindAdapter] to inform [BoardView] how to properly bind an adapter to the position.
  */
-abstract class BoardListAdapter<VH : BoardViewItemVH>(
+abstract class BoardListAdapter<VH : BoardItemViewHolder>(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<VH>() {
 
-    abstract fun bindAdapter(holder: BoardViewColumnVH, position: Int)
+    /**
+     * Override to inform [BoardAdapter] how to bind this adapter to the given [position] and
+     * [holder]. This is called in [BoardAdapter]'s [onBindViewHolder].
+     *
+     * Typically, callers will rebind or re-set their data sets here in order to ensure that this
+     * [BoardListAdapter] can be used correctly by the passed in [holder]'s
+     * [BoardColumnViewHolder.list]
+     *
+     * This is needed because [BoardView] recycles its adapters as well as its Views to increase
+     * performance and reduce the memory overhead incurred when using nested [RecyclerView]s
+     */
+    abstract fun bindAdapter(holder: BoardColumnViewHolder, position: Int)
 }
 
 /**
  * Contains the ItemView in each list, these are like cards
  * These are used in [BoardList] and its adapter [BoardListAdapter] but are also accessible by
- * [BoardView] and its adapter [BoardAdapter] because they are a part of [BoardViewColumnVH]
+ * [BoardView] and its adapter [BoardAdapter] because they are a part of [BoardColumnViewHolder]
  */
-open class BoardViewItemVH(itemView: View) : BaseViewHolder(itemView)
+open class BoardItemViewHolder(itemView: View) : BaseViewHolder(itemView)

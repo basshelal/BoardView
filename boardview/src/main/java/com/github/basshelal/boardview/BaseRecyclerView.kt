@@ -1,12 +1,14 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.github.basshelal.boardview
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.view.children
-import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 
 /**
  * Base class for all [RecyclerView]s in this library for shared functionality
@@ -16,6 +18,15 @@ abstract class BaseRecyclerView
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : RecyclerView(context, attrs, defStyleAttr) {
 
+    /**
+     * All ***visible or bound*** [RecyclerView.ViewHolder]s in this [RecyclerView].
+     *
+     * This will usually include all visible ViewHolders as well as some invisible ViewHolders
+     * that have been created, bound and cached by [RecyclerView].
+     *
+     * It is safe to assume that this will return all ViewHolders that this [RecyclerView] can
+     * possibly return.
+     */
     inline val allViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
@@ -39,9 +50,11 @@ abstract class BaseRecyclerView
             super.getLayoutManager() as? SaveRestoreLinearLayoutManager
 
     /**
-     * Rebinds all visible ViewHolders
+     * Calls [RecyclerView.Adapter.notifyItemChanged] on each [RecyclerView.ViewHolder] in
+     * [allViewHolders].
+     * These are the already bound ViewHolders in this [RecyclerView].
      */
-    fun rebindAll() {
+    inline fun notifyAllItemsChanged() {
         allViewHolders.forEach { adapter?.notifyItemChanged(it.adapterPosition) }
     }
 }
@@ -86,23 +99,55 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
     override fun supportsPredictiveItemAnimations(): Boolean = false
 }
 
-open class BaseItemAnimator : DefaultItemAnimator() {
+open class BoardViewItemAnimator : SimpleItemAnimator() {
 
     val duration = 150L
 
     override fun getAddDuration(): Long {
-        return duration
+        TODO("not implemented")
+    }
+
+    override fun isRunning(): Boolean {
+        TODO("not implemented")
+    }
+
+    override fun endAnimation(item: RecyclerView.ViewHolder) {
+        TODO("not implemented")
+    }
+
+    override fun animateRemove(holder: RecyclerView.ViewHolder?): Boolean {
+        TODO("not implemented")
     }
 
     override fun getChangeDuration(): Long {
-        return duration
+        TODO("not implemented")
+    }
+
+    override fun endAnimations() {
+        TODO("not implemented")
     }
 
     override fun getMoveDuration(): Long {
-        return duration
+        TODO("not implemented")
+    }
+
+    override fun animateAdd(holder: RecyclerView.ViewHolder?): Boolean {
+        TODO("not implemented")
+    }
+
+    override fun runPendingAnimations() {
+        TODO("not implemented")
     }
 
     override fun getRemoveDuration(): Long {
-        return duration
+        TODO("not implemented")
+    }
+
+    override fun animateMove(holder: RecyclerView.ViewHolder?, fromX: Int, fromY: Int, toX: Int, toY: Int): Boolean {
+        TODO("not implemented")
+    }
+
+    override fun animateChange(oldHolder: RecyclerView.ViewHolder?, newHolder: RecyclerView.ViewHolder?, fromLeft: Int, fromTop: Int, toLeft: Int, toTop: Int): Boolean {
+        TODO("not implemented")
     }
 }

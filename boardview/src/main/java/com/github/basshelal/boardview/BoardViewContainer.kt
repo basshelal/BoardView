@@ -49,18 +49,18 @@ class BoardViewContainer
 
     // the column which the dragging Item belongs to, this will change when the item has been
     // dragged across to a new column
-    private var draggingItemVHColumn: BoardViewColumnVH? = null
-    private var draggingItemVH: BoardViewItemVH? = null
+    private var draggingItemVHColumn: BoardColumnViewHolder? = null
+    private var draggingItemVH: BoardItemViewHolder? = null
 
-    private var draggingColumnVH: BoardViewColumnVH? = null
+    private var draggingColumnVH: BoardColumnViewHolder? = null
 
     // We update observers based on the screen refresh rate because animations are not able to
     // keep up with a faster update rate
     private val updateRatePerMilli = floor(millisPerFrame)
 
     // Animation stuff
-    private val columnVHSwaps = HashMap<ViewHolderSwap<BoardViewColumnVH>, Boolean>()
-    private val itemVHSwaps = HashMap<ViewHolderSwap<BoardViewItemVH>, Boolean>()
+    private val columnVHSwaps = HashMap<ViewHolderSwap<BoardColumnViewHolder>, Boolean>()
+    private val itemVHSwaps = HashMap<ViewHolderSwap<BoardItemViewHolder>, Boolean>()
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -152,9 +152,9 @@ class BoardViewContainer
         }
     }
 
-    private fun findItemViewHolderUnder(point: PointF): Pair<BoardViewColumnVH?, BoardViewItemVH?> {
-        var boardVH: BoardViewColumnVH? = null
-        var itemVH: BoardViewItemVH? = null
+    private fun findItemViewHolderUnder(point: PointF): Pair<BoardColumnViewHolder?, BoardItemViewHolder?> {
+        var boardVH: BoardColumnViewHolder? = null
+        var itemVH: BoardItemViewHolder? = null
         findBoardViewHolderUnder(point)?.also {
             boardVH = it
             findItemViewHolderUnder(it, point)?.also {
@@ -164,17 +164,17 @@ class BoardViewContainer
         return Pair(boardVH, itemVH)
     }
 
-    private fun findItemViewHolderUnder(boardVH: BoardViewColumnVH, point: PointF): BoardViewItemVH? {
+    private fun findItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF): BoardItemViewHolder? {
         return boardVH.list?.let { boardList ->
             boardList.findChildViewUnderRaw(point.x, point.y)?.let { view ->
-                boardList.getChildViewHolder(view) as? BoardViewItemVH
+                boardList.getChildViewHolder(view) as? BoardItemViewHolder
             }
         }
     }
 
-    private fun forceFindItemViewHolderUnder(point: PointF): Pair<BoardViewColumnVH?, BoardViewItemVH?> {
-        var boardVH: BoardViewColumnVH? = null
-        var itemVH: BoardViewItemVH? = null
+    private fun forceFindItemViewHolderUnder(point: PointF): Pair<BoardColumnViewHolder?, BoardItemViewHolder?> {
+        var boardVH: BoardColumnViewHolder? = null
+        var itemVH: BoardItemViewHolder? = null
         findBoardViewHolderUnder(point)?.also {
             boardVH = it
             forceFindItemViewHolderUnder(it, point)?.also {
@@ -186,12 +186,11 @@ class BoardViewContainer
 
     // Forces to find a VH within the vertical bounds unless none even exist
     // TODO: 15-Mar-20 Not yet finished, not optimal and causes freezes because too much work
-    private fun forceFindItemViewHolderUnder(boardVH: BoardViewColumnVH, point: PointF): BoardViewItemVH? {
+    private fun forceFindItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF): BoardItemViewHolder? {
         boardVH.list?.let { boardList ->
-
             if (boardList.isEmpty() || boardList.adapter?.itemCount == 0) return null
 
-            var result: BoardViewItemVH? = findItemViewHolderUnder(boardVH, point)
+            var result: BoardItemViewHolder? = findItemViewHolderUnder(boardVH, point)
             val pointUp = point
             val pointDown = point
 
@@ -201,11 +200,11 @@ class BoardViewContainer
 
             while (result == null && attemptNumber < maxAttempts) {
                 result = boardList.findChildViewUnderRaw(pointUp.x, pointUp.y)?.let { view ->
-                    boardList.getChildViewHolder(view) as? BoardViewItemVH
+                    boardList.getChildViewHolder(view) as? BoardItemViewHolder
                 }
                 if (result != null) return result
                 result = boardList.findChildViewUnderRaw(pointDown.x, pointDown.y)?.let { view ->
-                    boardList.getChildViewHolder(view) as? BoardViewItemVH
+                    boardList.getChildViewHolder(view) as? BoardItemViewHolder
                 }
                 if (result != null) return result
                 pointUp.y -= 4
@@ -218,9 +217,9 @@ class BoardViewContainer
         return null
     }
 
-    private fun findBoardViewHolderUnder(point: PointF): BoardViewColumnVH? {
+    private fun findBoardViewHolderUnder(point: PointF): BoardColumnViewHolder? {
         return boardView.findChildViewUnderRaw(point.x, point.y)?.let {
-            boardView.getChildViewHolder(it) as? BoardViewColumnVH
+            boardView.getChildViewHolder(it) as? BoardColumnViewHolder
         }
     }
 
@@ -244,8 +243,8 @@ class BoardViewContainer
         }
     }
 
-    fun swapItemViewHolders(oldItemVH: BoardViewItemVH, newItemVH: BoardViewItemVH,
-                            oldColumnVH: BoardViewColumnVH, newColumnVH: BoardViewColumnVH) {
+    fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
+                            oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         if (oldItemVH != newItemVH) {
             val swap = ViewHolderSwap(oldItemVH, newItemVH)
             if (!itemVHSwaps.containsKey(swap)) itemVHSwaps[swap] = false
@@ -253,15 +252,17 @@ class BoardViewContainer
                     boardView.itemAnimator?.isRunning == false &&
                     oldColumnVH.list?.itemAnimator?.isRunning == false &&
                     newColumnVH.list?.itemAnimator?.isRunning == false) {
-                swapItemViewHoldersAdapter(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
+                if (adapter?.onSwapItemViewHolders(oldItemVH, newItemVH, oldColumnVH, newColumnVH) == true) {
+                    notifyItemViewHoldersSwapped(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
+                }
                 itemVHSwaps[swap] = true
                 itemVHSwaps.remove(swap)
             }
         }
     }
 
-    fun swapItemViewHoldersAdapter(oldItemVH: BoardViewItemVH, newItemVH: BoardViewItemVH,
-                                   oldColumnVH: BoardViewColumnVH, newColumnVH: BoardViewColumnVH) {
+    fun notifyItemViewHoldersSwapped(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
+                                     oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         val fromItem = oldItemVH.adapterPosition
         val toItem = newItemVH.adapterPosition
         val fromColumn = oldColumnVH.adapterPosition
@@ -290,21 +291,23 @@ class BoardViewContainer
         }
     }
 
-    fun swapColumnViewHolders(oldVH: BoardViewColumnVH, newVH: BoardViewColumnVH) {
+    fun swapColumnViewHolders(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         if (newVH != oldVH) {
             val swap = ViewHolderSwap(oldVH, newVH)
             if (!columnVHSwaps.containsKey(swap)) columnVHSwaps[swap] = false
             if (columnVHSwaps[swap] == false &&
                     boardView.itemAnimator?.isRunning == false) {
-                adapter?.onSwapBoardViewHolders(oldVH, newVH)
-                swapColumnViewHoldersAdapter(oldVH, newVH)
+                if (adapter?.onSwapBoardViewHolders(oldVH, newVH) == true) {
+                    notifyColumnViewHoldersSwapped(oldVH, newVH)
+                    listDragShadow.dragBehavior.returnTo(newVH.itemView)
+                }
                 columnVHSwaps[swap] = true
                 columnVHSwaps.remove(swap)
             }
         }
     }
 
-    fun swapColumnViewHoldersAdapter(oldVH: BoardViewColumnVH, newVH: BoardViewColumnVH) {
+    fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         val from = oldVH.adapterPosition
         val to = newVH.adapterPosition
         val boardAdapter = boardView.adapter as? BoardAdapter
@@ -326,19 +329,19 @@ class BoardViewContainer
         }
     }
 
-    fun getBoardColumnID(holder: BoardViewColumnVH): Long {
+    fun getBoardColumnID(holder: BoardColumnViewHolder): Long {
         return boardView.boardAdapter?.getItemId(holder.adapterPosition) ?: RecyclerView.NO_ID
     }
 
     // TODO: 15-Mar-20 Write code that will save and restore state correctly
     //  we mainly need to save Layout States but possibly more as well
 
-    public inline fun startDraggingItem(vh: BoardViewItemVH) {
+    public inline fun startDraggingItem(vh: BoardItemViewHolder) {
         itemDragShadow.updateToMatch(vh.itemView)
         itemDragShadow.dragBehavior.startDrag()
     }
 
-    public inline fun startDraggingColumn(vh: BoardViewColumnVH) {
+    public inline fun startDraggingColumn(vh: BoardColumnViewHolder) {
         listDragShadow.updateToMatch(vh.itemView)
         listDragShadow.dragBehavior.startDrag()
     }

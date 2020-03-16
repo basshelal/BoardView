@@ -149,9 +149,9 @@ constructor(context: Context,
                 bitmapHeight = visibleHeight.I
             }
 
-            resizeImage(
-                    bitmapX, bitmapY,
-                    bitmapWidth, bitmapHeight
+            this.setImageBitmap(
+                    Bitmap.createBitmap((this.drawable as BitmapDrawable).bitmap,
+                            bitmapX, bitmapY, bitmapWidth, bitmapHeight)
             )
 
             this.x = viewBounds.left - thisParentBounds.left
@@ -163,13 +163,6 @@ constructor(context: Context,
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         return super.onTouchEvent(event) || dragBehavior.onTouchEvent(event)
-    }
-
-    inline fun resizeImage(x: Int, y: Int, width: Int, height: Int) {
-        this.setImageBitmap(
-                Bitmap.createBitmap((this.drawable as BitmapDrawable).bitmap,
-                        x, y, width, height)
-        )
     }
 
 }

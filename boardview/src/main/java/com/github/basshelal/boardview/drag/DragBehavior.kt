@@ -17,7 +17,7 @@ open class DragBehavior(val view: View) {
 
     protected val dPoint = PointF()
     protected val touchPoint = PointF()
-    val returnPoint = PointF()
+    protected val returnPoint = PointF()
 
     protected var isDragging = false
     protected var stealChildrenTouchEvents = false
@@ -140,7 +140,16 @@ open class DragBehavior(val view: View) {
     }
 
     open fun returnTo(view: View) {
-        this.returnPoint.set(view.x, view.y)
+        require(view in this.view.parentViewGroup!!.childrenRecursiveSequence()) {
+            """"The passed in view must be a descendant of this DragView's parent! 
+                Passed in View: $view 
+                Parent: ${view.parent}"""
+        }
+        val parentBounds = this.view.parentViewGroup!!.globalVisibleRect
+        val viewBounds = view.globalVisibleRect
+
+        returnPoint.x = viewBounds.left.F - parentBounds.left.F
+        returnPoint.y = viewBounds.top.F - parentBounds.top.F
     }
 
     companion object {
@@ -190,9 +199,9 @@ open class ObservableDragBehavior(view: View) : DragBehavior(view) {
     }
 
     override fun endDrag() {
-        super.endDrag()
         initialTouchPoint.set(0F, 0F)
         dragListener?.onReleaseDrag(view, touchPoint)
+        super.endDrag()
     }
 
     override fun startDragFromView(otherView: View) {

@@ -103,6 +103,7 @@ class BoardViewContainer
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                draggingItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
                 disposable?.dispose()
             }
 
@@ -133,7 +134,7 @@ class BoardViewContainer
             override fun onStartDrag(dragView: View) {
                 draggingColumnVH = findBoardViewHolderUnder(touchPointF)
                 listDragShadow.isVisible = true
-                draggingColumnVH?.itemView?.alpha = 1F
+                draggingColumnVH?.itemView?.alpha = 0F
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.computation())
@@ -141,6 +142,7 @@ class BoardViewContainer
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                draggingColumnVH?.itemView?.also { listDragShadow.dragBehavior.returnTo(it) }
                 disposable?.dispose()
             }
 

@@ -106,7 +106,7 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
     }
 
     override fun getItemCount(): Int {
-        return 99
+        return 100
     }
 
     override fun onBindViewHolder(holder: ItemVH, position: Int) {

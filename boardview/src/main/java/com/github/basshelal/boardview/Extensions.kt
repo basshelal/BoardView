@@ -238,8 +238,8 @@ inline fun RecyclerView.smoothScrollToStart() {
 }
 
 inline fun RecyclerView.addOnScrollListener(
-        crossinline onScrolled: (dx: Int, dy: Int) -> Unit = { _, _ -> },
-        crossinline onScrollStateChanged: (newState: Int) -> Unit = { _ -> }) {
+        crossinline onScrollStateChanged: (newState: Int) -> Unit = { _ -> },
+        crossinline onScrolled: (dx: Int, dy: Int) -> Unit = { _, _ -> }) {
     addOnScrollListener(object : RecyclerView.OnScrollListener() {
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
             onScrolled(dx, dy)
@@ -266,6 +266,18 @@ inline fun RecyclerView.Adapter<*>.notifySwapped(fromPosition: Int, toPosition: 
     notifyItemRemoved(toPosition)
     notifyItemInserted(toPosition)
 }
+
+inline fun RecyclerView.isViewPartiallyVisible(view: View): Boolean =
+        this.layoutManager?.isViewPartiallyVisible(view, false, true) ?: false
+
+inline fun RecyclerView.isViewCompletelyVisible(view: View): Boolean =
+        this.layoutManager?.isViewPartiallyVisible(view, true, true) ?: false
+
+inline fun RecyclerView.isViewHolderPartiallyVisible(vh: RecyclerView.ViewHolder) =
+        isViewPartiallyVisible(vh.itemView)
+
+inline fun RecyclerView.isViewHolderCompletelyVisible(vh: RecyclerView.ViewHolder) =
+        isViewCompletelyVisible(vh.itemView)
 
 inline fun logE(message: Any?, tag: String = "BoardView") {
     if (BuildConfig.DEBUG) Log.e(tag, message.toString())

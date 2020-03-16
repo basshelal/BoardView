@@ -9,6 +9,7 @@ import androidx.core.view.children
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import me.everything.android.ui.overscroll.OverScrollBounceEffectDecoratorBase
 
 /**
  * Base class for all [RecyclerView]s in this library for shared functionality
@@ -30,6 +31,31 @@ abstract class BaseRecyclerView
     inline val allViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
+
+    inline val horizontalScrollOffset: Int get() = computeHorizontalScrollOffset()
+    inline val verticalScrollOffset: Int get() = computeVerticalScrollOffset()
+
+    inline val maxHorizontalScroll: Int get() = computeHorizontalScrollRange() - computeHorizontalScrollExtent()
+    inline val maxVerticalScroll: Int get() = computeVerticalScrollRange() - computeVerticalScrollExtent()
+
+    var overScroller: OverScroller? = null
+
+    var horizontalScrollSpeed: Int = 0
+    var verticalScrollSpeed: Int = 0
+
+    private var oldHorizontalScrollOffset: Int = 0
+    private var oldVerticalScrollOffset: Int = 0
+    private var oldTime: Long = now
+
+    var overScrollStateChangeListener: (oldState: Int, newState: Int) -> Unit = { oldState, newState -> }
+        set(value) {
+            field = value
+            (overScroller as? OverScrollBounceEffectDecoratorBase)
+                    ?.setOverScrollStateListener { decor, oldState, newState ->
+                        overScrollStateChangeListener(oldState, newState)
+                    }
+        }
+
     /**
      * You are not supposed to set the [LayoutManager] of BoardView's [RecyclerView]s, this is
      * managed internally!
@@ -38,6 +64,7 @@ abstract class BaseRecyclerView
     override fun setLayoutManager(lm: LayoutManager?) {
         if (lm is SaveRestoreLinearLayoutManager) {
             super.setLayoutManager(lm)
+            setUpOverScroller()
         } else if (lm != null)
             logE("You are not allowed to set the Layout Manager of ${this::class.qualifiedName}\n" +
                     "Passed in ${lm::class.qualifiedName}")
@@ -56,6 +83,38 @@ abstract class BaseRecyclerView
      */
     inline fun notifyAllItemsChanged() {
         allViewHolders.forEach { adapter?.notifyItemChanged(it.adapterPosition) }
+    }
+
+    private inline fun setUpOverScroller() {
+        overScroller = if (layoutManager?.orientation == LinearLayoutManager.VERTICAL)
+            VerticalOverScroller(this) else HorizontalOverScroller(this)
+
+        isScrollbarFadingEnabled = true
+        scrollBarFadeDuration = 500
+        overScrollMode = View.OVER_SCROLL_NEVER
+
+        addOnScrollListener { dx, dy ->
+            val dY = verticalScrollOffset.D - oldVerticalScrollOffset.D
+            val dX = horizontalScrollOffset.D - oldHorizontalScrollOffset.D
+
+            val dSecs = (now - oldTime).D * 1E-3.D
+
+            verticalScrollSpeed = (dY / dSecs).I
+            horizontalScrollSpeed = (dX / dSecs).I
+
+            if (dy != 0 && (verticalScrollOffset == 0 || verticalScrollOffset == maxVerticalScroll)) {
+                overScroller?.overScroll((verticalScrollSpeed.F * overScrollMultiplier.F) / height.F)
+            }
+
+            if (dx != 0 && (horizontalScrollOffset == 0 || horizontalScrollOffset == maxHorizontalScroll)) {
+                overScroller?.overScroll((horizontalScrollSpeed.F * overScrollMultiplier.F) / width.F)
+            }
+
+            oldVerticalScrollOffset = verticalScrollOffset
+            oldHorizontalScrollOffset = horizontalScrollOffset
+
+            oldTime = now
+        }
     }
 }
 
@@ -143,11 +202,13 @@ open class BoardViewItemAnimator : SimpleItemAnimator() {
         TODO("not implemented")
     }
 
-    override fun animateMove(holder: RecyclerView.ViewHolder?, fromX: Int, fromY: Int, toX: Int, toY: Int): Boolean {
+    override fun animateMove(holder: RecyclerView.ViewHolder?,
+                             fromX: Int, fromY: Int, toX: Int, toY: Int): Boolean {
         TODO("not implemented")
     }
 
-    override fun animateChange(oldHolder: RecyclerView.ViewHolder?, newHolder: RecyclerView.ViewHolder?, fromLeft: Int, fromTop: Int, toLeft: Int, toTop: Int): Boolean {
+    override fun animateChange(oldHolder: RecyclerView.ViewHolder?, newHolder: RecyclerView.ViewHolder?,
+                               fromLeft: Int, fromTop: Int, toLeft: Int, toTop: Int): Boolean {
         TODO("not implemented")
     }
 }

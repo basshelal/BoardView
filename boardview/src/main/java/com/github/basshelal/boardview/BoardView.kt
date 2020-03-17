@@ -165,7 +165,8 @@ abstract class BoardAdapter(
     // callback for caller to do stuff after onCreateViewHolder is called
     open fun onViewHolderCreated(holder: BoardColumnViewHolder) {}
 
-    final override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
+    @CallSuper
+    override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
         holder.list?.adapter.also { current ->
             if (current == null) {
                 adapter?.onCreateListAdapter(position)?.also {
@@ -177,11 +178,7 @@ abstract class BoardAdapter(
                 holder.list?.notifyAllItemsChanged()
             }
         }
-        onViewHolderBound(holder, position)
     }
-
-    // callback for caller to do stuff after onBindViewHolder is called
-    open fun onViewHolderBound(holder: BoardColumnViewHolder, position: Int) {}
 
     @CallSuper
     override fun onViewAttachedToWindow(holder: BoardColumnViewHolder) {

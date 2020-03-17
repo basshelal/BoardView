@@ -78,7 +78,8 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         return exampleAdapter.board.boardLists.size
     }
 
-    override fun onViewHolderBound(holder: BoardColumnViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
+        super.onBindViewHolder(holder, position)
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
     }

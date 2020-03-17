@@ -5,7 +5,6 @@ package com.github.basshelal.boardview.drag
 import android.graphics.PointF
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import com.github.basshelal.boardview.F
@@ -140,21 +139,11 @@ open class DragBehavior(val view: View) {
     }
 
     open fun returnTo(view: View) {
-        require(view in this.view.parentViewGroup!!.childrenRecursiveSequence()) {
-            """"The passed in view must be a descendant of this DragView's parent! 
-                Passed in View: $view 
-                Parent: ${view.parent}"""
-        }
         val parentBounds = this.view.parentViewGroup!!.globalVisibleRect
         val viewBounds = view.globalVisibleRect
 
         returnPoint.x = viewBounds.left.F - parentBounds.left.F
         returnPoint.y = viewBounds.top.F - parentBounds.top.F
-    }
-
-    companion object {
-        inline val longPressTime: Int
-            get() = ViewConfiguration.getLongPressTimeout()
     }
 
 }

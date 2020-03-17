@@ -31,17 +31,10 @@ abstract class BaseRecyclerView
     inline val allViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
-
-    inline val horizontalScrollOffset: Int get() = computeHorizontalScrollOffset()
-    inline val verticalScrollOffset: Int get() = computeVerticalScrollOffset()
-
-    inline val maxHorizontalScroll: Int get() = computeHorizontalScrollRange() - computeHorizontalScrollExtent()
-    inline val maxVerticalScroll: Int get() = computeVerticalScrollRange() - computeVerticalScrollExtent()
-
     var overScroller: OverScroller? = null
 
-    var horizontalScrollSpeed: Int = 0
-    var verticalScrollSpeed: Int = 0
+    var horizontalScrollSpeed: Double = 0.0
+    var verticalScrollSpeed: Double = 0.0
 
     private var oldHorizontalScrollOffset: Int = 0
     private var oldVerticalScrollOffset: Int = 0
@@ -97,10 +90,10 @@ abstract class BaseRecyclerView
             val dY = verticalScrollOffset.D - oldVerticalScrollOffset.D
             val dX = horizontalScrollOffset.D - oldHorizontalScrollOffset.D
 
-            val dSecs = (now - oldTime).D * 1E-3.D
+            val dSecs = (now - oldTime).D * 1E-3
 
-            verticalScrollSpeed = (dY / dSecs).I
-            horizontalScrollSpeed = (dX / dSecs).I
+            verticalScrollSpeed = dY / dSecs
+            horizontalScrollSpeed = dX / dSecs
 
             if (dy != 0 && (verticalScrollOffset == 0 || verticalScrollOffset == maxVerticalScroll)) {
                 overScroller?.overScroll((verticalScrollSpeed.F * overScrollMultiplier.F) / height.F)
@@ -152,7 +145,7 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
 
     open fun restoreState(state: LinearState? = savedState): LinearState? {
         onRestoreInstanceState(state)
-        return savedState
+        return state
     }
 
     override fun supportsPredictiveItemAnimations(): Boolean = false

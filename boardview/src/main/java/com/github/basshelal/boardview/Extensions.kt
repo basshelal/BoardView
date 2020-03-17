@@ -279,6 +279,11 @@ inline fun RecyclerView.isViewHolderPartiallyVisible(vh: RecyclerView.ViewHolder
 inline fun RecyclerView.isViewHolderCompletelyVisible(vh: RecyclerView.ViewHolder) =
         isViewCompletelyVisible(vh.itemView)
 
+inline val RecyclerView.horizontalScrollOffset: Int get() = computeHorizontalScrollOffset()
+inline val RecyclerView.verticalScrollOffset: Int get() = computeVerticalScrollOffset()
+inline val RecyclerView.maxHorizontalScroll: Int get() = computeHorizontalScrollRange() - computeHorizontalScrollExtent()
+inline val RecyclerView.maxVerticalScroll: Int get() = computeVerticalScrollRange() - computeVerticalScrollExtent()
+
 inline fun logE(message: Any?, tag: String = "BoardView") {
     if (BuildConfig.DEBUG) Log.e(tag, message.toString())
 }

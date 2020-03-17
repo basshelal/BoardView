@@ -3,13 +3,17 @@ package com.github.basshelal.boardview
 import android.content.Context
 import android.graphics.PointF
 import android.graphics.RectF
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.AttributeSet
+import android.view.AbsSavedState
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.updateLayoutParams
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -89,6 +93,35 @@ open class BoardView
         } else if (adapter != null)
             logE("BoardView adapter must be a descendant of BoardAdapter!\n" +
                     "passed in adapter is of type ${adapter::class.simpleName}")
+    }
+
+    override fun onSaveInstanceState(): Parcelable? {
+        val superState = super.onSaveInstanceState() as? RecyclerViewState
+        val savedState = BoardViewSavedState(superState)
+        boardAdapter?.also { boardAdapter ->
+            allViewHolders.forEach {
+                (it as? BoardColumnViewHolder)?.also { holder ->
+                    holder.list?.layoutManager?.saveState()?.also {
+                        boardAdapter.layoutStates[holder.adapterPosition] = it
+                    }
+                }
+            }
+            savedState.layoutStates = boardAdapter.layoutStates.values.toList()
+        }
+        return savedState
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        if (state is BoardViewSavedState) {
+            super.onRestoreInstanceState(state.savedState)
+            boardAdapter?.layoutStates?.also { hashMap ->
+                state.layoutStates?.also {
+                    it.forEachIndexed { index, linearState ->
+                        hashMap[index] = linearState
+                    }
+                }
+            }
+        } else super.onRestoreInstanceState(state)
     }
 }
 
@@ -183,4 +216,29 @@ open class BoardColumnViewHolder(itemView: View) : BaseViewHolder(itemView) {
     var footer: View? = null
         internal set
     inline val boardListAdapter: BoardListAdapter<*>? get() = list?.boardListAdapter
+}
+
+typealias RecyclerViewState = RecyclerView.SavedState
+
+class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
+
+    var layoutStates: List<LinearState>? = null
+
+    override fun writeToParcel(dest: Parcel?, flags: Int) {
+        super.writeToParcel(dest, flags)
+        dest?.also { it.writeTypedList(layoutStates) }
+    }
+
+    companion object CREATOR : Parcelable.Creator<BoardViewSavedState> {
+
+        override fun createFromParcel(parcel: Parcel): BoardViewSavedState =
+                BoardViewSavedState(parcel.readParcelable(RecyclerViewState::class.java
+                        .classLoader)).also {
+                    val list = ArrayList<LinearState>()
+                    parcel.readTypedList(list, LinearState.CREATOR)
+                    it.layoutStates = list
+                }
+
+        override fun newArray(size: Int): Array<BoardViewSavedState?> = arrayOfNulls(size)
+    }
 }

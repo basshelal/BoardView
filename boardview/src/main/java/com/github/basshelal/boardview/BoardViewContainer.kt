@@ -37,7 +37,7 @@ class BoardViewContainer
     public var adapter: BoardContainerAdapter? = null
         set(value) {
             field = value
-            boardView.adapter = value?.getBoardViewAdapter()
+            boardView.adapter = value?.boardViewAdapter
             value?.boardViewContainer = this
         }
 
@@ -334,9 +334,6 @@ class BoardViewContainer
     fun getBoardColumnID(holder: BoardColumnViewHolder): Long {
         return boardView.boardAdapter?.getItemId(holder.adapterPosition) ?: RecyclerView.NO_ID
     }
-
-    // TODO: 15-Mar-20 Write code that will save and restore state correctly
-    //  we mainly need to save Layout States but possibly more as well
 
     public inline fun startDraggingItem(vh: BoardItemViewHolder) {
         itemDragShadow.updateToMatch(vh.itemView)

@@ -8,12 +8,12 @@ import me.everything.android.ui.overscroll.IOverScrollState
 import me.everything.android.ui.overscroll.VerticalOverScrollBounceEffectDecorator
 import me.everything.android.ui.overscroll.adapters.RecyclerViewOverScrollDecorAdapter
 
-const val overScrollMultiplier = 37.0
+const val overScrollMultiplier = 35.0
 
 interface OverScroller {
     var isEnabled: Boolean
     val isOverScrolling: Boolean
-    fun overScroll(amount: Float)
+    fun overScroll(amount: Number)
 }
 
 class VerticalOverScroller(val recyclerView: RecyclerView) :
@@ -36,9 +36,9 @@ class VerticalOverScroller(val recyclerView: RecyclerView) :
     override val isOverScrolling: Boolean
         get() = currentState != IOverScrollState.STATE_IDLE
 
-    override fun overScroll(amount: Float) {
+    override fun overScroll(amount: Number) {
         issueStateTransition(mOverScrollingState)
-        translateView(recyclerView, -amount)
+        translateView(recyclerView, -amount.F)
         issueStateTransition(mBounceBackState)
     }
 }
@@ -59,9 +59,9 @@ class HorizontalOverScroller(val recyclerView: RecyclerView) :
     override val isOverScrolling: Boolean
         get() = currentState != IOverScrollState.STATE_IDLE
 
-    override fun overScroll(amount: Float) {
+    override fun overScroll(amount: Number) {
         issueStateTransition(mOverScrollingState)
-        translateView(recyclerView, -amount)
+        translateView(recyclerView, -amount.F)
         issueStateTransition(mBounceBackState)
     }
 

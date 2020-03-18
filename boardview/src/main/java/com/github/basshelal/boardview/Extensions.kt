@@ -240,16 +240,22 @@ inline fun RecyclerView.smoothScrollToStart() {
 inline fun RecyclerView.addOnScrollListener(
         crossinline onScrollStateChanged: (newState: Int) -> Unit = { _ -> },
         crossinline onScrolled: (dx: Int, dy: Int) -> Unit = { _, _ -> }) {
-    addOnScrollListener(object : RecyclerView.OnScrollListener() {
-        override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-            onScrolled(dx, dy)
+    addOnScrollListener(onScrollListener(onScrollStateChanged, onScrolled))
+}
+
+inline fun RecyclerView.onScrollListener(
+        crossinline onScrollStateChanged: (newState: Int) -> Unit = { _ -> },
+        crossinline onScrolled: (dx: Int, dy: Int) -> Unit = { _, _ -> }) =
+        object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                onScrolled(dx, dy)
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                onScrollStateChanged(newState)
+            }
         }
 
-        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-            onScrollStateChanged(newState)
-        }
-    })
-}
 
 inline fun recycledViewPool(maxCount: Int) =
         object : RecyclerView.RecycledViewPool() {

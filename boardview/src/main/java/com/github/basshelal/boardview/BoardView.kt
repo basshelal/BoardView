@@ -18,7 +18,7 @@ import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
-open class BoardView
+class BoardView
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
@@ -69,14 +69,14 @@ open class BoardView
         var scrollBy = 0
         when {
             touchPoint in leftScrollBounds -> {
-                val mult = interpolator[
+                val multiplier = interpolator[
                         1F - (touchPoint.x - leftScrollBounds.left) / (leftScrollBounds.right - leftScrollBounds.left)]
-                scrollBy = -(horizontalMaxScrollBy * mult).roundToInt()
+                scrollBy = -(horizontalMaxScrollBy * multiplier).roundToInt()
             }
             touchPoint in rightScrollBounds -> {
-                val mult = interpolator[
+                val multiplier = interpolator[
                         (touchPoint.x - rightScrollBounds.left) / (rightScrollBounds.right - rightScrollBounds.left)]
-                scrollBy = (horizontalMaxScrollBy * mult).roundToInt()
+                scrollBy = (horizontalMaxScrollBy * multiplier).roundToInt()
             }
             touchPoint in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy
             touchPoint in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
@@ -95,6 +95,12 @@ open class BoardView
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
 
+    /**
+     * Saves the layout of this [RecyclerView] (provided by default) and also saves the layout of
+     * every [BoardList] contained in this [BoardView], even those that are not currently visible.
+     * This is because the layout states of all the [BoardList]s is saved in
+     * [BoardAdapter.layoutStates].
+     */
     override fun onSaveInstanceState(): Parcelable? {
         val superState = super.onSaveInstanceState() as? RecyclerViewState
         val savedState = BoardViewSavedState(superState)
@@ -111,6 +117,13 @@ open class BoardView
         return savedState
     }
 
+    /**
+     * Restores the layout of this [RecyclerView] (provided by default) and also restores the
+     * layout of every [BoardList] contained in this [BoardView], even those that are not
+     * currently visible.
+     * This is because the layout states of all the [BoardList]s is saved in
+     * [BoardAdapter.layoutStates].
+     */
     override fun onRestoreInstanceState(state: Parcelable?) {
         if (state is BoardViewSavedState) {
             super.onRestoreInstanceState(state.savedState)
@@ -129,8 +142,10 @@ abstract class BoardAdapter(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<BoardColumnViewHolder>() {
 
-    val adapters = HashSet<BoardListAdapter<*>>()
-    val layoutStates = HashMap<Int, LinearState>()
+    /**
+     * The layout states of each [BoardColumnViewHolder] with its adapter position as the key
+     */
+    internal val layoutStates = HashMap<Int, LinearState>()
 
     // We handle the creation because we return BoardVH that contains columns
     // We have to do this ourselves because we resolve the header, footer and list layout as well
@@ -170,7 +185,6 @@ abstract class BoardAdapter(
         holder.list?.adapter.also { current ->
             if (current == null) {
                 adapter?.onCreateListAdapter(position)?.also {
-                    adapters.add(it)
                     holder.list?.adapter = it
                 }
             } else {

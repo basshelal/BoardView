@@ -29,9 +29,8 @@ class MainActivity : AppCompatActivity() {
 
 class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
 
-    override fun getBoardViewAdapter(): BoardAdapter {
-        return ExampleBoardAdapter(this)
-    }
+    override val boardViewAdapter: BoardAdapter
+        get() = ExampleBoardAdapter(this)
 
     override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
         return ExampleBoardListAdapter(this, position)

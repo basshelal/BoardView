@@ -73,14 +73,14 @@ class BoardList
         var scrollBy = 0
         when {
             touchPoint in topScrollBounds -> {
-                val mult = interpolator[
+                val multiplier = interpolator[
                         1F - (touchPoint.y - topScrollBounds.top) / (topScrollBounds.bottom - topScrollBounds.top)]
-                scrollBy = -(maxScrollBy * mult).roundToInt()
+                scrollBy = -(maxScrollBy * multiplier).roundToInt()
             }
             touchPoint in bottomScrollBounds -> {
-                val mult = interpolator[
+                val multiplier = interpolator[
                         (touchPoint.y - bottomScrollBounds.top) / (bottomScrollBounds.bottom - bottomScrollBounds.top)]
-                scrollBy = (maxScrollBy * mult).roundToInt()
+                scrollBy = (maxScrollBy * multiplier).roundToInt()
             }
             touchPoint in outsideTopScrollBounds -> scrollBy = -maxScrollBy
             touchPoint in outsideBottomScrollBounds -> scrollBy = maxScrollBy

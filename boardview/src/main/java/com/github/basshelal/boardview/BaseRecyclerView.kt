@@ -31,7 +31,13 @@ abstract class BaseRecyclerView
     inline val allViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
-    var overScroller: OverScroller? = null
+    internal var overScroller: OverScroller? = null
+    var isOverScrollingEnabled: Boolean = true
+        set(value) {
+            field = value
+            overScroller?.isEnabled = value
+            toggleOverScroller(value)
+        }
 
     var horizontalScrollSpeed: Double = 0.0
     var verticalScrollSpeed: Double = 0.0
@@ -39,6 +45,30 @@ abstract class BaseRecyclerView
     private var oldHorizontalScrollOffset: Int = 0
     private var oldVerticalScrollOffset: Int = 0
     private var oldTime: Long = now
+
+    private val overScrollListener = onScrollListener { dx, dy ->
+        // Take a snapshot of the stuff we will use so that it hasn't changed by the time we call
+        // getters again, this is only for the stuff that is extremely volatile like time and
+        // scrollOffset which change A LOT very frequently
+        val dSecs = (now - oldTime).D * 1E-3
+        val verticalOffSet = verticalScrollOffset
+        val horizontalOffset = horizontalScrollOffset
+
+        verticalScrollSpeed = (verticalOffSet.D - oldVerticalScrollOffset.D) / dSecs
+        horizontalScrollSpeed = (horizontalOffset.D - oldHorizontalScrollOffset.D) / dSecs
+
+        if (dy != 0 && (verticalOffSet == 0 || verticalOffSet == maxVerticalScroll)) {
+            overScroller?.overScroll((verticalScrollSpeed * overScrollMultiplier) / height)
+        }
+
+        if (dx != 0 && (horizontalOffset == 0 || horizontalOffset == maxHorizontalScroll)) {
+            overScroller?.overScroll((horizontalScrollSpeed * overScrollMultiplier) / width)
+        }
+
+        oldVerticalScrollOffset = verticalOffSet
+        oldHorizontalScrollOffset = horizontalOffset
+        oldTime = now
+    }
 
     var overScrollStateChangeListener: (oldState: Int, newState: Int) -> Unit = { oldState, newState -> }
         set(value) {
@@ -84,29 +114,16 @@ abstract class BaseRecyclerView
 
         isScrollbarFadingEnabled = true
         scrollBarFadeDuration = 500
-        overScrollMode = View.OVER_SCROLL_NEVER
+        toggleOverScroller(isOverScrollingEnabled)
+    }
 
-        addOnScrollListener { dx, dy ->
-            val dY = verticalScrollOffset.D - oldVerticalScrollOffset.D
-            val dX = horizontalScrollOffset.D - oldHorizontalScrollOffset.D
-
-            val dSecs = (now - oldTime).D * 1E-3
-
-            verticalScrollSpeed = dY / dSecs
-            horizontalScrollSpeed = dX / dSecs
-
-            if (dy != 0 && (verticalScrollOffset == 0 || verticalScrollOffset == maxVerticalScroll)) {
-                overScroller?.overScroll((verticalScrollSpeed.F * overScrollMultiplier.F) / height.F)
-            }
-
-            if (dx != 0 && (horizontalScrollOffset == 0 || horizontalScrollOffset == maxHorizontalScroll)) {
-                overScroller?.overScroll((horizontalScrollSpeed.F * overScrollMultiplier.F) / width.F)
-            }
-
-            oldVerticalScrollOffset = verticalScrollOffset
-            oldHorizontalScrollOffset = horizontalScrollOffset
-
-            oldTime = now
+    private fun toggleOverScroller(enable: Boolean) {
+        if (enable) {
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addOnScrollListener(overScrollListener)
+        } else {
+            overScrollMode = View.OVER_SCROLL_ALWAYS
+            removeOnScrollListener(overScrollListener)
         }
     }
 }

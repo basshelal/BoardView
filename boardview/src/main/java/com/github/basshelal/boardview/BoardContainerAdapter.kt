@@ -14,9 +14,10 @@ abstract class BoardContainerAdapter {
 
     /**
      * The [RecyclerView.Adapter] that will be used by [BoardView], there will only exist a single
-     * instance of this for any single [BoardViewContainer].
+     * instance of this for any single [BoardViewContainer]. This will only be called once so it
+     * is safe to return a new [BoardAdapter] in the `get()` implementation
      */
-    abstract fun getBoardViewAdapter(): BoardAdapter
+    abstract val boardViewAdapter: BoardAdapter
 
     /**
      * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList] which

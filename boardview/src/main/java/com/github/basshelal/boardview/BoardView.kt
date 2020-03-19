@@ -7,6 +7,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.AbsSavedState
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
@@ -151,15 +152,22 @@ abstract class BoardAdapter(
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardColumnViewHolder {
-        val view = View.inflate(parent.context, R.layout.view_boardcolumn, null) as ConstraintLayout
-        val viewHolder = BoardColumnViewHolder(view).also { vh ->
-            vh.list = vh.itemView.boardListView
-        }
+        val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.view_boardcolumn, parent, false) as ConstraintLayout
+        val viewHolder = BoardColumnViewHolder(view)
+        viewHolder.list = view.boardListView
         // Header
         adapter?.onCreateListHeader(view)?.also {
             viewHolder.header = it
             view.header_frameLayout.addView(it)
             view.boardListView?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                if (adapter?.isHeaderPadded == true) {
+                    topToTop = ConstraintLayout.LayoutParams.UNSET
+                    topToBottom = view.header_frameLayout.id
+                } else {
+                    topToBottom = ConstraintLayout.LayoutParams.UNSET
+                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                }
                 topToBottom = view.header_frameLayout.id
                 height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
             }
@@ -168,16 +176,17 @@ abstract class BoardAdapter(
         adapter?.onCreateFooter(view)?.also {
             viewHolder.footer = it
             view.footer_frameLayout.addView(it)
-            // For padded Footer
-            /*view.footer_frameLayout.doOnNextLayout {
-                view.boardListView?.updatePadding(bottom = it.height)
-            }*/
-            /*viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
-                // bottomToTop = view.footer_frameLayout.id
-                // height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
-            }*/
+            viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                if (adapter?.isFooterPadded == true) {
+                    bottomToBottom = ConstraintLayout.LayoutParams.UNSET
+                    bottomToTop = view.footer_frameLayout.id
+                } else {
+                    bottomToTop = ConstraintLayout.LayoutParams.UNSET
+                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                }
+                height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+            }
         }
-
         onViewHolderCreated(viewHolder)
         return viewHolder
     }

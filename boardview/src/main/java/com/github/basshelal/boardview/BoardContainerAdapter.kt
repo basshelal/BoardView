@@ -13,6 +13,18 @@ abstract class BoardContainerAdapter {
         internal set
 
     /**
+     * If true, means that the first item of the list will always be visible and not overlap with
+     * the header. Defaults to true, meaning the header does not overlap with the list.
+     */
+    var isHeaderPadded: Boolean = true
+
+    /**
+     * If true, means that the last item of the list will always be visible and not overlap with
+     * the footer. Defaults to false, meaning the footer ***will*** overlap with the list.
+     */
+    var isFooterPadded: Boolean = false
+
+    /**
      * The [RecyclerView.Adapter] that will be used by [BoardView], there will only exist a single
      * instance of this for any single [BoardViewContainer]. This will only be called once so it
      * is safe to return a new [BoardAdapter] in the `get()` implementation

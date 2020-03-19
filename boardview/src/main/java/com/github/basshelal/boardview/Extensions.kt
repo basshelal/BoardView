@@ -35,6 +35,11 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Observer
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.jetbrains.anko.Orientation
 import org.jetbrains.anko.childrenRecursiveSequence
 import org.jetbrains.anko.configuration
@@ -43,6 +48,8 @@ import org.jetbrains.anko.displayMetrics
 import org.jetbrains.anko.find
 import org.jetbrains.anko.inputMethodManager
 import org.jetbrains.anko.windowManager
+import org.reactivestreams.Subscriber
+import org.reactivestreams.Subscription
 import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
@@ -154,10 +161,10 @@ inline fun <reified T : View> View.find(@IdRes id: Int, apply: T.() -> Unit): T 
 inline val View.millisPerFrame get() = 1000F / context.windowManager.defaultDisplay.refreshRate
 
 // Screen width that the context is able to use, this doesn't include navigation bars
-inline val View.usableWidth: Int get() = context.displayMetrics.widthPixels
+inline val View.usableScreenWidth: Int get() = context.displayMetrics.widthPixels
 
 // Screen height that the context is able to use, this doesn't include navigation bars
-inline val View.usableHeight: Int get() = context.displayMetrics.heightPixels
+inline val View.usableScreenHeight: Int get() = context.displayMetrics.heightPixels
 
 inline val View.realScreenWidth: Int
     get() = Point().also {
@@ -183,7 +190,7 @@ inline val View.orientation: Orientation
     get() = when (context.configuration.orientation) {
         Configuration.ORIENTATION_LANDSCAPE -> Orientation.LANDSCAPE
         Configuration.ORIENTATION_PORTRAIT -> Orientation.PORTRAIT
-        else -> if (usableHeight >= usableWidth)
+        else -> if (usableScreenHeight >= usableScreenWidth)
             Orientation.PORTRAIT else Orientation.LANDSCAPE
     }
 
@@ -204,6 +211,15 @@ inline fun View.leftVerticalRect(right: Float): RectF {
 
 inline fun View.rightVerticalRect(left: Float): RectF {
     return this.globalVisibleRectF.also { it.left = left }
+}
+
+inline fun View.updateLayoutParamsSafe(block: ViewGroup.LayoutParams.() -> Unit) {
+    layoutParams?.apply(block)
+}
+
+@JvmName("updateLayoutParamsSafeTyped")
+inline fun <reified T : ViewGroup.LayoutParams> View.updateLayoutParamsSafe(block: T.() -> Unit) {
+    (layoutParams as? T)?.apply(block)
 }
 
 inline fun RecyclerView.findChildViewUnderRaw(rawX: Float, rawY: Float): View? {
@@ -378,4 +394,151 @@ inline fun RectF.horizontalPercentInverted(pointF: PointF): Float {
     val min = min(bottom, top)
     val max = max(bottom, top)
     return (((pointF.y - max) / (min - max)) * 100F)
+}
+
+inline fun <T> Subscriber(
+        crossinline onError: (Throwable?) -> Unit = {},
+        crossinline onComplete: () -> Unit = {},
+        crossinline onSubscribe: (Subscription?) -> Unit = {},
+        crossinline onNext: (T) -> Unit = {}
+) = object : Subscriber<T> {
+    override fun onNext(t: T) = onNext(t)
+    override fun onError(t: Throwable?) = onError(t)
+    override fun onComplete() = onComplete()
+    override fun onSubscribe(s: Subscription?) = onSubscribe(s)
+}
+
+inline fun <T> Observer(
+        crossinline onError: (Throwable) -> Unit = {},
+        crossinline onComplete: () -> Unit = {},
+        crossinline onSubscribe: (Disposable) -> Unit = {},
+        crossinline onNext: (T) -> Unit = {}
+) = object : Observer<T> {
+    override fun onNext(t: T) = onNext(t)
+    override fun onError(t: Throwable) = onError(t)
+    override fun onComplete() = onComplete()
+    override fun onSubscribe(d: Disposable) = onSubscribe(d)
+}
+
+inline fun <T> Observable<T>.onAndroid() = this.observeOn(AndroidSchedulers.mainThread())
+
+/**
+ * Provides an Observable that can be used to execute code on the computation thread and notify
+ * the main thread, this means this Observable can be used to safely modify any UI elements on a
+ * background thread
+ */
+inline fun <T> T.androidObservable(): Observable<T> {
+    return Observable.just(this)
+            .onAndroid()
+            .subscribeOn(Schedulers.computation())
+}
+
+/**
+ * Executes the code provided by [onNext] continuously when the provided [predicate] is true,
+ * [onNext] will only be invoked once but if the [predicate] becomes false and then true again
+ * [onNext] will execute again. All this is done on a background thread and notified on the main
+ * thread just like [androidObservable].
+ */
+inline fun <reified T> T.doInBackgroundWhen(crossinline predicate: (T) -> Boolean,
+                                            crossinline onNext: T.() -> Unit,
+                                            period: Number = 100,
+                                            timeUnit: java.util.concurrent.TimeUnit =
+                                                    java.util.concurrent.TimeUnit.MILLISECONDS): Disposable {
+    var invoked = false
+    return Observable.interval(period.toLong(), timeUnit, Schedulers.computation())
+            .onAndroid()
+            .subscribeOn(Schedulers.computation())
+            .subscribe({
+                if (!predicate(this)) invoked = false
+                if (predicate(this) && !invoked) {
+                    onNext(this)
+                    invoked = true
+                }
+            }, {
+                logE("Error on doInBackgroundAsync, provided ${T::class.java}")
+                logE(it.message)
+                it.printStackTrace()
+                throw it
+            })
+}
+
+/**
+ * Executes the code provided by [onNext] once as soon as the provided [predicate] is true.
+ * All this is done on a background thread and notified on the main thread just like
+ * [androidObservable].
+ */
+inline fun <reified T> T.doInBackgroundOnceWhen(crossinline predicate: (T) -> Boolean,
+                                                period: Number = 100,
+                                                timeUnit: java.util.concurrent.TimeUnit =
+                                                        java.util.concurrent.TimeUnit.MILLISECONDS,
+                                                crossinline onNext: T.() -> Unit): Disposable {
+    var done = false
+    return Observable.interval(period.toLong(), timeUnit, Schedulers.computation())
+            .onAndroid()
+            .subscribeOn(Schedulers.computation())
+            .takeWhile { !done }
+            .subscribe({
+                if (predicate(this)) {
+                    onNext(this)
+                    done = true
+                }
+            }, {
+                logE("Error on doInBackgroundAsync, provided ${T::class.java}")
+                logE(it.message)
+                it.printStackTrace()
+                throw it
+            })
+}
+
+inline fun <reified T> T.doInBackgroundAsync(crossinline onNext: T.() -> Unit): Disposable {
+    return Observable.just(this)
+            .observeOn(Schedulers.io())
+            .subscribeOn(Schedulers.io())
+            .subscribe({
+                it.apply(onNext)
+            }, {
+                logE("Error on doInBackgroundAsync, provided ${T::class.java}")
+                logE(it.message)
+                it.printStackTrace()
+                throw it
+            })
+}
+
+inline fun <reified T> T.doInBackground(crossinline onNext: T.() -> Unit): Disposable {
+    return androidObservable()
+            .subscribe({
+                it.apply(onNext)
+            }, {
+                logE("Error on doInBackground, provided ${T::class.java}")
+                logE(it.message)
+                it.printStackTrace()
+                throw it
+            })
+}
+
+inline fun <reified T> T.doInBackgroundDelayed(delayMillis: Long,
+                                               crossinline onNext: T.() -> Unit): Disposable {
+    return androidObservable()
+            .delay(delayMillis, java.util.concurrent.TimeUnit.MILLISECONDS, AndroidSchedulers.mainThread())
+            .subscribe({
+                it.apply(onNext)
+            }, {
+                logE("Error on doInBackgroundDelayed, provided ${T::class.java} with delay $delayMillis")
+                logE(it.message)
+                it.printStackTrace()
+                throw it
+            })
+}
+
+inline fun <reified T> T.doInBackground(crossinline onNext: T.() -> Unit,
+                                        noinline onError: (Throwable) -> Unit = {},
+                                        noinline onComplete: () -> Unit = {}): Disposable {
+    return androidObservable()
+            .subscribe({
+                it.apply(onNext)
+            }, {
+                onError(it)
+            }, {
+                onComplete()
+            })
 }

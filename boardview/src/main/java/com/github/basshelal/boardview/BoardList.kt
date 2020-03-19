@@ -71,19 +71,19 @@ class BoardList
 
     fun verticalScroll(touchPoint: PointF) {
         var scrollBy = 0
-        when {
-            touchPoint in topScrollBounds -> {
+        when (touchPoint) {
+            in topScrollBounds -> {
                 val multiplier = interpolator[
                         1F - (touchPoint.y - topScrollBounds.top) / (topScrollBounds.bottom - topScrollBounds.top)]
                 scrollBy = -(maxScrollBy * multiplier).roundToInt()
             }
-            touchPoint in bottomScrollBounds -> {
+            in bottomScrollBounds -> {
                 val multiplier = interpolator[
                         (touchPoint.y - bottomScrollBounds.top) / (bottomScrollBounds.bottom - bottomScrollBounds.top)]
                 scrollBy = (maxScrollBy * multiplier).roundToInt()
             }
-            touchPoint in outsideTopScrollBounds -> scrollBy = -maxScrollBy
-            touchPoint in outsideBottomScrollBounds -> scrollBy = maxScrollBy
+            in outsideTopScrollBounds -> scrollBy = -maxScrollBy
+            in outsideBottomScrollBounds -> scrollBy = maxScrollBy
         }
         this.scrollBy(0, scrollBy)
     }

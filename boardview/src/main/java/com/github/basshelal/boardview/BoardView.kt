@@ -67,19 +67,19 @@ class BoardView
 
     fun horizontalScroll(touchPoint: PointF) {
         var scrollBy = 0
-        when {
-            touchPoint in leftScrollBounds -> {
+        when (touchPoint) {
+            in leftScrollBounds -> {
                 val multiplier = interpolator[
                         1F - (touchPoint.x - leftScrollBounds.left) / (leftScrollBounds.right - leftScrollBounds.left)]
                 scrollBy = -(horizontalMaxScrollBy * multiplier).roundToInt()
             }
-            touchPoint in rightScrollBounds -> {
+            in rightScrollBounds -> {
                 val multiplier = interpolator[
                         (touchPoint.x - rightScrollBounds.left) / (rightScrollBounds.right - rightScrollBounds.left)]
                 scrollBy = (horizontalMaxScrollBy * multiplier).roundToInt()
             }
-            touchPoint in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy
-            touchPoint in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
+            in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy
+            in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
         }
         this.scrollBy(scrollBy, 0)
     }
@@ -157,22 +157,27 @@ abstract class BoardAdapter(
         }
         // Header
         adapter?.onCreateListHeader(view)?.also {
-            view.header_frameLayout.addView(it)
             viewHolder.header = it
-            viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            view.header_frameLayout.addView(it)
+            view.boardListView?.updateLayoutParams<ConstraintLayout.LayoutParams> {
                 topToBottom = view.header_frameLayout.id
                 height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
             }
         }
         // Footer
         adapter?.onCreateFooter(view)?.also {
-            view.footer_frameLayout.addView(it)
             viewHolder.footer = it
-            viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            view.footer_frameLayout.addView(it)
+            // For padded Footer
+            /*view.footer_frameLayout.doOnNextLayout {
+                view.boardListView?.updatePadding(bottom = it.height)
+            }*/
+            /*viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
                 // bottomToTop = view.footer_frameLayout.id
                 // height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
-            }
+            }*/
         }
+
         onViewHolderCreated(viewHolder)
         return viewHolder
     }

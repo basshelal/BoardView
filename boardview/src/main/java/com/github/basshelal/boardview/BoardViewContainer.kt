@@ -8,7 +8,7 @@ import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import android.view.animation.Animation
+import android.view.animation.AccelerateInterpolator
 import android.view.animation.Transformation
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isEmpty
@@ -26,6 +26,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
@@ -69,7 +70,7 @@ class BoardViewContainer
         View.inflate(context, R.layout.container_boardviewcontainer, this)
 
         postDelayed(3000) {
-            displayColumnAt(30) {
+            displayColumnAt(0) {
                 shortSnackBar("Finished Transition")
             }
         }
@@ -367,22 +368,24 @@ class BoardViewContainer
                 it.shortSnackBar("Finished Scrolling!")
                 val columnVH = boardView.findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder
                 if (columnVH != null) {
+                    val view = columnVH.itemView
+                    val initialWidth = view.globalVisibleRect.width()
+                    val boardWidth = boardView.globalVisibleRect.width()
+                    var _width = initialWidth
                     columnVH.itemView.startAnimation(
-                            object : Animation() {
-                                val view = columnVH.itemView
-                                val initialWidth = view.globalVisibleRect.width()
-                                var _width = initialWidth
-                                override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
-                                    columnVH.itemView.updateLayoutParamsSafe {
-                                        view.updateLayoutParamsSafe {
-                                            _width += ((1000 - _width).F * interpolatedTime.F).I
-                                            width = _width
-                                        }
+                            animation { interpolatedTime: Float, _: Transformation ->
+                                columnVH.itemView.updateLayoutParamsSafe {
+                                    view.updateLayoutParamsSafe {
+                                        // TODO: 20-Mar-20 Make the function better because if we
+                                        //  make the duration longer it spends too much time on
+                                        //  the end part and not enough on the actual animation
+                                        _width += ((boardWidth - _width).F * interpolatedTime).roundToInt()
+                                        width = _width
                                     }
                                 }
                             }.also {
-                                it.interpolator = LogarithmicInterpolator()
-                                it.duration = 1000L
+                                it.interpolator = AccelerateInterpolator(2.0F)
+                                it.duration = 500L
                                 it.onEnd { doOnFinished() }
                             }
                     )

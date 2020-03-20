@@ -24,6 +24,7 @@ import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.Interpolator
+import android.view.animation.Transformation
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -312,14 +313,25 @@ inline val RecyclerView.maxVerticalScroll: Int get() = computeVerticalScrollRang
 
 inline fun RecyclerView.doOnFinishScroll(
         crossinline action: (recyclerView: RecyclerView) -> Unit) {
-    addOnScrollListener(object : RecyclerView.OnScrollListener() {
+    if (this.scrollState == RecyclerView.SCROLL_STATE_IDLE) action(this)
+    else addOnScrollListener(object : RecyclerView.OnScrollListener() {
         override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-            if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+            if (newState == RecyclerView.SCROLL_STATE_IDLE ||
+                    recyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE) {
                 removeOnScrollListener(this)
                 action(recyclerView)
             }
         }
     })
+}
+
+inline fun animation(crossinline applyTransformation:
+                     (interpolatedTime: Float, transformation: Transformation) -> Unit): Animation {
+    return object : Animation() {
+        override fun applyTransformation(interpolatedTime: Float, t: Transformation) {
+            applyTransformation(interpolatedTime, t)
+        }
+    }
 }
 
 inline fun Animation.onEnd(crossinline block: (Animation) -> Unit) {

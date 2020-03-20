@@ -5,8 +5,10 @@ package com.github.basshelal.boardview
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.AccelerateInterpolator
 import androidx.core.view.children
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import me.everything.android.ui.overscroll.OverScrollBounceEffectDecoratorBase
 
@@ -171,4 +173,49 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
     override fun canScrollHorizontally(): Boolean = super.canScrollHorizontally() && isScrollEnabled
 
     override fun supportsPredictiveItemAnimations(): Boolean = false
+}
+
+open class BaseSmoothScroller(context: Context) : LinearSmoothScroller(context) {
+    override fun getHorizontalSnapPreference(): Int {
+        return SNAP_TO_START
+    }
+}
+
+open class AcceleratedSmoothScroller(context: Context) : RecyclerView.SmoothScroller() {
+
+    val interpolator = AccelerateInterpolator(2.0F)
+
+    override fun onStart() {}
+
+    override fun onStop() {}
+
+    /**
+     * RecyclerView will call this method each time it scrolls until it can find the target
+     * position in the layout.
+     * SmoothScroller should check dx, dy and if scroll should be changed, update the
+     * provided Action to define the next scroll.
+     *
+     * @param dx        Last scroll amount horizontally
+     * @param dy        Last scroll amount vertically
+     * @param state     Transient state of RecyclerView
+     * @param action    If you want to trigger a new smooth scroll and cancel the previous one,
+     *                  update this object.
+     */
+    override fun onSeekTargetStep(dx: Int, dy: Int, state: RecyclerView.State, action: Action) {
+
+    }
+
+    /**
+     * Called when the target position is laid out. This is the last callback SmoothScroller
+     * will receive and it should update the provided Action to define the scroll
+     * details towards the target view.
+     * @param targetView    The view element which render the target position.
+     * @param state         Transient state of RecyclerView
+     * @param action        Action instance that you should update to define final scroll action
+     *                      towards the targetView
+     */
+    override fun onTargetFound(targetView: View, state: RecyclerView.State, action: Action) {
+
+    }
+
 }

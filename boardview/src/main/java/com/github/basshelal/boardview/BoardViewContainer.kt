@@ -8,8 +8,6 @@ import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import android.view.animation.AccelerateInterpolator
-import android.view.animation.Transformation
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
@@ -26,7 +24,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.floor
-import kotlin.math.roundToInt
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
@@ -69,8 +66,8 @@ class BoardViewContainer
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
 
-        postDelayed(3000) {
-            displayColumnAt(0) {
+        postDelayed(2000) {
+            boardView.displayColumnAt(0) {
                 shortSnackBar("Finished Transition")
             }
         }
@@ -353,47 +350,6 @@ class BoardViewContainer
     public inline fun startDraggingColumn(vh: BoardColumnViewHolder) {
         listDragShadow.updateToMatch(vh.itemView)
         listDragShadow.dragBehavior.startDrag()
-    }
-
-    // Here we will display the column at the position
-    public fun displayColumnAt(adapterPosition: Int, doOnFinished: () -> Unit = {}) {
-        // TODO: 20-Mar-20 Scrolling isn't guaranteeing it's the one in the center! Hmmmm
-        //  we may need to implement our own SmoothScroller based heavily onLinearSmoothScroller
-        //  which will stop when the target View is in the center or beginning of the RecyclerView
-        boardView.smoothScrollToPosition(adapterPosition)
-        boardView.doOnFinishScroll {
-            boardView.isSnappingToItems = true
-            // Wait a little to let scroller do it's thing and not make things seem too abrupt
-            postDelayed(250L) {
-                it.shortSnackBar("Finished Scrolling!")
-                val columnVH = boardView.findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder
-                if (columnVH != null) {
-                    val view = columnVH.itemView
-                    val initialWidth = view.globalVisibleRect.width()
-                    val boardWidth = boardView.globalVisibleRect.width()
-                    var _width = initialWidth
-                    columnVH.itemView.startAnimation(
-                            animation { interpolatedTime: Float, _: Transformation ->
-                                columnVH.itemView.updateLayoutParamsSafe {
-                                    view.updateLayoutParamsSafe {
-                                        // TODO: 20-Mar-20 Make the function better because if we
-                                        //  make the duration longer it spends too much time on
-                                        //  the end part and not enough on the actual animation
-                                        _width += ((boardWidth - _width).F * interpolatedTime).roundToInt()
-                                        width = _width
-                                    }
-                                }
-                            }.also {
-                                it.interpolator = AccelerateInterpolator(2.0F)
-                                it.duration = 500L
-                                it.onEnd { doOnFinished() }
-                            }
-                    )
-                }
-            }
-            // While or after doing that we need to let BoardView know that the width of each Column
-            // is now different, try to update allViewHolders and also some global variable
-        }
     }
 
     companion object {

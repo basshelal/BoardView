@@ -2,6 +2,7 @@
 
 package com.github.basshelal.boardview
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PointF
 import android.graphics.RectF
@@ -12,9 +13,12 @@ import android.view.AbsSavedState
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.Transformation
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
+import androidx.core.view.postDelayed
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
@@ -94,6 +98,58 @@ class BoardView
         this.scrollBy(scrollBy, 0)
     }
 
+    // Here we will display the column at the position
+    // Make sure the position is visible or at least close because behavior is not guaranteed
+    // otherwise
+    public fun displayColumnAt(adapterPosition: Int, doOnFinished: () -> Unit = {}) {
+        // TODO: 20-Mar-20 Scrolling isn't guaranteeing it's the one in the center! Hmmmm
+        //  we may need to implement our own SmoothScroller based heavily onLinearSmoothScroller
+        //  which will stop when the target View is in the center or beginning of the RecyclerView
+        //  or even better! -> Our animation will ensure that it grows to fit no matter where the
+        //  scroll ended, whether the target View was in the beginning or end or middle whatever
+        //  This is because it will look nicer but also it guarantees that it looks correct no
+        //  matter which adapterPosition is passed, the first one or the last one or anything in
+        //  the middle
+        if (adapterPosition > (boardAdapter?.itemCount ?: -1)) return
+        layoutManager?.startSmoothScroll(BaseSmoothScroller(context).also {
+            it.targetPosition = adapterPosition
+        })
+        //smoothScrollToPosition(adapterPosition)
+        doOnFinishScroll {
+            // Wait a little to let scroller do it's thing and not make things seem too abrupt
+            postDelayed(250L) {
+                it.shortSnackBar("Finished Scrolling!")
+                (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)
+                        ?.also { columnVH ->
+                            val view = columnVH.itemView
+                            val initialWidth = view.globalVisibleRect.width()
+                            val initialX = view.x
+                            val boardWidth = this.globalVisibleRect.width()
+                            view.updateLayoutParamsSafe {
+                                width = initialWidth
+                            }
+                            view.startAnimation(
+                                    animation { interpolatedTime: Float, _: Transformation ->
+                                        logE(view.x)
+                                        view.updateLayoutParamsSafe {
+                                            width += ((boardWidth - width).F * interpolatedTime).roundToInt()
+                                        }
+                                    }.also {
+                                        it.interpolator = AccelerateInterpolator(2.0F)
+                                        it.duration = 500L
+                                        it.onEnd {
+                                            isSnappingToItems = true
+                                            doOnFinished()
+                                        }
+                                    }
+                            )
+                        }
+            }
+            // While or after doing that we need to let BoardView know that the width of each Column
+            // is now different, try to update allViewHolders and also some global variable
+        }
+    }
+
     /**
      * The passed in [adapter] must be a descendant of [BoardAdapter].
      */
@@ -110,10 +166,11 @@ class BoardView
      * every [BoardList] contained in this [BoardView], even those that are not currently visible.
      * This is because the layout states of all the [BoardList]s is saved in
      * [BoardAdapter.layoutStates].
+     *
+     * @return the [BoardViewSavedState] of this [BoardView]
      */
-    override fun onSaveInstanceState(): Parcelable? {
-        val superState = super.onSaveInstanceState() as? RecyclerViewState
-        val savedState = BoardViewSavedState(superState)
+    fun saveState(): BoardViewSavedState {
+        val savedState = BoardViewSavedState(super.onSaveInstanceState() as? RecyclerViewState)
         boardAdapter?.also { boardAdapter ->
             allViewHolders.forEach {
                 (it as? BoardColumnViewHolder)?.also { holder ->
@@ -133,17 +190,26 @@ class BoardView
      * currently visible.
      * This is because the layout states of all the [BoardList]s is saved in
      * [BoardAdapter.layoutStates].
+     * The current state of this [BoardView] is not stored internally, call [saveState] to
+     * retrieve the latest [BoardViewSavedState]
      */
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        if (state is BoardViewSavedState) {
-            super.onRestoreInstanceState(state.savedState)
-            boardAdapter?.layoutStates?.also { hashMap ->
-                state.layoutStates?.also {
-                    it.forEachIndexed { index, linearState ->
-                        hashMap[index] = linearState
-                    }
+    fun restoreFromState(state: BoardViewSavedState) {
+        super.onRestoreInstanceState(state.savedState)
+        boardAdapter?.layoutStates?.also { hashMap ->
+            state.layoutStates?.also {
+                it.forEachIndexed { index, linearState ->
+                    hashMap[index] = linearState
                 }
             }
+        }
+    }
+
+    @SuppressLint("MissingSuperCall") // we called super in saveState()
+    override fun onSaveInstanceState(): Parcelable? = saveState()
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        if (state is BoardViewSavedState) {
+            restoreFromState(state)
         } else super.onRestoreInstanceState(state)
     }
 }
@@ -253,7 +319,7 @@ open class BoardColumnViewHolder(itemView: View) : BaseViewHolder(itemView) {
 
 internal typealias RecyclerViewState = RecyclerView.SavedState
 
-class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
+open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
 
     var layoutStates: List<LinearState>? = null
 

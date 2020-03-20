@@ -1,3 +1,5 @@
+@file:Suppress("RedundantVisibilityModifier")
+
 package com.github.basshelal.boardview
 
 import android.content.Context
@@ -13,7 +15,7 @@ import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
-import androidx.core.view.updateLayoutParams
+import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 import kotlin.math.floor
@@ -35,6 +37,13 @@ class BoardView
     private val leftScrollBounds = RectF()
     private val outsideRightScrollBounds = RectF()
     private val rightScrollBounds = RectF()
+
+    private val snapHelper = PagerSnapHelper()
+    public var isSnappingToItems: Boolean = false
+        set(value) {
+            field = value
+            snapHelper.attachToRecyclerView(if (value) this else null)
+        }
 
     init {
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
@@ -160,7 +169,7 @@ abstract class BoardAdapter(
         adapter?.onCreateListHeader(view)?.also {
             viewHolder.header = it
             view.header_frameLayout.addView(it)
-            view.boardListView?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            view.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 if (adapter?.isHeaderPadded == true) {
                     topToTop = ConstraintLayout.LayoutParams.UNSET
                     topToBottom = view.header_frameLayout.id
@@ -168,7 +177,6 @@ abstract class BoardAdapter(
                     topToBottom = ConstraintLayout.LayoutParams.UNSET
                     topToTop = ConstraintLayout.LayoutParams.PARENT_ID
                 }
-                topToBottom = view.header_frameLayout.id
                 height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
             }
         }
@@ -176,7 +184,7 @@ abstract class BoardAdapter(
         adapter?.onCreateFooter(view)?.also {
             viewHolder.footer = it
             view.footer_frameLayout.addView(it)
-            viewHolder.list?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            viewHolder.list?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 if (adapter?.isFooterPadded == true) {
                     bottomToBottom = ConstraintLayout.LayoutParams.UNSET
                     bottomToTop = view.footer_frameLayout.id
@@ -243,7 +251,7 @@ open class BoardColumnViewHolder(itemView: View) : BaseViewHolder(itemView) {
     inline val boardListAdapter: BoardListAdapter<*>? get() = list?.boardListAdapter
 }
 
-typealias RecyclerViewState = RecyclerView.SavedState
+internal typealias RecyclerViewState = RecyclerView.SavedState
 
 class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
 

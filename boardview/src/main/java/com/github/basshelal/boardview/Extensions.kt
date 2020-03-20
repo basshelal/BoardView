@@ -22,6 +22,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 import android.view.animation.Interpolator
 import android.widget.EditText
 import androidx.activity.ComponentActivity
@@ -34,6 +35,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
+import androidx.transition.Transition
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
@@ -215,11 +217,13 @@ inline fun View.rightVerticalRect(left: Float): RectF {
 
 inline fun View.updateLayoutParamsSafe(block: ViewGroup.LayoutParams.() -> Unit) {
     layoutParams?.apply(block)
+    requestLayout()
 }
 
 @JvmName("updateLayoutParamsSafeTyped")
 inline fun <reified T : ViewGroup.LayoutParams> View.updateLayoutParamsSafe(block: T.() -> Unit) {
     (layoutParams as? T)?.apply(block)
+    requestLayout()
 }
 
 inline fun RecyclerView.findChildViewUnderRaw(rawX: Float, rawY: Float): View? {
@@ -305,6 +309,43 @@ inline val RecyclerView.horizontalScrollOffset: Int get() = computeHorizontalScr
 inline val RecyclerView.verticalScrollOffset: Int get() = computeVerticalScrollOffset()
 inline val RecyclerView.maxHorizontalScroll: Int get() = computeHorizontalScrollRange() - computeHorizontalScrollExtent()
 inline val RecyclerView.maxVerticalScroll: Int get() = computeVerticalScrollRange() - computeVerticalScrollExtent()
+
+inline fun RecyclerView.doOnFinishScroll(
+        crossinline action: (recyclerView: RecyclerView) -> Unit) {
+    addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                removeOnScrollListener(this)
+                action(recyclerView)
+            }
+        }
+    })
+}
+
+inline fun Animation.onEnd(crossinline block: (Animation) -> Unit) {
+    setAnimationListener(object : Animation.AnimationListener {
+        override fun onAnimationEnd(animation: Animation) {
+            block(animation)
+        }
+
+        override fun onAnimationRepeat(animation: Animation) {}
+        override fun onAnimationStart(animation: Animation) {}
+
+    })
+}
+
+inline fun Transition.onEnd(crossinline block: (Transition) -> Unit) {
+    addListener(object : Transition.TransitionListener {
+        override fun onTransitionEnd(transition: Transition) {
+            block(transition)
+        }
+
+        override fun onTransitionResume(transition: Transition) {}
+        override fun onTransitionPause(transition: Transition) {}
+        override fun onTransitionCancel(transition: Transition) {}
+        override fun onTransitionStart(transition: Transition) {}
+    })
+}
 
 inline fun logE(message: Any?, tag: String = "BoardView") {
     if (BuildConfig.DEBUG) Log.e(tag, message.toString())

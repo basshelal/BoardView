@@ -8,7 +8,6 @@ import android.view.View
 import androidx.core.view.children
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
 import me.everything.android.ui.overscroll.OverScrollBounceEffectDecoratorBase
 
 /**
@@ -155,6 +154,8 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
     var savedState: LinearState? = null
         internal set
 
+    var isScrollEnabled: Boolean = true
+
     open fun saveState(): LinearState? {
         savedState = onSaveInstanceState() as? LinearState
         return savedState
@@ -165,60 +166,9 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
         return state
     }
 
+    override fun canScrollVertically(): Boolean = super.canScrollVertically() && isScrollEnabled
+
+    override fun canScrollHorizontally(): Boolean = super.canScrollHorizontally() && isScrollEnabled
+
     override fun supportsPredictiveItemAnimations(): Boolean = false
-}
-
-open class BoardViewItemAnimator : SimpleItemAnimator() {
-
-    val duration = 150L
-
-    override fun getAddDuration(): Long {
-        TODO("not implemented")
-    }
-
-    override fun isRunning(): Boolean {
-        TODO("not implemented")
-    }
-
-    override fun endAnimation(item: RecyclerView.ViewHolder) {
-        TODO("not implemented")
-    }
-
-    override fun animateRemove(holder: RecyclerView.ViewHolder?): Boolean {
-        TODO("not implemented")
-    }
-
-    override fun getChangeDuration(): Long {
-        TODO("not implemented")
-    }
-
-    override fun endAnimations() {
-        TODO("not implemented")
-    }
-
-    override fun getMoveDuration(): Long {
-        TODO("not implemented")
-    }
-
-    override fun animateAdd(holder: RecyclerView.ViewHolder?): Boolean {
-        TODO("not implemented")
-    }
-
-    override fun runPendingAnimations() {
-        TODO("not implemented")
-    }
-
-    override fun getRemoveDuration(): Long {
-        TODO("not implemented")
-    }
-
-    override fun animateMove(holder: RecyclerView.ViewHolder?,
-                             fromX: Int, fromY: Int, toX: Int, toY: Int): Boolean {
-        TODO("not implemented")
-    }
-
-    override fun animateChange(oldHolder: RecyclerView.ViewHolder?, newHolder: RecyclerView.ViewHolder?,
-                               fromLeft: Int, fromTop: Int, toLeft: Int, toTop: Int): Boolean {
-        TODO("not implemented")
-    }
 }

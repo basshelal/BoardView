@@ -8,9 +8,12 @@ import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.Transformation
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
+import androidx.core.view.postDelayed
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.drag.DragShadow
@@ -64,6 +67,12 @@ class BoardViewContainer
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
+
+        postDelayed(3000) {
+            displayColumnAt(30) {
+                shortSnackBar("Finished Transition")
+            }
+        }
 
         itemDragShadow()
         listDragShadow()
@@ -345,9 +354,48 @@ class BoardViewContainer
         listDragShadow.dragBehavior.startDrag()
     }
 
+    // Here we will display the column at the position
+    public fun displayColumnAt(adapterPosition: Int, doOnFinished: () -> Unit = {}) {
+        // TODO: 20-Mar-20 Scrolling isn't guaranteeing it's the one in the center! Hmmmm
+        //  we may need to implement our own SmoothScroller based heavily onLinearSmoothScroller
+        //  which will stop when the target View is in the center or beginning of the RecyclerView
+        boardView.smoothScrollToPosition(adapterPosition)
+        boardView.doOnFinishScroll {
+            boardView.isSnappingToItems = true
+            // Wait a little to let scroller do it's thing and not make things seem too abrupt
+            postDelayed(250L) {
+                it.shortSnackBar("Finished Scrolling!")
+                val columnVH = boardView.findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder
+                if (columnVH != null) {
+                    columnVH.itemView.startAnimation(
+                            object : Animation() {
+                                val view = columnVH.itemView
+                                val initialWidth = view.globalVisibleRect.width()
+                                var _width = initialWidth
+                                override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
+                                    columnVH.itemView.updateLayoutParamsSafe {
+                                        view.updateLayoutParamsSafe {
+                                            _width += ((1000 - _width).F * interpolatedTime.F).I
+                                            width = _width
+                                        }
+                                    }
+                                }
+                            }.also {
+                                it.interpolator = LogarithmicInterpolator()
+                                it.duration = 1000L
+                                it.onEnd { doOnFinished() }
+                            }
+                    )
+                }
+            }
+            // While or after doing that we need to let BoardView know that the width of each Column
+            // is now different, try to update allViewHolders and also some global variable
+        }
+    }
+
     companion object {
-        val MAX_POOL_COUNT = 25
-        val ITEM_VH_POOL = object : RecyclerView.RecycledViewPool() {
+        internal val MAX_POOL_COUNT = 25
+        internal val ITEM_VH_POOL = object : RecyclerView.RecycledViewPool() {
             override fun setMaxRecycledViews(viewType: Int, max: Int) =
                     super.setMaxRecycledViews(viewType, MAX_POOL_COUNT)
         }

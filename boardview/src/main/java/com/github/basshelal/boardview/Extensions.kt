@@ -36,7 +36,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
-import androidx.transition.Transition
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
@@ -334,30 +333,15 @@ inline fun animation(crossinline applyTransformation:
     }
 }
 
-inline fun Animation.onEnd(crossinline block: (Animation) -> Unit) {
-    setAnimationListener(object : Animation.AnimationListener {
-        override fun onAnimationEnd(animation: Animation) {
-            block(animation)
+inline fun animationListener(crossinline onStart: (Animation) -> Unit,
+                             crossinline onRepeat: (Animation) -> Unit,
+                             crossinline onEnd: (Animation) -> Unit) =
+        object : Animation.AnimationListener {
+            override fun onAnimationStart(animation: Animation) = onStart(animation)
+            override fun onAnimationRepeat(animation: Animation) = onRepeat(animation)
+            override fun onAnimationEnd(animation: Animation) = onEnd(animation)
         }
 
-        override fun onAnimationRepeat(animation: Animation) {}
-        override fun onAnimationStart(animation: Animation) {}
-
-    })
-}
-
-inline fun Transition.onEnd(crossinline block: (Transition) -> Unit) {
-    addListener(object : Transition.TransitionListener {
-        override fun onTransitionEnd(transition: Transition) {
-            block(transition)
-        }
-
-        override fun onTransitionResume(transition: Transition) {}
-        override fun onTransitionPause(transition: Transition) {}
-        override fun onTransitionCancel(transition: Transition) {}
-        override fun onTransitionStart(transition: Transition) {}
-    })
-}
 
 inline fun logE(message: Any?, tag: String = "BoardView") {
     if (BuildConfig.DEBUG) Log.e(tag, message.toString())

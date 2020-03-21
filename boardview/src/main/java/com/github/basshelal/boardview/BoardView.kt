@@ -14,6 +14,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateInterpolator
+import android.view.animation.Animation
 import android.view.animation.Transformation
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -98,10 +99,17 @@ class BoardView
         this.scrollBy(scrollBy, 0)
     }
 
+    public inline fun displayColumnAt(adapterPosition: Int,
+                                      crossinline onStartAnimation: (Animation) -> Unit = {},
+                                      crossinline onRepeatAnimation: (Animation) -> Unit = {},
+                                      crossinline onEndAnimation: (Animation) -> Unit = {}) =
+            displayColumnAt(adapterPosition,
+                    animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
+
     // Here we will display the column at the position
     // Make sure the position is visible or at least close because behavior is not guaranteed
     // otherwise
-    public fun displayColumnAt(adapterPosition: Int, doOnFinished: () -> Unit = {}) {
+    public fun displayColumnAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
         // TODO: 20-Mar-20 Scrolling isn't guaranteeing it's the one in the center! Hmmmm
         //  we may need to implement our own SmoothScroller based heavily onLinearSmoothScroller
         //  which will stop when the target View is in the center or beginning of the RecyclerView
@@ -110,11 +118,8 @@ class BoardView
         //  This is because it will look nicer but also it guarantees that it looks correct no
         //  matter which adapterPosition is passed, the first one or the last one or anything in
         //  the middle
-        if (adapterPosition > (boardAdapter?.itemCount ?: -1)) return
-        layoutManager?.startSmoothScroll(BaseSmoothScroller(context).also {
-            it.targetPosition = adapterPosition
-        })
-        //smoothScrollToPosition(adapterPosition)
+        if (adapterPosition > (boardAdapter?.itemCount ?: -1) || adapterPosition < 0) return
+        smoothScrollToPosition(adapterPosition)
         doOnFinishScroll {
             // Wait a little to let scroller do it's thing and not make things seem too abrupt
             postDelayed(250L) {
@@ -137,10 +142,20 @@ class BoardView
                                     }.also {
                                         it.interpolator = AccelerateInterpolator(2.0F)
                                         it.duration = 500L
-                                        it.onEnd {
-                                            isSnappingToItems = true
-                                            doOnFinished()
-                                        }
+                                        it.setAnimationListener(
+                                                animationListener(
+                                                        onStart = {
+                                                            animationListener.onAnimationStart(it)
+                                                        },
+                                                        onRepeat = {
+                                                            animationListener.onAnimationRepeat(it)
+                                                        },
+                                                        onEnd = {
+                                                            animationListener.onAnimationEnd(it)
+                                                            isSnappingToItems = true
+                                                        }
+                                                )
+                                        )
                                     }
                             )
                         }

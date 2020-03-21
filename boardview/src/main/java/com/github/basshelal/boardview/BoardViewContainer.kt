@@ -67,9 +67,10 @@ class BoardViewContainer
         View.inflate(context, R.layout.container_boardviewcontainer, this)
 
         postDelayed(2000) {
-            boardView.displayColumnAt(0) {
-                shortSnackBar("Finished Transition")
-            }
+            boardView.displayColumnAt(0,
+                    onStartAnimation = { shortSnackBar("Starting Animation") },
+                    onEndAnimation = { shortSnackBar("Finished Animation") }
+            )
         }
 
         itemDragShadow()

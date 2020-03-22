@@ -13,9 +13,10 @@ import android.view.AbsSavedState
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
-import android.view.animation.Transformation
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
@@ -31,7 +32,20 @@ class BoardView
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
-    inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
+    public inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
+
+    public var columnWidth = WRAP_CONTENT
+        set(value) {
+            field = value
+            boardAdapter?.columnWidth = value
+        }
+
+    public var isSnappingToItems: Boolean = false
+        set(value) {
+            field = value
+            snapHelper.attachToRecyclerView(if (value) this else null)
+        }
+
 
     // Horizontal Scrolling info
     private val interpolator = LogarithmicInterpolator()
@@ -44,11 +58,6 @@ class BoardView
     private val rightScrollBounds = RectF()
 
     private val snapHelper = PagerSnapHelper()
-    public var isSnappingToItems: Boolean = false
-        set(value) {
-            field = value
-            snapHelper.attachToRecyclerView(if (value) this else null)
-        }
 
     init {
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
@@ -123,21 +132,30 @@ class BoardView
         doOnFinishScroll {
             // Wait a little to let scroller do it's thing and not make things seem too abrupt
             postDelayed(250L) {
-                it.shortSnackBar("Finished Scrolling!")
                 (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)
                         ?.also { columnVH ->
                             val view = columnVH.itemView
                             val initialWidth = view.globalVisibleRect.width()
-                            val initialX = view.x
-                            val boardWidth = this.globalVisibleRect.width()
+                            val targetWidth = this.globalVisibleRect.width()
+                            var scrollByRemaining = view.x
+                            // Initialize width to be the actual width value instead of
+                            // WRAP_CONTENT (-2) or MATCH_PARENT (-1)
+                            // This should have no visible effect
                             view.updateLayoutParamsSafe {
                                 width = initialWidth
                             }
+                            // Start animation!
                             view.startAnimation(
-                                    animation { interpolatedTime: Float, _: Transformation ->
-                                        logE(view.x)
+                                    animation { interpolatedTime: Float, _ ->
                                         view.updateLayoutParamsSafe {
-                                            width += ((boardWidth - width).F * interpolatedTime).roundToInt()
+                                            if (view.x > 0) {
+                                                // Internal Android Exception occurring below!
+                                                // Use scrollByRemaining to fix this TODO
+                                                scrollBy((view.x * interpolatedTime).roundToInt(), 0)
+                                                view.x -= (view.x.F * interpolatedTime).roundToInt()
+                                            }
+                                            if (width < targetWidth)
+                                                width += ((targetWidth - width).F * interpolatedTime).roundToInt()
                                         }
                                     }.also {
                                         it.interpolator = AccelerateInterpolator(2.0F)
@@ -152,7 +170,19 @@ class BoardView
                                                         },
                                                         onEnd = {
                                                             animationListener.onAnimationEnd(it)
-                                                            isSnappingToItems = true
+                                                            postDelayed(300) {
+                                                                columnWidth = MATCH_PARENT
+                                                                //scrollToPosition(adapterPosition)
+                                                                allViewHolders
+                                                                        .forEach {
+                                                                            it.itemView
+                                                                                    .updateLayoutParamsSafe { width = columnWidth }
+                                                                        }
+                                                                //val state = saveState()
+                                                                //notifyAllItemsChanged()
+                                                                //restoreFromState(state)
+                                                                //isSnappingToItems = true
+                                                            }
                                                         }
                                                 )
                                         )
@@ -233,6 +263,9 @@ abstract class BoardAdapter(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<BoardColumnViewHolder>() {
 
+    // Ideally we wouldn't want this but we want to not keep a reference of the BoardView!
+    internal var columnWidth: Int = WRAP_CONTENT
+
     /**
      * The layout states of each [BoardColumnViewHolder] with its adapter position as the key
      */
@@ -245,6 +278,7 @@ abstract class BoardAdapter(
         val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.view_boardcolumn, parent, false) as ConstraintLayout
         val viewHolder = BoardColumnViewHolder(view)
+        view.updateLayoutParamsSafe { width = columnWidth }
         viewHolder.list = view.boardListView
         // Header
         adapter?.onCreateListHeader(view)?.also {
@@ -285,6 +319,7 @@ abstract class BoardAdapter(
 
     @CallSuper
     override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
+        holder.itemView.updateLayoutParamsSafe { width = columnWidth }
         holder.list?.adapter.also { current ->
             if (current == null) {
                 adapter?.onCreateListAdapter(position)?.also {

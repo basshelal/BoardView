@@ -38,7 +38,7 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
 
     override fun onCreateListHeader(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_header, parentView, false).also { it.setOnClickListener { } }
+                .inflate(R.layout.view_header, parentView, false)
     }
 
     override fun onCreateFooter(parentView: ViewGroup): View? {
@@ -81,6 +81,9 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         super.onBindViewHolder(holder, position)
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
+        holder.header?.setOnClickListener {
+            exampleAdapter.boardViewContainer.boardView.displayColumnAt(position)
+        }
     }
 }
 

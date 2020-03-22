@@ -47,7 +47,6 @@ class BoardView
             snapHelper.attachToRecyclerView(if (value) this else null)
         }
 
-
     // Horizontal Scrolling info
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)
@@ -64,7 +63,7 @@ class BoardView
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = HORIZONTAL
             it.isItemPrefetchEnabled = true
-            it.initialPrefetchItemCount = 5
+            it.initialPrefetchItemCount = 6
         }
         isHorizontalScrollBarEnabled = true
         isVerticalScrollBarEnabled = false
@@ -123,30 +122,43 @@ class BoardView
         this.scrollBy(scrollBy, 0)
     }
 
-    public inline fun displayColumnAt(adapterPosition: Int,
-                                      crossinline onStartAnimation: (Animation) -> Unit = {},
-                                      crossinline onRepeatAnimation: (Animation) -> Unit = {},
-                                      crossinline onEndAnimation: (Animation) -> Unit = {}) =
-            displayColumnAt(adapterPosition,
+    public inline fun switchToSingleColumnModeAt(adapterPosition: Int,
+                                                 crossinline onStartAnimation: (Animation) -> Unit = {},
+                                                 crossinline onRepeatAnimation: (Animation) -> Unit = {},
+                                                 crossinline onEndAnimation: (Animation) -> Unit = {}) =
+            switchToSingleColumnModeAt(adapterPosition,
                     animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
 
-    // Here we will display the column at the position
-    // Make sure the position is visible or at least close because behavior is not guaranteed
-    // otherwise
-    public fun displayColumnAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
+    /**
+     * This will switch to single column mode at the passed in [adapterPosition].
+     *
+     * Single Column Mode allows you to simulate a single column at once without inflating a new
+     * View or switching to a new Fragment or Activity. This way, the entire [BoardView] will
+     * look and feel exactly the same and maintain the same state.
+     *
+     * Correct behavior is not guaranteed if [adapterPosition] is a position from a ViewHolder
+     * that is not visible or at least nearby, meaning it is in the ViewHolder pool. This is
+     * because of the unpredictable amount needed to scroll before animating.
+     */
+    public fun switchToSingleColumnModeAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
+        // Caller didn't check their position was valid :/
         if (adapterPosition > (boardAdapter?.itemCount ?: -1) || adapterPosition < 0) return
+        // Scroll to the position first in case it is not visible but everything below is not
+        // fully guaranteed to work because of this scroll
         smoothScrollToPosition(adapterPosition)
         doOnFinishScroll {
             // Wait a little to let scroller do it's thing and not make things seem too abrupt
             postDelayed(250L) {
                 (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)
                         ?.also { columnVH ->
-                            // Disable over-scrolling temporarily and reset it to what it was before
+                            // Disable over-scrolling temporarily and reset it to what it was
+                            // before after the animation is done
                             val overScrolling = this.isOverScrollingEnabled
                             isOverScrollingEnabled = false
                             // We need to get these so that we can call notifyItemChanged on them
                             // after the animation ends
-                            val viewHolders = allViewHolders.toList()
+                            val viewHolders = List(boardAdapter?.itemCount
+                                    ?: adapterPosition + 10) { it }
                             val targetWidth = this.globalVisibleRect.width()
                             val scrollByAmount = columnVH.itemView.x
                             // We use this to get a deltaTime
@@ -180,12 +192,8 @@ class BoardView
                                                             // position after the update
                                                             // RV thinks we're at somewhere else
                                                             scrollToPosition(adapterPosition)
-                                                            viewHolders.filter {
-                                                                        it.adapterPosition != adapterPosition
-                                                                    }
-                                                                    .forEach {
-                                                                        boardAdapter?.notifyItemChanged(it.adapterPosition)
-                                                                    }
+                                                            viewHolders.filter { it != adapterPosition }
+                                                                    .forEach { boardAdapter?.notifyItemChanged(it) }
                                                             isSnappingToItems = true
                                                             isOverScrollingEnabled = overScrolling
                                                         }

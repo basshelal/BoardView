@@ -30,6 +30,12 @@ abstract class BaseRecyclerView
     inline val allViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
+    inline var isScrollEnabled: Boolean
+        set(value) {
+            layoutManager?.isScrollEnabled = value
+        }
+        get() = layoutManager?.isScrollEnabled ?: true
+
     internal var overScroller: OverScroller? = null
     var isOverScrollingEnabled: Boolean = true
         set(value) {

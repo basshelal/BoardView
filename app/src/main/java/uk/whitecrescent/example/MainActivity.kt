@@ -82,7 +82,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
         holder.header?.setOnClickListener {
-            exampleAdapter.boardViewContainer.boardView.displayColumnAt(position)
+            exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(position)
         }
     }
 }

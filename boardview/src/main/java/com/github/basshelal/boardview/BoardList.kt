@@ -35,7 +35,7 @@ class BoardList
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = VERTICAL
             it.isItemPrefetchEnabled = true
-            it.initialPrefetchItemCount = 10
+            it.initialPrefetchItemCount = 6
         }
     }
 

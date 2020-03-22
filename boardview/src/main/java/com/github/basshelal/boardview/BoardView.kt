@@ -4,6 +4,7 @@ package com.github.basshelal.boardview
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.PointF
 import android.graphics.RectF
 import android.os.Parcel
@@ -69,6 +70,20 @@ class BoardView
         isVerticalScrollBarEnabled = false
     }
 
+    override fun dispatchDraw(canvas: Canvas?) {
+        /*
+         * We're doing this because of the below exception that is out of our control:
+         * java.lang.NullPointerException: Attempt to read from field
+         * 'int android.view.View.mViewFlags' on a null object reference at
+         * android.view.ViewGroup.dispatchDraw(ViewGroup.java:4111)
+         */
+        try {
+            super.dispatchDraw(canvas)
+        } catch (e: NullPointerException) {
+
+        }
+    }
+
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
 
@@ -119,14 +134,6 @@ class BoardView
     // Make sure the position is visible or at least close because behavior is not guaranteed
     // otherwise
     public fun displayColumnAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
-        // TODO: 20-Mar-20 Scrolling isn't guaranteeing it's the one in the center! Hmmmm
-        //  we may need to implement our own SmoothScroller based heavily onLinearSmoothScroller
-        //  which will stop when the target View is in the center or beginning of the RecyclerView
-        //  or even better! -> Our animation will ensure that it grows to fit no matter where the
-        //  scroll ended, whether the target View was in the beginning or end or middle whatever
-        //  This is because it will look nicer but also it guarantees that it looks correct no
-        //  matter which adapterPosition is passed, the first one or the last one or anything in
-        //  the middle
         if (adapterPosition > (boardAdapter?.itemCount ?: -1) || adapterPosition < 0) return
         smoothScrollToPosition(adapterPosition)
         doOnFinishScroll {
@@ -134,55 +141,53 @@ class BoardView
             postDelayed(250L) {
                 (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)
                         ?.also { columnVH ->
-                            val view = columnVH.itemView
-                            val initialWidth = view.globalVisibleRect.width()
+                            // Disable over-scrolling temporarily and reset it to what it was before
+                            val overScrolling = this.isOverScrollingEnabled
+                            isOverScrollingEnabled = false
+                            // We need to get these so that we can call notifyItemChanged on them
+                            // after the animation ends
+                            val viewHolders = allViewHolders.toList()
                             val targetWidth = this.globalVisibleRect.width()
-                            var scrollByRemaining = view.x
-                            // Initialize width to be the actual width value instead of
-                            // WRAP_CONTENT (-2) or MATCH_PARENT (-1)
-                            // This should have no visible effect
-                            view.updateLayoutParamsSafe {
-                                width = initialWidth
+                            val scrollByAmount = columnVH.itemView.x
+                            // We use this to get a deltaTime
+                            var oldInterpolatedTime = 0F
+                            // Initialize width to be the actual width value instead of -1 or -2
+                            // which are WRAP and MATCH
+                            columnVH.itemView.updateLayoutParamsSafe {
+                                width = columnVH.itemView.globalVisibleRect.width()
                             }
-                            // Start animation!
-                            view.startAnimation(
+                            columnVH.itemView.startAnimation(
                                     animation { interpolatedTime: Float, _ ->
-                                        view.updateLayoutParamsSafe {
-                                            if (view.x > 0) {
-                                                // Internal Android Exception occurring below!
-                                                // Use scrollByRemaining to fix this TODO
-                                                scrollBy((view.x * interpolatedTime).roundToInt(), 0)
-                                                view.x -= (view.x.F * interpolatedTime).roundToInt()
-                                            }
+                                        val dTime = interpolatedTime - oldInterpolatedTime
+                                        columnVH.itemView.updateLayoutParamsSafe {
+                                            if (scrollByAmount > 0)
+                                                scrollBy((scrollByAmount * dTime).roundToInt(), 0)
                                             if (width < targetWidth)
                                                 width += ((targetWidth - width).F * interpolatedTime).roundToInt()
                                         }
+                                        oldInterpolatedTime = interpolatedTime
                                     }.also {
                                         it.interpolator = AccelerateInterpolator(2.0F)
                                         it.duration = 500L
                                         it.setAnimationListener(
                                                 animationListener(
-                                                        onStart = {
-                                                            animationListener.onAnimationStart(it)
-                                                        },
-                                                        onRepeat = {
-                                                            animationListener.onAnimationRepeat(it)
-                                                        },
+                                                        onStart = { animationListener.onAnimationStart(it) },
+                                                        onRepeat = { animationListener.onAnimationRepeat(it) },
                                                         onEnd = {
                                                             animationListener.onAnimationEnd(it)
-                                                            postDelayed(300) {
-                                                                columnWidth = MATCH_PARENT
-                                                                //scrollToPosition(adapterPosition)
-                                                                allViewHolders
-                                                                        .forEach {
-                                                                            it.itemView
-                                                                                    .updateLayoutParamsSafe { width = columnWidth }
-                                                                        }
-                                                                //val state = saveState()
-                                                                //notifyAllItemsChanged()
-                                                                //restoreFromState(state)
-                                                                //isSnappingToItems = true
-                                                            }
+                                                            columnWidth = MATCH_PARENT
+                                                            // We need to call this to maintain
+                                                            // position after the update
+                                                            // RV thinks we're at somewhere else
+                                                            scrollToPosition(adapterPosition)
+                                                            viewHolders.filter {
+                                                                        it.adapterPosition != adapterPosition
+                                                                    }
+                                                                    .forEach {
+                                                                        boardAdapter?.notifyItemChanged(it.adapterPosition)
+                                                                    }
+                                                            isSnappingToItems = true
+                                                            isOverScrollingEnabled = overScrolling
                                                         }
                                                 )
                                         )
@@ -190,8 +195,6 @@ class BoardView
                             )
                         }
             }
-            // While or after doing that we need to let BoardView know that the width of each Column
-            // is now different, try to update allViewHolders and also some global variable
         }
     }
 

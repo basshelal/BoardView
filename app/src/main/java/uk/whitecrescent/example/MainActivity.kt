@@ -62,6 +62,8 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
 class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
     : BoardAdapter(exampleAdapter) {
 
+    private var boardMode: BoardMode = BoardMode.MULTI
+
     override fun onViewHolderCreated(holder: BoardColumnViewHolder) {
         holder.header?.setOnLongClickListener {
             exampleAdapter.boardViewContainer.startDraggingColumn(holder)
@@ -82,7 +84,19 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
         holder.header?.setOnClickListener {
-            exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(position)
+            when (boardMode) {
+                BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(position)
+                BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode()
+            }
+            boardMode = boardMode.toggle()
+        }
+    }
+
+    private enum class BoardMode {
+        SINGLE, MULTI;
+
+        fun toggle(): BoardMode {
+            return if (this == SINGLE) MULTI else SINGLE
         }
     }
 }

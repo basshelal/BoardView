@@ -21,13 +21,12 @@ abstract class BaseRecyclerView
     /**
      * All ***visible or bound*** [RecyclerView.ViewHolder]s in this [RecyclerView].
      *
-     * This will usually include all visible ViewHolders as well as some invisible ViewHolders
-     * that have been created, bound and cached by [RecyclerView].
+     * This will usually include all visible ViewHolders as well possibly some invisible
+     * ViewHolders that have been created, bound and attached to [RecyclerView].
      *
-     * It is safe to assume that this will return all ViewHolders that this [RecyclerView] can
-     * possibly return.
+     * It is safe to assume that this will return all visible ViewHolders of this [RecyclerView].
      */
-    inline val allViewHolders: Sequence<ViewHolder>
+    inline val allVisibleViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
     inline var isScrollEnabled: Boolean
@@ -106,11 +105,11 @@ abstract class BaseRecyclerView
 
     /**
      * Calls [RecyclerView.Adapter.notifyItemChanged] on each [RecyclerView.ViewHolder] in
-     * [allViewHolders].
+     * [allVisibleViewHolders].
      * These are the already bound ViewHolders in this [RecyclerView].
      */
     inline fun notifyAllItemsChanged() {
-        allViewHolders.forEach { adapter?.notifyItemChanged(it.adapterPosition) }
+        allVisibleViewHolders.forEach { adapter?.notifyItemChanged(it.adapterPosition) }
     }
 
     private inline fun setUpOverScroller() {

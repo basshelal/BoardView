@@ -18,6 +18,7 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
+import android.view.animation.Transformation
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
@@ -39,6 +40,7 @@ class BoardView
         set(value) {
             field = value
             boardAdapter?.columnWidth = value
+            allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = value } }
         }
 
     public var isSnappingToItems: Boolean = false
@@ -47,7 +49,7 @@ class BoardView
             snapHelper.attachToRecyclerView(if (value) this else null)
         }
 
-    // Horizontal Scrolling info
+    // Horizontal Scrolling info, transient shit
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)
     private val horizontalMaxScrollBy = (updateRatePerMilli * 2F).roundToInt()
@@ -206,13 +208,96 @@ class BoardView
         }
     }
 
+    public fun switchToMultiColumnMode() {
+        logE("SWITCHING TO SINGLE @$now")
+        (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
+            // Guess which VHs we will need, overestimate!
+            val cacheAmount = layoutManager?.initialPrefetchItemCount ?: 10
+            val from = columnVH.adapterPosition - cacheAmount
+            val to = columnVH.adapterPosition + cacheAmount
+            val viewHolders = (from..to).toList()
+            logE(viewHolders)
+
+            logE(viewHolders.map {
+                findViewHolderForAdapterPosition(it)
+            }.map { it?.adapterPosition })
+
+            // TODO: 22-Mar-20 How do we find the target width if it is WRAP_CONTENT
+            //  below works!
+            columnVH.itemView.also {
+
+                logE(it.measuredWidth)
+                logE(it.measuredHeight)
+
+                it.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                        MeasureSpec.makeMeasureSpec(this.height, MeasureSpec.EXACTLY))
+
+                logE(it.measuredWidth)
+                logE(it.measuredHeight)
+
+            }
+
+            // Disable snapping
+            isSnappingToItems = false
+            // Change the column widths of all the ViewHolders except the one we are on
+            // Scroll to current position just in case?
+            //scrollToPosition(columnVH.adapterPosition)
+            // Animate! Try to make it so that the VH ends up somewhere in the middle of the Board
+            columnVH.itemView.startAnimation(
+                    animation { interpolatedTime: Float, _ ->
+
+                    }
+            )
+        }
+    }
+
+
+    fun expand(v: View) {
+        val matchParentMeasureSpec = MeasureSpec.makeMeasureSpec((v.parent as View).width, MeasureSpec.EXACTLY)
+        val wrapContentMeasureSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        v.measure(matchParentMeasureSpec, wrapContentMeasureSpec)
+        val targetHeight = v.measuredHeight
+
+        // Older versions of android (pre API 21) cancel animations for views with a height of 0.
+        v.layoutParams.height = 1
+        v.visibility = View.VISIBLE
+        val a: Animation = object : Animation() {
+            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
+                v.layoutParams.height = if (interpolatedTime == 1f) LayoutParams.WRAP_CONTENT else (targetHeight * interpolatedTime).toInt()
+                v.requestLayout()
+            }
+        }
+
+        // Expansion speed of 1dp/ms
+        a.duration = (targetHeight / v.context.resources.displayMetrics.density).toLong()
+        v.startAnimation(a)
+    }
+
+    fun collapse(v: View) {
+        val initialHeight = v.measuredHeight
+        val a: Animation = object : Animation() {
+            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
+                if (interpolatedTime == 1f) {
+                    v.visibility = View.GONE
+                } else {
+                    v.layoutParams.height = initialHeight - (initialHeight * interpolatedTime).toInt()
+                    v.requestLayout()
+                }
+            }
+        }
+
+        // Collapse speed of 1dp/ms
+        a.duration = (initialHeight / v.context.resources.displayMetrics.density).toLong()
+        v.startAnimation(a)
+    }
+
+
     /**
      * The passed in [adapter] must be a descendant of [BoardAdapter].
      */
     override fun setAdapter(adapter: Adapter<*>?) {
-        if (adapter is BoardAdapter) {
-            super.setAdapter(adapter)
-        } else if (adapter != null)
+        if (adapter is BoardAdapter) super.setAdapter(adapter)
+        else if (adapter != null)
             logE("BoardView adapter must be a descendant of BoardAdapter!\n" +
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
@@ -228,7 +313,7 @@ class BoardView
     fun saveState(): BoardViewSavedState {
         val savedState = BoardViewSavedState(super.onSaveInstanceState() as? RecyclerViewState)
         boardAdapter?.also { boardAdapter ->
-            allViewHolders.forEach {
+            allVisibleViewHolders.forEach {
                 (it as? BoardColumnViewHolder)?.also { holder ->
                     holder.list?.layoutManager?.saveState()?.also {
                         boardAdapter.layoutStates[holder.adapterPosition] = it
@@ -236,6 +321,8 @@ class BoardView
                 }
             }
             savedState.layoutStates = boardAdapter.layoutStates.values.toList()
+            savedState.columnWidth = columnWidth
+            savedState.isSnappingToItems = isSnappingToItems
         }
         return savedState
     }
@@ -258,6 +345,8 @@ class BoardView
                 }
             }
         }
+        columnWidth = state.columnWidth
+        isSnappingToItems = state.isSnappingToItems
     }
 
     @SuppressLint("MissingSuperCall") // we called super in saveState()
@@ -383,10 +472,16 @@ internal typealias RecyclerViewState = RecyclerView.SavedState
 open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
 
     var layoutStates: List<LinearState>? = null
+    var columnWidth: Int = WRAP_CONTENT
+    var isSnappingToItems: Boolean = false
 
     override fun writeToParcel(dest: Parcel?, flags: Int) {
         super.writeToParcel(dest, flags)
-        dest?.also { it.writeTypedList(layoutStates) }
+        dest?.also {
+            it.writeTypedList(layoutStates)
+            it.writeInt(columnWidth)
+            it.writeInt(if (isSnappingToItems) 1 else 0)
+        }
     }
 
     companion object CREATOR : Parcelable.Creator<BoardViewSavedState> {
@@ -397,6 +492,8 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
                     val list = ArrayList<LinearState>()
                     parcel.readTypedList(list, LinearState.CREATOR)
                     it.layoutStates = list
+                    it.columnWidth = parcel.readInt()
+                    it.isSnappingToItems = parcel.readInt() == 1
                 }
 
         override fun newArray(size: Int): Array<BoardViewSavedState?> = arrayOfNulls(size)

@@ -18,7 +18,7 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
-import android.view.animation.Transformation
+import android.view.animation.DecelerateInterpolator
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
@@ -208,34 +208,27 @@ class BoardView
         }
     }
 
-    public fun switchToMultiColumnMode() {
-        logE("SWITCHING TO SINGLE @$now")
+    public inline fun switchToMultiColumnMode(crossinline onStartAnimation: (Animation) -> Unit = {},
+                                              crossinline onRepeatAnimation: (Animation) -> Unit = {},
+                                              crossinline onEndAnimation: (Animation) -> Unit = {}) =
+            switchToMultiColumnMode(animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
+
+    public fun switchToMultiColumnMode(animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
             // Guess which VHs we will need, overestimate!
             val cacheAmount = layoutManager?.initialPrefetchItemCount ?: 10
-            val from = columnVH.adapterPosition - cacheAmount
-            val to = columnVH.adapterPosition + cacheAmount
-            val viewHolders = (from..to).toList()
-            logE(viewHolders)
+            val viewHolders = ((columnVH.adapterPosition - cacheAmount)..
+                    (columnVH.adapterPosition + cacheAmount)).toList()
 
-            logE(viewHolders.map {
-                findViewHolderForAdapterPosition(it)
-            }.map { it?.adapterPosition })
+            val initialWidth = columnVH.itemView.width
 
-            // TODO: 22-Mar-20 How do we find the target width if it is WRAP_CONTENT
-            //  below works!
-            columnVH.itemView.also {
+            columnVH.itemView.measure(
+                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                    MeasureSpec.makeMeasureSpec(this.height, MeasureSpec.EXACTLY))
 
-                logE(it.measuredWidth)
-                logE(it.measuredHeight)
+            val targetWidth = columnVH.itemView.measuredWidth
 
-                it.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
-                        MeasureSpec.makeMeasureSpec(this.height, MeasureSpec.EXACTLY))
-
-                logE(it.measuredWidth)
-                logE(it.measuredHeight)
-
-            }
+            val widthDifference = targetWidth.F - initialWidth.F
 
             // Disable snapping
             isSnappingToItems = false
@@ -245,52 +238,34 @@ class BoardView
             // Animate! Try to make it so that the VH ends up somewhere in the middle of the Board
             columnVH.itemView.startAnimation(
                     animation { interpolatedTime: Float, _ ->
-
+                        columnVH.itemView.updateLayoutParamsSafe {
+                            if (width > targetWidth) {
+                                val newWidth = initialWidth - (widthDifference * -interpolatedTime).I
+                                val diff = width.F - newWidth.F
+                                width = newWidth
+                                scrollBy(-(diff * interpolatedTime).roundToInt(), 0)
+                            }
+                            // The other children will appear as the animation is happening,
+                            // we should let them animate as they are appearing in!
+                            // So this will be kind of a recursive animation because those
+                            // animations will also have to check for newly appearing children
+                            // and animate them and so on
+                            logE(childCount)
+                        }
+                    }.also {
+                        it.interpolator = DecelerateInterpolator(0.75F)
+                        it.duration = 500L
+                        it.setAnimationListener(
+                                animationListener(
+                                        onStart = { animationListener.onAnimationStart(it) },
+                                        onRepeat = { animationListener.onAnimationRepeat(it) },
+                                        onEnd = { animationListener.onAnimationEnd(it) }
+                                )
+                        )
                     }
             )
         }
     }
-
-
-    fun expand(v: View) {
-        val matchParentMeasureSpec = MeasureSpec.makeMeasureSpec((v.parent as View).width, MeasureSpec.EXACTLY)
-        val wrapContentMeasureSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-        v.measure(matchParentMeasureSpec, wrapContentMeasureSpec)
-        val targetHeight = v.measuredHeight
-
-        // Older versions of android (pre API 21) cancel animations for views with a height of 0.
-        v.layoutParams.height = 1
-        v.visibility = View.VISIBLE
-        val a: Animation = object : Animation() {
-            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
-                v.layoutParams.height = if (interpolatedTime == 1f) LayoutParams.WRAP_CONTENT else (targetHeight * interpolatedTime).toInt()
-                v.requestLayout()
-            }
-        }
-
-        // Expansion speed of 1dp/ms
-        a.duration = (targetHeight / v.context.resources.displayMetrics.density).toLong()
-        v.startAnimation(a)
-    }
-
-    fun collapse(v: View) {
-        val initialHeight = v.measuredHeight
-        val a: Animation = object : Animation() {
-            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
-                if (interpolatedTime == 1f) {
-                    v.visibility = View.GONE
-                } else {
-                    v.layoutParams.height = initialHeight - (initialHeight * interpolatedTime).toInt()
-                    v.requestLayout()
-                }
-            }
-        }
-
-        // Collapse speed of 1dp/ms
-        a.duration = (initialHeight / v.context.resources.displayMetrics.density).toLong()
-        v.startAnimation(a)
-    }
-
 
     /**
      * The passed in [adapter] must be a descendant of [BoardAdapter].

@@ -22,6 +22,7 @@ import android.view.animation.DecelerateInterpolator
 import androidx.annotation.CallSuper
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
+import androidx.core.view.children
 import androidx.core.view.postDelayed
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -215,6 +216,12 @@ class BoardView
 
     public fun switchToMultiColumnMode(animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
+            // Initial count of children, should be 1
+            val initialChildCount = childCount
+            var currentChildCount = initialChildCount
+
+            val newChildren = HashMap<View, Boolean>()
+
             // Guess which VHs we will need, overestimate!
             val cacheAmount = layoutManager?.initialPrefetchItemCount ?: 10
             val viewHolders = ((columnVH.adapterPosition - cacheAmount)..
@@ -245,12 +252,27 @@ class BoardView
                                 width = newWidth
                                 scrollBy(-(diff * interpolatedTime).roundToInt(), 0)
                             }
+                            if (childCount > currentChildCount) {
+                                // A new child appears!
+                                // We can't know anything about the new child so we brute force
+                                // add all possibilities
+                                children.filter { it != columnVH.itemView }
+                                        .forEach { newChildren.putIfAbsentSafe(it, false) }
+
+                                newChildren.forEach { (view, animated) ->
+                                    if (!animated) {
+                                        animateNewlyAppearedChild(view)
+                                        newChildren[view] = true
+                                    }
+                                }
+                                currentChildCount = childCount
+                            }
                             // The other children will appear as the animation is happening,
                             // we should let them animate as they are appearing in!
                             // So this will be kind of a recursive animation because those
                             // animations will also have to check for newly appearing children
                             // and animate them and so on
-                            logE(childCount)
+
                         }
                     }.also {
                         it.interpolator = DecelerateInterpolator(0.75F)
@@ -266,6 +288,30 @@ class BoardView
             )
         }
     }
+
+    private fun animateNewlyAppearedChild(view: View) {
+        val initialWidth = view.width
+
+        logE(initialWidth)
+
+        // The measuring makes things break :/
+//        view.measure(
+//                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+//                MeasureSpec.makeMeasureSpec(this.height, MeasureSpec.EXACTLY))
+
+        val targetWidth = view.measuredWidth
+        val widthDifference = targetWidth.F - initialWidth.F
+
+        view.startAnimation(
+                animation { interpolatedTime: Float, _ ->
+
+                }.also {
+                    it.interpolator = DecelerateInterpolator(0.75F)
+                    it.duration = 500L
+                }
+        )
+    }
+
 
     /**
      * The passed in [adapter] must be a descendant of [BoardAdapter].

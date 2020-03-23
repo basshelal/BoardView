@@ -65,6 +65,10 @@ inline val now: Long get() = System.currentTimeMillis()
 
 inline operator fun <reified V : View?> V?.invoke(block: V.() -> Unit) = this?.apply(block)
 
+inline fun <K, V> HashMap<K, V>.putIfAbsentSafe(key: K, value: V) {
+    if (!this.containsKey(key)) this[key] = value
+}
+
 inline fun View.shortSnackBar(string: String) = Snackbar.make(this, string, Snackbar.LENGTH_SHORT).show()
 
 inline fun View.longSnackBar(string: String) = Snackbar.make(this, string, Snackbar.LENGTH_LONG).show()

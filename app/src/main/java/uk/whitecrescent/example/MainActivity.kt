@@ -85,7 +85,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         holder.itemView.header_textView.text = boardList.name
         holder.header?.setOnClickListener {
             when (boardMode) {
-                BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(position)
+                BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(holder.adapterPosition)
                 BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode(500)
             }
             boardMode = boardMode.toggle()

@@ -37,8 +37,13 @@ class VerticalOverScroller(val recyclerView: RecyclerView) :
         get() = currentState != IOverScrollState.STATE_IDLE
 
     override fun overScroll(amount: Number) {
+        // bound the input so that extreme numbers are limited
+        val limit = recyclerView.height.F / 2F
+        var actual = amount.F
+        if (amount.F < -limit && amount.F < 0) actual = -limit
+        if (amount.F > limit && amount.F > 0) actual = limit
         issueStateTransition(mOverScrollingState)
-        translateView(recyclerView, -amount.F)
+        translateView(recyclerView, -actual)
         issueStateTransition(mBounceBackState)
     }
 }
@@ -60,8 +65,15 @@ class HorizontalOverScroller(val recyclerView: RecyclerView) :
         get() = currentState != IOverScrollState.STATE_IDLE
 
     override fun overScroll(amount: Number) {
+        logE(amount)
+        // bound the input so that extreme numbers are limited
+        val limit = recyclerView.width.F / 2F
+        var actual = amount.F
+        if (amount.F < -limit && amount.F < 0) actual = -limit
+        if (amount.F > limit && amount.F > 0) actual = limit
+        logE(actual)
         issueStateTransition(mOverScrollingState)
-        translateView(recyclerView, -amount.F)
+        translateView(recyclerView, -actual)
         issueStateTransition(mBounceBackState)
     }
 

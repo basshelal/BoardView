@@ -249,7 +249,7 @@ class BoardViewContainer
                             oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         if (oldItemVH != newItemVH) {
             val swap = ViewHolderSwap(oldItemVH, newItemVH)
-            if (!itemVHSwaps.containsKey(swap)) itemVHSwaps[swap] = false
+            itemVHSwaps.putIfAbsentSafe(swap, false)
             if (itemVHSwaps[swap] == false &&
                     boardView.itemAnimator?.isRunning == false &&
                     oldColumnVH.list?.itemAnimator?.isRunning == false &&
@@ -296,7 +296,7 @@ class BoardViewContainer
     fun swapColumnViewHolders(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         if (newVH != oldVH) {
             val swap = ViewHolderSwap(oldVH, newVH)
-            if (!columnVHSwaps.containsKey(swap)) columnVHSwaps[swap] = false
+            columnVHSwaps.putIfAbsentSafe(swap, false)
             if (columnVHSwaps[swap] == false &&
                     boardView.itemAnimator?.isRunning == false) {
                 if (adapter?.onSwapBoardViewHolders(oldVH, newVH) == true) {

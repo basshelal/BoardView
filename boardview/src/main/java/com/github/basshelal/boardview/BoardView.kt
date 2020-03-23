@@ -24,7 +24,6 @@ import androidx.annotation.Px
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.children
-import androidx.core.view.postDelayed
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
@@ -44,9 +43,10 @@ class BoardView
             if (value < 0 && value != MATCH_PARENT)
                 throw IllegalArgumentException("Column width must be " +
                         "greater than 0 or MATCH_PARENT (-1), passed in $value")
-            field = value
-            boardAdapter?.columnWidth = value
-            allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = value } }
+            val valid = if (value == MATCH_PARENT) this.width else value
+            field = valid
+            boardAdapter?.columnWidth = valid
+            allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = valid } }
         }
 
     public var isSnappingToItems: Boolean = false
@@ -145,73 +145,53 @@ class BoardView
      * View or switching to a new Fragment or Activity. This way, the entire [BoardView] will
      * look and feel exactly the same and maintain the same state.
      *
-     * Correct behavior is not guaranteed if [adapterPosition] is a position from a ViewHolder
-     * that is not visible or at least nearby, meaning it is in the ViewHolder pool. This is
-     * because of the unpredictable amount needed to scroll before animating.
+     * The [adapterPosition] must be a position from a ViewHolder that is currently visible
+     * otherwise nothing will happen
      */
     public fun switchToSingleColumnModeAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
         // Caller didn't check their position was valid :/
         if (adapterPosition > (boardAdapter?.itemCount ?: -1) || adapterPosition < 0) return
-        // Scroll to the position first in case it is not visible but everything below is not
-        // fully guaranteed to work because of this scroll
-        smoothScrollToPosition(adapterPosition)
-        doOnFinishScroll {
-            // Wait a little to let scroller do it's thing and not make things seem too abrupt
-            postDelayed(25L) {
-                (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)
-                        ?.also { columnVH ->
-                            // Disable over-scrolling temporarily and reset it to what it was
-                            // before after the animation is done
-                            val overScrolling = this.isOverScrollingEnabled
-                            isOverScrollingEnabled = false
-                            // We need to get these so that we can call notifyItemChanged on them
-                            // after the animation ends
-                            val viewHolders = List(boardAdapter?.itemCount
-                                    ?: adapterPosition + 10) { it }
-                            val targetWidth = this.globalVisibleRect.width()
-                            val scrollByAmount = columnVH.itemView.x
-                            // We use this to get a deltaTime
-                            var oldInterpolatedTime = 0F
-                            // Initialize width to be the actual width value instead of -1 or -2
-                            // which are WRAP and MATCH
-                            columnVH.itemView.updateLayoutParamsSafe {
-                                width = columnVH.itemView.globalVisibleRect.width()
-                            }
-                            columnVH.itemView.startAnimation(
-                                    animation { interpolatedTime: Float, _ ->
-                                        val dTime = interpolatedTime - oldInterpolatedTime
-                                        columnVH.itemView.updateLayoutParamsSafe {
-                                            if (scrollByAmount > 0)
-                                                scrollBy((scrollByAmount * dTime).roundToInt(), 0)
-                                            if (width < targetWidth)
-                                                width += ((targetWidth - width).F * interpolatedTime).roundToInt()
-                                        }
-                                        oldInterpolatedTime = interpolatedTime
-                                    }.also {
-                                        it.interpolator = AccelerateInterpolator(2.0F)
-                                        it.duration = 500L
-                                        it.setAnimationListener(
-                                                animationListener(
-                                                        onStart = { animationListener.onAnimationStart(it) },
-                                                        onRepeat = { animationListener.onAnimationRepeat(it) },
-                                                        onEnd = {
-                                                            animationListener.onAnimationEnd(it)
-                                                            columnWidth = MATCH_PARENT
-                                                            // We need to call this to maintain
-                                                            // position after the update
-                                                            // RV thinks we're at somewhere else
-                                                            scrollToPosition(adapterPosition)
-                                                            viewHolders.filter { it != adapterPosition }
-                                                                    .forEach { boardAdapter?.notifyItemChanged(it) }
-                                                            isSnappingToItems = true
-                                                            isOverScrollingEnabled = overScrolling
-                                                        }
-                                                )
-                                        )
-                                    }
-                            )
+        (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)?.also { columnVH ->
+            // Disable over-scrolling temporarily and reset it to what it was after the animation is done
+            val overScrolling = this.isOverScrollingEnabled
+            isOverScrollingEnabled = false
+            // We need to get these so that we can call notifyItemChanged on them after the animation ends
+            val viewHolders = List(boardAdapter?.itemCount ?: adapterPosition + 10) { it }
+            val targetWidth = this.globalVisibleRect.width()
+            val scrollByAmount = columnVH.itemView.x
+            // We use this to get a deltaTime
+            var oldInterpolatedTime = 0F
+            columnVH.itemView.startAnimation(
+                    animation { interpolatedTime: Float, _ ->
+                        val dTime = interpolatedTime - oldInterpolatedTime
+                        columnVH.itemView.updateLayoutParamsSafe {
+                            if (scrollByAmount > 0) scrollBy((scrollByAmount * dTime).roundToInt(), 0)
+                            if (width < targetWidth) width += ((targetWidth - width).F * interpolatedTime).roundToInt()
                         }
-            }
+                        oldInterpolatedTime = interpolatedTime
+                    }.also {
+                        it.interpolator = AccelerateInterpolator(2.0F)
+                        it.duration = 500L
+                        it.setAnimationListener(
+                                animationListener(
+                                        onStart = { animationListener.onAnimationStart(it) },
+                                        onRepeat = { animationListener.onAnimationRepeat(it) },
+                                        onEnd = {
+                                            animationListener.onAnimationEnd(it)
+                                            columnWidth = MATCH_PARENT
+                                            // We need to call this to maintain
+                                            // position after the update
+                                            // RV thinks we're at somewhere else
+                                            scrollToPosition(adapterPosition)
+                                            viewHolders.filter { it != adapterPosition }
+                                                    .forEach { boardAdapter?.notifyItemChanged(it) }
+                                            isSnappingToItems = true
+                                            isOverScrollingEnabled = overScrolling
+                                        }
+                                )
+                        )
+                    }
+            )
         }
     }
 
@@ -228,62 +208,56 @@ class BoardView
             val initialChildCount = childCount
             var currentChildCount = initialChildCount
 
+            // Key: Child View Value: hasAnimated
             val newChildren = HashMap<View, Boolean>()
 
-            // Guess which VHs we will need, overestimate!
+            // Guess which VHs we will need, overestimate for safety!
             val cacheAmount = layoutManager?.initialPrefetchItemCount ?: 10
             val viewHolders = ((columnVH.adapterPosition - cacheAmount)..
                     (columnVH.adapterPosition + cacheAmount)).toList()
 
             val initialWidth = columnVH.itemView.width
-
             val widthDifference = newColumnWidth.F - initialWidth.F
-
-            // Disable snapping
+            val animationDuration = 500
             isSnappingToItems = false
-            // Change the column widths of all the ViewHolders except the one we are on
-            // Scroll to current position just in case?
-            //scrollToPosition(columnVH.adapterPosition)
-            // Animate! Try to make it so that the VH ends up somewhere in the middle of the Board
+
             columnVH.itemView.startAnimation(
                     animation { interpolatedTime: Float, _ ->
                         columnVH.itemView.updateLayoutParamsSafe {
                             if (width > newColumnWidth) {
-                                val newWidth = initialWidth - (widthDifference * -interpolatedTime).I
-                                val diff = width.F - newWidth.F
-                                width = newWidth
-                                scrollBy(-(diff * interpolatedTime).roundToInt(), 0)
+                                width = initialWidth - (widthDifference * -interpolatedTime).I
                             }
                             if (childCount > currentChildCount) {
                                 // A new child appears!
-                                // We can't know anything about the new child so we brute force
-                                // add all possibilities
+                                // We can't know anything about the new child so we brute force all possibilities
                                 children.filter { it != columnVH.itemView }
                                         .forEach { newChildren.putIfAbsentSafe(it, false) }
 
+                                // Below guarantees that each new child gets animated only once
                                 newChildren.forEach { (view, animated) ->
                                     if (!animated) {
                                         animateNewlyAppearedChild(view, newColumnWidth,
-                                                (500F * (1.0F - interpolatedTime)).L)
+                                                (animationDuration.F * (1.0F - interpolatedTime)).L)
                                         newChildren[view] = true
                                     }
                                 }
                                 currentChildCount = childCount
                             }
-                            // The other children will appear as the animation is happening,
-                            // we should let them animate as they are appearing in!
-                            // So this will be kind of a recursive animation because those
-                            // animations will also have to check for newly appearing children
-                            // and animate them and so on
                         }
                     }.also {
                         it.interpolator = DecelerateInterpolator(0.75F)
-                        it.duration = 500L
+                        it.duration = animationDuration.L
                         it.setAnimationListener(
                                 animationListener(
                                         onStart = { animationListener.onAnimationStart(it) },
                                         onRepeat = { animationListener.onAnimationRepeat(it) },
-                                        onEnd = { animationListener.onAnimationEnd(it) }
+                                        onEnd = {
+                                            animationListener.onAnimationEnd(it)
+                                            columnWidth = newColumnWidth
+                                            // Safety measure but only on the non-visible VHs so this is invisible
+                                            viewHolders.filter { it !in allVisibleViewHolders.map { it.adapterPosition } }
+                                                    .forEach { boardAdapter?.notifyItemChanged(it) }
+                                        }
                                 )
                         )
                     }
@@ -291,33 +265,11 @@ class BoardView
         }
     }
 
+    // A child has appeared! Animate its collapse
     private fun animateNewlyAppearedChild(view: View, newColumnWidth: Int, duration: Long) {
         if (duration <= 0) return
-        val vh = findContainingViewHolder(view) as BoardColumnViewHolder
         val initialWidth = view.width
         val widthDifference = newColumnWidth.F - initialWidth.F
-
-        // The multiple bugs below don't happen when we don't do scrolling when switching to
-        // Multi Column Mode, it's not ideal but it works perfectly, otherwise we face 3 issues
-        // the View is never fully centered, the left View doesn't animate, and the right View
-        // flashes before animating
-
-        // TODO: 23-Mar-20 The View to the right flashes as the animation is starting :/
-        //  this is because width is initially -1 or MATCH_PARENT, well we could always resolve
-        //  MATCH_PARENT to its actual value so that the width will never be less than 1 even if
-        //  we let it be -1, NEVER MIND, that doesn't work for some reason, the flashing must be
-        //  for some other reason
-        view.updateLayoutParamsSafe {
-            width = initialWidth
-        }
-
-        // TODO: 23-Mar-20 The View to the left isn't moving :/
-
-        logE("""pos: ${vh.adapterPosition},
-            | duration: $duration
-            | initialWidth: $initialWidth
-            | widthDiff: $widthDifference
-            | newWidth: $newColumnWidth""".trimMargin())
 
         view.startAnimation(
                 animation { interpolatedTime: Float, _ ->
@@ -360,8 +312,8 @@ class BoardView
                 }
             }
             savedState.layoutStates = boardAdapter.layoutStates.values.toList()
-            savedState.columnWidth = columnWidth
-            savedState.isSnappingToItems = isSnappingToItems
+            savedState.columnWidth = this.columnWidth
+            savedState.isSnappingToItems = this.isSnappingToItems
         }
         return savedState
     }
@@ -384,8 +336,8 @@ class BoardView
                 }
             }
         }
-        columnWidth = state.columnWidth
-        isSnappingToItems = state.isSnappingToItems
+        this.columnWidth = state.columnWidth
+        this.isSnappingToItems = state.isSnappingToItems
     }
 
     @SuppressLint("MissingSuperCall") // we called super in saveState()

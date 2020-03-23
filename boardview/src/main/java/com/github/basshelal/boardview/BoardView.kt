@@ -75,6 +75,7 @@ class BoardView
         }
         isHorizontalScrollBarEnabled = true
         isVerticalScrollBarEnabled = false
+        setHasFixedSize(true)
     }
 
     override fun dispatchDraw(canvas: Canvas?) {
@@ -156,7 +157,7 @@ class BoardView
         smoothScrollToPosition(adapterPosition)
         doOnFinishScroll {
             // Wait a little to let scroller do it's thing and not make things seem too abrupt
-            postDelayed(250L) {
+            postDelayed(25L) {
                 (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)
                         ?.also { columnVH ->
                             // Disable over-scrolling temporarily and reset it to what it was
@@ -236,9 +237,7 @@ class BoardView
 
             val initialWidth = columnVH.itemView.width
 
-            val targetWidth = newColumnWidth
-
-            val widthDifference = targetWidth.F - initialWidth.F
+            val widthDifference = newColumnWidth.F - initialWidth.F
 
             // Disable snapping
             isSnappingToItems = false
@@ -249,7 +248,7 @@ class BoardView
             columnVH.itemView.startAnimation(
                     animation { interpolatedTime: Float, _ ->
                         columnVH.itemView.updateLayoutParamsSafe {
-                            if (width > targetWidth) {
+                            if (width > newColumnWidth) {
                                 val newWidth = initialWidth - (widthDifference * -interpolatedTime).I
                                 val diff = width.F - newWidth.F
                                 width = newWidth
@@ -293,9 +292,24 @@ class BoardView
     }
 
     private fun animateNewlyAppearedChild(view: View, newColumnWidth: Int, duration: Long) {
+        if (duration <= 0) return
         val vh = findContainingViewHolder(view) as BoardColumnViewHolder
         val initialWidth = view.width
         val widthDifference = newColumnWidth.F - initialWidth.F
+
+        // The multiple bugs below don't happen when we don't do scrolling when switching to
+        // Multi Column Mode, it's not ideal but it works perfectly, otherwise we face 3 issues
+        // the View is never fully centered, the left View doesn't animate, and the right View
+        // flashes before animating
+
+        // TODO: 23-Mar-20 The View to the right flashes as the animation is starting :/
+        //  this is because width is initially -1 or MATCH_PARENT, well we could always resolve
+        //  MATCH_PARENT to its actual value so that the width will never be less than 1 even if
+        //  we let it be -1, NEVER MIND, that doesn't work for some reason, the flashing must be
+        //  for some other reason
+        view.updateLayoutParamsSafe {
+            width = initialWidth
+        }
 
         // TODO: 23-Mar-20 The View to the left isn't moving :/
 
@@ -308,8 +322,7 @@ class BoardView
         view.startAnimation(
                 animation { interpolatedTime: Float, _ ->
                     view.updateLayoutParamsSafe {
-                        val newWidth = initialWidth - (widthDifference * -interpolatedTime).I
-                        width = newWidth
+                        width = initialWidth - (widthDifference * -interpolatedTime).I
                     }
                 }.also {
                     it.interpolator = DecelerateInterpolator(0.75F)

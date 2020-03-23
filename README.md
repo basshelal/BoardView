@@ -1,6 +1,8 @@
 # BoardView (Work in Progress)
 
-看板
+Android Library that provides a `View` for displaying Kanban Boards similar to those found
+ in Trello, Asana, Jira, KanbanFlow etc.
 
-A small Android Library that provides a View for displaying Kanban Boards similar to those found
- in Trello, GitHub Projects etc.
+## Known Issues
+
+* Board Columns must be of the same width, so `WRAP_CONTENT` is not supported due to its dynamic nature.

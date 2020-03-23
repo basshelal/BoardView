@@ -20,6 +20,7 @@ import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.CallSuper
+import androidx.annotation.Px
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.children
@@ -37,8 +38,12 @@ class BoardView
 
     public inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
 
-    public var columnWidth = WRAP_CONTENT
+    @Px
+    public var columnWidth = 500
         set(value) {
+            if (value < 0 && value != MATCH_PARENT)
+                throw IllegalArgumentException("Column width must be " +
+                        "greater than 0 or MATCH_PARENT (-1), passed in $value")
             field = value
             boardAdapter?.columnWidth = value
             allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = value } }
@@ -209,12 +214,14 @@ class BoardView
         }
     }
 
-    public inline fun switchToMultiColumnMode(crossinline onStartAnimation: (Animation) -> Unit = {},
+    public inline fun switchToMultiColumnMode(newColumnWidth: Int,
+                                              crossinline onStartAnimation: (Animation) -> Unit = {},
                                               crossinline onRepeatAnimation: (Animation) -> Unit = {},
                                               crossinline onEndAnimation: (Animation) -> Unit = {}) =
-            switchToMultiColumnMode(animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
+            switchToMultiColumnMode(newColumnWidth,
+                    animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
 
-    public fun switchToMultiColumnMode(animationListener: Animation.AnimationListener) {
+    public fun switchToMultiColumnMode(newColumnWidth: Int, animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
             // Initial count of children, should be 1
             val initialChildCount = childCount
@@ -229,11 +236,7 @@ class BoardView
 
             val initialWidth = columnVH.itemView.width
 
-            columnVH.itemView.measure(
-                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
-                    MeasureSpec.makeMeasureSpec(this.height, MeasureSpec.EXACTLY))
-
-            val targetWidth = columnVH.itemView.measuredWidth
+            val targetWidth = newColumnWidth
 
             val widthDifference = targetWidth.F - initialWidth.F
 
@@ -261,7 +264,8 @@ class BoardView
 
                                 newChildren.forEach { (view, animated) ->
                                     if (!animated) {
-                                        animateNewlyAppearedChild(view)
+                                        animateNewlyAppearedChild(view, newColumnWidth,
+                                                (500F * (1.0F - interpolatedTime)).L)
                                         newChildren[view] = true
                                     }
                                 }
@@ -272,7 +276,6 @@ class BoardView
                             // So this will be kind of a recursive animation because those
                             // animations will also have to check for newly appearing children
                             // and animate them and so on
-
                         }
                     }.also {
                         it.interpolator = DecelerateInterpolator(0.75F)
@@ -289,29 +292,31 @@ class BoardView
         }
     }
 
-    private fun animateNewlyAppearedChild(view: View) {
+    private fun animateNewlyAppearedChild(view: View, newColumnWidth: Int, duration: Long) {
+        val vh = findContainingViewHolder(view) as BoardColumnViewHolder
         val initialWidth = view.width
+        val widthDifference = newColumnWidth.F - initialWidth.F
 
-        logE(initialWidth)
+        // TODO: 23-Mar-20 The View to the left isn't moving :/
 
-        // The measuring makes things break :/
-//        view.measure(
-//                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
-//                MeasureSpec.makeMeasureSpec(this.height, MeasureSpec.EXACTLY))
-
-        val targetWidth = view.measuredWidth
-        val widthDifference = targetWidth.F - initialWidth.F
+        logE("""pos: ${vh.adapterPosition},
+            | duration: $duration
+            | initialWidth: $initialWidth
+            | widthDiff: $widthDifference
+            | newWidth: $newColumnWidth""".trimMargin())
 
         view.startAnimation(
                 animation { interpolatedTime: Float, _ ->
-
+                    view.updateLayoutParamsSafe {
+                        val newWidth = initialWidth - (widthDifference * -interpolatedTime).I
+                        width = newWidth
+                    }
                 }.also {
                     it.interpolator = DecelerateInterpolator(0.75F)
-                    it.duration = 500L
+                    it.duration = duration
                 }
         )
     }
-
 
     /**
      * The passed in [adapter] must be a descendant of [BoardAdapter].
@@ -385,12 +390,19 @@ abstract class BoardAdapter(
 ) : BaseAdapter<BoardColumnViewHolder>() {
 
     // Ideally we wouldn't want this but we want to not keep a reference of the BoardView!
-    internal var columnWidth: Int = WRAP_CONTENT
+    internal var columnWidth: Int = 0
 
     /**
      * The layout states of each [BoardColumnViewHolder] with its adapter position as the key
      */
     internal val layoutStates = HashMap<Int, LinearState>()
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        if (recyclerView is BoardView) {
+            super.onAttachedToRecyclerView(recyclerView)
+            this.columnWidth = recyclerView.columnWidth
+        }
+    }
 
     // We handle the creation because we return BoardVH that contains columns
     // We have to do this ourselves because we resolve the header, footer and list layout as well

@@ -86,7 +86,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         holder.header?.setOnClickListener {
             when (boardMode) {
                 BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(position)
-                BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode()
+                BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode(500)
             }
             boardMode = boardMode.toggle()
         }

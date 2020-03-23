@@ -230,7 +230,7 @@ class BoardViewContainer
         return true
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility") // We are not Accessibility friendly :/
     override fun onTouchEvent(event: MotionEvent): Boolean {
         touchPointF.set(event.rawX, event.rawY)
         return when {

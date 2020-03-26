@@ -333,6 +333,7 @@ class BoardViewContainer
                 boardView.layoutManager?.also { layoutManager ->
                     layoutManager.findFirstVisibleItemPosition().also { firstPosition ->
                         boardView.findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
+                            // TODO: 26-Mar-20 Figure out RTL and margins but otherwise, mostly correct
                             when (context.configuration.layoutDirection) {
                                 View.LAYOUT_DIRECTION_LTR -> {
                                     val offset = layoutManager.getDecoratedLeft(firstView) -
@@ -343,7 +344,6 @@ class BoardViewContainer
                                     layoutManager.scrollToPositionWithOffset(firstPosition, offset)
                                 }
                                 View.LAYOUT_DIRECTION_RTL -> {
-                                    // TODO: 26-Mar-20 Fix this but it's mostly correct
                                     val offset = layoutManager.getDecoratedRight(firstView) -
                                             layoutManager.getRightDecorationWidth(firstView)
                                     val margin = (firstView.layoutParams as? MarginLayoutParams)?.rightMargin
@@ -357,10 +357,6 @@ class BoardViewContainer
                 }
             } else boardView.boardAdapter?.notifyItemMoved(from, to)
         }
-    }
-
-    fun getBoardColumnID(holder: BoardColumnViewHolder): Long {
-        return boardView.boardAdapter?.getItemId(holder.adapterPosition) ?: RecyclerView.NO_ID
     }
 
     public inline fun startDraggingItem(vh: BoardItemViewHolder) {

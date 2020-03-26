@@ -26,7 +26,12 @@ import androidx.core.view.children
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 open class BoardView
@@ -70,6 +75,48 @@ open class BoardView
     private val rightScrollBounds = RectF()
 
     private val snapHelper = PagerSnapHelper()
+
+    // This receives any notify events the caller sends so that we can properly save the layout
+    // states when the adapter's contents change
+    private val layoutStatesDataObserver = object : RecyclerView.AdapterDataObserver() {
+
+        override fun onChanged() {
+            // We don't know what changed, so do we reset everything??
+            boardAdapter?.layoutStates?.clear()
+        }
+
+        override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
+            boardAdapter?.layoutStates?.also { list ->
+                ArrayList(list.subList(min(fromPosition, toPosition),
+                        max(toPosition, fromPosition))).also { range ->
+                    range.forEach { list.remove(it) }
+                    list.addAll(toPosition, range)
+                }
+            }
+        }
+
+        override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
+            boardAdapter?.also { boardAdapter ->
+                (positionStart..(positionStart + itemCount)).forEach {
+                    (findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder)?.also { holder ->
+                        holder.list?.layoutManager?.saveState()?.also {
+                            boardAdapter.layoutStates[holder.adapterPosition] = it
+                        }
+                    }
+                }
+            }
+        }
+
+        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+            boardAdapter?.layoutStates?.addAll(positionStart, List(itemCount) { null })
+        }
+
+        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
+            (positionStart..(positionStart + itemCount)).forEach {
+                boardAdapter?.layoutStates?.removeAt(it)
+            }
+        }
+    }
 
     init {
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
@@ -277,8 +324,10 @@ open class BoardView
      * The passed in [adapter] must be a descendant of [BoardAdapter].
      */
     override fun setAdapter(adapter: Adapter<*>?) {
-        if (adapter is BoardAdapter) super.setAdapter(adapter)
-        else if (adapter != null)
+        if (adapter is BoardAdapter) {
+            super.setAdapter(adapter)
+            adapter.registerAdapterDataObserver(layoutStatesDataObserver)
+        } else if (adapter != null)
             logE("BoardView adapter must be a descendant of BoardAdapter!\n" +
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
@@ -302,7 +351,7 @@ open class BoardView
                     }
                 }
             }
-            savedState.layoutStates = boardAdapter.layoutStates.values.toList()
+            savedState.layoutStates = boardAdapter.layoutStates.toList()
             savedState.columnWidth = this.columnWidth
             savedState.isSnappingToItems = this.isSnappingToItems
         }
@@ -321,10 +370,10 @@ open class BoardView
     @CallSuper
     open fun restoreFromState(state: BoardViewSavedState) {
         super.onRestoreInstanceState(state.savedState)
-        boardAdapter?.layoutStates?.also { hashMap ->
+        boardAdapter?.layoutStates?.also { list ->
             state.layoutStates?.also {
                 it.forEachIndexed { index, linearState ->
-                    hashMap[index] = linearState
+                    list[index] = linearState
                 }
             }
         }
@@ -349,50 +398,18 @@ abstract class BoardAdapter(
     internal var columnWidth: Int = 0
 
     /**
-     * The layout states of each [BoardColumnViewHolder] with its adapter position as the key
+     * The layout states of each [BoardColumnViewHolder]
      */
-    // TODO: 26-Mar-20 Replace with ArrayList??
-    internal val layoutStates = HashMap<Int, LinearState>()
-
-    // We need one of these to notify the layoutStates that something changed and we need to
-    // update that
-    // TODO: 26-Mar-20 Implement this!
-    private val dataObserver = object : RecyclerView.AdapterDataObserver() {
-
-        override fun onChanged() {
-            //logE("Something Changed!")
-        }
-
-        override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
-            //logE("Moved $itemCount from $fromPosition to $toPosition")
-        }
-
-        override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
-            //logE("Changed $itemCount items from $positionStart")
-        }
-
-        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
-            //logE("Inserted $itemCount items from $positionStart")
-        }
-
-        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
-            //logE("Removed $itemCount items from $positionStart")
-        }
-    }
+    internal val layoutStates = ArrayList<LinearState?>()
 
     @CallSuper
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         if (recyclerView is BoardView) {
             super.onAttachedToRecyclerView(recyclerView)
             this.columnWidth = recyclerView.columnWidth
-            registerAdapterDataObserver(dataObserver)
+            layoutStates.clear()
+            layoutStates.addAll(List(itemCount) { null })
         }
-    }
-
-    @CallSuper
-    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
-        super.onDetachedFromRecyclerView(recyclerView)
-        unregisterAdapterDataObserver(dataObserver)
     }
 
     // We handle the creation because we return BoardVH that contains columns
@@ -458,6 +475,9 @@ abstract class BoardAdapter(
 
     @CallSuper
     override fun onViewAttachedToWindow(holder: BoardColumnViewHolder) {
+        if (holder.adapterPosition > layoutStates.lastIndex) {
+            layoutStates.add(null)
+        }
         layoutStates[holder.adapterPosition].also {
             if (it == null) {
                 holder.list?.layoutManager?.saveState()?.also {
@@ -495,7 +515,7 @@ internal typealias RecyclerViewState = RecyclerView.SavedState
 
 open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
 
-    var layoutStates: List<LinearState>? = null
+    var layoutStates: List<LinearState?>? = null
     var columnWidth: Int = WRAP_CONTENT
     var isSnappingToItems: Boolean = false
 

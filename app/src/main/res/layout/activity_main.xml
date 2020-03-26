@@ -5,6 +5,12 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <ImageView
+        android:id="@+id/boardBackground_imageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@color/boardBackground" />
+
     <com.github.basshelal.boardview.BoardViewContainer
         android:id="@+id/boardViewContainer"
         android:layout_width="match_parent"

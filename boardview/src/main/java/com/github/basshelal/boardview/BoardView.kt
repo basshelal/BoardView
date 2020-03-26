@@ -29,15 +29,20 @@ import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
-class BoardView
+open class BoardView
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
     public inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
 
+    /**
+     * The width of every column in pixels.
+     * [WRAP_CONTENT] is not allowed.
+     * [MATCH_PARENT] is allowed and will be resolved to the value returned by [getWidth].
+     */
     @Px
-    public var columnWidth = 500
+    public var columnWidth = context.convertDpToPx(150).I
         set(value) {
             if (value < 0 && value != MATCH_PARENT)
                 throw IllegalArgumentException("Column width must be " +
@@ -74,7 +79,7 @@ class BoardView
         }
         isHorizontalScrollBarEnabled = true
         isVerticalScrollBarEnabled = false
-        setHasFixedSize(true)
+        this.setHasFixedSize(true)
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
@@ -286,7 +291,8 @@ class BoardView
      *
      * @return the [BoardViewSavedState] of this [BoardView]
      */
-    fun saveState(): BoardViewSavedState {
+    @CallSuper
+    open fun saveState(): BoardViewSavedState {
         val savedState = BoardViewSavedState(super.onSaveInstanceState() as? RecyclerViewState)
         boardAdapter?.also { boardAdapter ->
             allVisibleViewHolders.forEach {
@@ -312,7 +318,8 @@ class BoardView
      * The current state of this [BoardView] is not stored internally, call [saveState] to
      * retrieve the latest [BoardViewSavedState]
      */
-    fun restoreFromState(state: BoardViewSavedState) {
+    @CallSuper
+    open fun restoreFromState(state: BoardViewSavedState) {
         super.onRestoreInstanceState(state.savedState)
         boardAdapter?.layoutStates?.also { hashMap ->
             state.layoutStates?.also {
@@ -329,9 +336,8 @@ class BoardView
     override fun onSaveInstanceState(): Parcelable? = saveState()
 
     override fun onRestoreInstanceState(state: Parcelable?) {
-        if (state is BoardViewSavedState) {
-            restoreFromState(state)
-        } else super.onRestoreInstanceState(state)
+        if (state is BoardViewSavedState) restoreFromState(state)
+        else super.onRestoreInstanceState(state)
     }
 }
 
@@ -339,19 +345,54 @@ abstract class BoardAdapter(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<BoardColumnViewHolder>() {
 
-    // Ideally we wouldn't want this but we want to not keep a reference of the BoardView!
+    // Ideally we wouldn't want this but we don't want to not keep a reference of the BoardView!
     internal var columnWidth: Int = 0
 
     /**
      * The layout states of each [BoardColumnViewHolder] with its adapter position as the key
      */
+    // TODO: 26-Mar-20 Replace with ArrayList??
     internal val layoutStates = HashMap<Int, LinearState>()
 
+    // We need one of these to notify the layoutStates that something changed and we need to
+    // update that
+    // TODO: 26-Mar-20 Implement this!
+    private val dataObserver = object : RecyclerView.AdapterDataObserver() {
+
+        override fun onChanged() {
+            logE("Something Changed!")
+        }
+
+        override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
+            logE("Moved $itemCount from $fromPosition to $toPosition")
+        }
+
+        override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
+            logE("Changed $itemCount items from $positionStart")
+        }
+
+        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+            logE("Inserted $itemCount items from $positionStart")
+        }
+
+        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
+            logE("Removed $itemCount items from $positionStart")
+        }
+    }
+
+    @CallSuper
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         if (recyclerView is BoardView) {
             super.onAttachedToRecyclerView(recyclerView)
             this.columnWidth = recyclerView.columnWidth
+            registerAdapterDataObserver(dataObserver)
         }
+    }
+
+    @CallSuper
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        unregisterAdapterDataObserver(dataObserver)
     }
 
     // We handle the creation because we return BoardVH that contains columns
@@ -458,6 +499,7 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
     var columnWidth: Int = WRAP_CONTENT
     var isSnappingToItems: Boolean = false
 
+    @CallSuper
     override fun writeToParcel(dest: Parcel?, flags: Int) {
         super.writeToParcel(dest, flags)
         dest?.also {
@@ -470,8 +512,8 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
     companion object CREATOR : Parcelable.Creator<BoardViewSavedState> {
 
         override fun createFromParcel(parcel: Parcel): BoardViewSavedState =
-                BoardViewSavedState(parcel.readParcelable(RecyclerViewState::class.java
-                        .classLoader)).also {
+                BoardViewSavedState(parcel.readParcelable(
+                        RecyclerViewState::class.java.classLoader)).also {
                     val list = ArrayList<LinearState>()
                     parcel.readTypedList(list, LinearState.CREATOR)
                     it.layoutStates = list

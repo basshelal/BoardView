@@ -18,7 +18,6 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import com.github.basshelal.boardview.F
 import com.github.basshelal.boardview.allChildren
 import com.github.basshelal.boardview.globalVisibleRect
-import com.github.basshelal.boardview.invoke
 import com.github.basshelal.boardview.parentViewGroup
 import org.jetbrains.anko.childrenRecursiveSequence
 import org.jetbrains.anko.collections.forEachReversedByIndex
@@ -288,7 +287,7 @@ constructor(context: Context,
             get() = ViewConfiguration.getLongPressTimeout()
 
         fun fromView(view: View): DragView {
-            return (DragView(view.context)) { addView(view) }!!
+            return DragView(view.context).also { it.addView(view) }
         }
     }
 

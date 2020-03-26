@@ -23,6 +23,7 @@ import androidx.core.graphics.toRectF
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
@@ -245,6 +246,9 @@ inline fun RecyclerView.doOnFinishScroll(
         }
     })
 }
+
+inline val RecyclerView.ViewHolder.isAdapterPositionValid: Boolean
+    get() = adapterPosition != NO_POSITION
 
 inline fun animation(crossinline applyTransformation:
                      (interpolatedTime: Float, transformation: Transformation) -> Unit): Animation {

@@ -360,23 +360,23 @@ abstract class BoardAdapter(
     private val dataObserver = object : RecyclerView.AdapterDataObserver() {
 
         override fun onChanged() {
-            logE("Something Changed!")
+            //logE("Something Changed!")
         }
 
         override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
-            logE("Moved $itemCount from $fromPosition to $toPosition")
+            //logE("Moved $itemCount from $fromPosition to $toPosition")
         }
 
         override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
-            logE("Changed $itemCount items from $positionStart")
+            //logE("Changed $itemCount items from $positionStart")
         }
 
         override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
-            logE("Inserted $itemCount items from $positionStart")
+            //logE("Inserted $itemCount items from $positionStart")
         }
 
         override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
-            logE("Removed $itemCount items from $positionStart")
+            //logE("Removed $itemCount items from $positionStart")
         }
     }
 

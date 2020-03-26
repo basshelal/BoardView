@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.get
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +22,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
+import org.jetbrains.anko.configuration
 import java.util.concurrent.TimeUnit
 import kotlin.math.floor
 
@@ -59,8 +61,8 @@ class BoardViewContainer
     private val updateRatePerMilli = floor(millisPerFrame)
 
     // Animation stuff
-    private val columnVHSwaps = HashMap<ViewHolderSwap<BoardColumnViewHolder>, Boolean>()
-    private val itemVHSwaps = HashMap<ViewHolderSwap<BoardItemViewHolder>, Boolean>()
+    private val columnVHSwaps = HashMap<ViewHolderSwap, Boolean>()
+    private val itemVHSwaps = HashMap<ViewHolderSwap, Boolean>()
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -111,6 +113,7 @@ class BoardViewContainer
                 draggingItemVH?.itemView?.alpha = 1F
                 itemDragShadow.isVisible = false
                 draggingItemVH = null
+                itemVHSwaps.clear()
             }
         }
     }
@@ -150,6 +153,7 @@ class BoardViewContainer
                 draggingColumnVH?.itemView?.alpha = 1F
                 listDragShadow.isVisible = false
                 draggingColumnVH = null
+                columnVHSwaps.clear()
             }
         }
     }
@@ -294,17 +298,20 @@ class BoardViewContainer
     }
 
     fun swapColumnViewHolders(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
-        if (newVH != oldVH) {
-            val swap = ViewHolderSwap(oldVH, newVH)
-            columnVHSwaps.putIfAbsentSafe(swap, false)
-            if (columnVHSwaps[swap] == false &&
-                    boardView.itemAnimator?.isRunning == false) {
-                if (adapter?.onSwapBoardViewHolders(oldVH, newVH) == true) {
-                    notifyColumnViewHoldersSwapped(oldVH, newVH)
-                    listDragShadow.dragBehavior.returnTo(newVH.itemView)
+        if (newVH != oldVH && oldVH.isAdapterPositionValid && newVH.isAdapterPositionValid) {
+            if (boardView.itemAnimator?.isRunning == false) {
+                val swap = ViewHolderSwap(oldVH, newVH)
+                columnVHSwaps.putIfAbsentSafe(swap, false)
+                if (columnVHSwaps[swap] == false) {
+                    if (adapter?.onSwapBoardViewHolders(oldVH, newVH) == true) {
+                        // Caller has told us the swap is successful, let's animate the swap!
+                        notifyColumnViewHoldersSwapped(oldVH, newVH)
+                        listDragShadow.dragBehavior.returnTo(newVH.itemView)
+                    }
+                    // Remove the swap in any case, its life is over
+                    columnVHSwaps[swap] = true
+                    columnVHSwaps.remove(swap)
                 }
-                columnVHSwaps[swap] = true
-                columnVHSwaps.remove(swap)
             }
         }
     }
@@ -312,22 +319,43 @@ class BoardViewContainer
     fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         val from = oldVH.adapterPosition
         val to = newVH.adapterPosition
-        val boardAdapter = boardView.adapter as? BoardAdapter
 
         if (from != to && from != NO_POSITION && to != NO_POSITION) {
-            boardAdapter?.apply {
-                logE("Swapping from $from to $to")
-                // TODO: 14-Mar-20 ItemAnimator fucks up when one of from or to is the VH at
-                //  layout position 0, it animates things in a stupid way such that the RV ends
-                //  up kind of scrolling across when this happens!!! Either hack a fix or use
-                //  another Item Animator
-                //  But there is a small chance that this is on me!
-
-                // TODO: 15-Mar-20 Why the actual fuck does this not work??
-                //  notifySwapped kinda works but it's extremely inefficient!
-
-                notifyItemMoved(from, to)
-            }
+            /* Weird shit happens whenever we do a swap with an item at layout position 0,
+             * This is because of how LinearLayoutManager works, it ends up scrolling for us even
+             * though we never told it to, see more here
+             * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
+             * So we solve this by forcing it back where it was, essentially cancelling the
+             * scroll it did
+             */
+            if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+                    boardView[0] == oldVH.itemView || boardView[0] == newVH.itemView) {
+                boardView.layoutManager?.also { layoutManager ->
+                    layoutManager.findFirstVisibleItemPosition().also { firstPosition ->
+                        boardView.findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
+                            when (context.configuration.layoutDirection) {
+                                View.LAYOUT_DIRECTION_LTR -> {
+                                    val offset = layoutManager.getDecoratedLeft(firstView) -
+                                            layoutManager.getLeftDecorationWidth(firstView)
+                                    val margin = (firstView.layoutParams as? MarginLayoutParams)?.leftMargin
+                                            ?: 0
+                                    boardView.boardAdapter?.notifyItemMoved(from, to)
+                                    layoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                                }
+                                View.LAYOUT_DIRECTION_RTL -> {
+                                    // TODO: 26-Mar-20 Fix this but it's mostly correct
+                                    val offset = layoutManager.getDecoratedRight(firstView) -
+                                            layoutManager.getRightDecorationWidth(firstView)
+                                    val margin = (firstView.layoutParams as? MarginLayoutParams)?.rightMargin
+                                            ?: 0
+                                    boardView.boardAdapter?.notifyItemMoved(from, to)
+                                    layoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else boardView.boardAdapter?.notifyItemMoved(from, to)
         }
     }
 
@@ -356,4 +384,19 @@ class BoardViewContainer
 }
 
 // Represents a ViewHolder Swap which we can use to track if swaps are completed
-private data class ViewHolderSwap<VH : BaseViewHolder>(val old: VH, val new: VH)
+private data class ViewHolderSwap(
+        val oldPosition: Int,
+        val newPosition: Int,
+        val oldId: Long,
+        val newId: Long) {
+
+    constructor(old: RecyclerView.ViewHolder, new: RecyclerView.ViewHolder) :
+            this(old.adapterPosition, new.adapterPosition, old.itemId, new.itemId)
+
+    override fun toString(): String {
+        return "(oldPos: $oldPosition, " +
+                "newPos: $newPosition, " +
+                "oldId: $oldId, " +
+                "newId: $newId)"
+    }
+}

@@ -72,7 +72,7 @@ class BoardViewContainer
     private inline fun itemDragShadow() {
         itemDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
-            val onNext = {
+            val onNext = { _: Long ->
                 if (draggingItemVH != null && draggingItemVHColumn != null) {
                     boardView.horizontalScroll(touchPointF)
                     draggingItemVHColumn?.list?.also { it.verticalScroll(touchPointF) }
@@ -99,7 +99,7 @@ class BoardViewContainer
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.computation())
-                        .subscribe { onNext() }
+                        .subscribe(onNext)
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
@@ -118,7 +118,7 @@ class BoardViewContainer
     private inline fun listDragShadow() {
         listDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
 
-            val onNext = {
+            val onNext = { _: Long ->
                 if (draggingColumnVH != null) {
                     boardView.horizontalScroll(touchPointF)
                     findBoardViewHolderUnder(touchPointF)?.also { newVH ->
@@ -138,7 +138,7 @@ class BoardViewContainer
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.computation())
-                        .subscribe { onNext() }
+                        .subscribe(onNext)
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {

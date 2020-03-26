@@ -4,7 +4,6 @@ package com.github.basshelal.boardview
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.PointF
 import android.graphics.RectF
 import android.os.Parcel
@@ -76,20 +75,6 @@ class BoardView
         isHorizontalScrollBarEnabled = true
         isVerticalScrollBarEnabled = false
         setHasFixedSize(true)
-    }
-
-    override fun dispatchDraw(canvas: Canvas?) {
-        /*
-         * We're doing this because of the below exception that is out of our control:
-         * java.lang.NullPointerException: Attempt to read from field
-         * 'int android.view.View.mViewFlags' on a null object reference at
-         * android.view.ViewGroup.dispatchDraw(ViewGroup.java:4111)
-         */
-        try {
-            super.dispatchDraw(canvas)
-        } catch (e: NullPointerException) {
-
-        }
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {

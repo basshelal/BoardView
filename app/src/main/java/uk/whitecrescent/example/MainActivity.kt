@@ -12,7 +12,6 @@ import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
-import com.github.basshelal.boardview.shortSnackBar
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.view_header.view.*
 import kotlinx.android.synthetic.main.view_itemview.view.*
@@ -43,7 +42,7 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
 
     override fun onCreateFooter(parentView: ViewGroup): View? {
         return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_footer, parentView, false).also { it.setOnClickListener { } }
+                .inflate(R.layout.view_footer, parentView, false)
     }
 
     override fun onSwapBoardViewHolders(oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
@@ -65,9 +64,21 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
     private var boardMode: BoardMode = BoardMode.MULTI
 
     override fun onViewHolderCreated(holder: BoardColumnViewHolder) {
-        holder.header?.setOnLongClickListener {
-            exampleAdapter.boardViewContainer.startDraggingColumn(holder)
-            true
+        holder.header?.also {
+            it.setOnClickListener {
+                when (boardMode) {
+                    BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(holder.adapterPosition)
+                    BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode(500)
+                }
+                boardMode = boardMode.toggle()
+            }
+            it.setOnLongClickListener {
+                exampleAdapter.boardViewContainer.startDraggingColumn(holder)
+                true
+            }
+        }
+        holder.footer?.also {
+            it.setOnClickListener { }
         }
     }
 
@@ -83,13 +94,6 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
         super.onBindViewHolder(holder, position)
         val boardList = exampleAdapter.board[position]
         holder.itemView.header_textView.text = boardList.name
-        holder.header?.setOnClickListener {
-            when (boardMode) {
-                BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(holder.adapterPosition)
-                BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode(500)
-            }
-            boardMode = boardMode.toggle()
-        }
     }
 
     private enum class BoardMode {
@@ -110,8 +114,6 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
         return ItemVH(LayoutInflater.from(parent.context)
                 .inflate(R.layout.view_itemview, parent, false)).also { vh ->
             vh.itemView.setOnLongClickListener {
-                val pos = vh.adapterPosition
-                it.shortSnackBar("Clicked ${items[pos].value} at List ${items.name}")
                 exampleAdapter.boardViewContainer.startDraggingItem(vh)
                 true
             }
@@ -123,7 +125,7 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
     }
 
     override fun getItemCount(): Int {
-        return 100
+        return items.items.size
     }
 
     override fun onBindViewHolder(holder: ItemVH, position: Int) {

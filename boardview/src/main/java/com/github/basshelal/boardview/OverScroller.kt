@@ -14,6 +14,15 @@ interface OverScroller {
     var isEnabled: Boolean
     val isOverScrolling: Boolean
     fun overScroll(amount: Number)
+    fun attachToRecyclerView(recyclerView: RecyclerView) {
+        isEnabled = true
+        recyclerView.addOnScrollListener(OnScrollListener(this))
+    }
+
+    fun detachFromRecyclerView(recyclerView: RecyclerView) {
+        isEnabled = false
+        recyclerView.removeOnScrollListener(OnScrollListener(this))
+    }
 }
 
 class VerticalOverScroller(val recyclerView: RecyclerView) :
@@ -75,4 +84,42 @@ class HorizontalOverScroller(val recyclerView: RecyclerView) :
         issueStateTransition(mBounceBackState)
     }
 
+}
+
+private class OnScrollListener(val overScroller: OverScroller) : RecyclerView.OnScrollListener() {
+
+    private var horizontalScrollSpeed: Double = 0.0
+    private var verticalScrollSpeed: Double = 0.0
+
+    private var oldHorizontalScrollOffset: Int = 0
+    private var oldVerticalScrollOffset: Int = 0
+    private var oldTime: Long = now
+
+    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+        // Take a snapshot of the stuff we will use so that it hasn't changed by the time we call
+        // getters again, this is only for the stuff that is extremely volatile like time and
+        // scrollOffset which change A LOT very frequently
+        val dSecs = (now - oldTime).D * 1E-3
+        val verticalOffSet = recyclerView.verticalScrollOffset
+        val horizontalOffset = recyclerView.horizontalScrollOffset
+
+        verticalScrollSpeed = (verticalOffSet.D - oldVerticalScrollOffset.D) / dSecs
+        horizontalScrollSpeed = (horizontalOffset.D - oldHorizontalScrollOffset.D) / dSecs
+
+        if (dy != 0 && (verticalOffSet == 0 || verticalOffSet == recyclerView.maxVerticalScroll)) {
+            overScroller.overScroll((verticalScrollSpeed * overScrollMultiplier) / recyclerView.height)
+        }
+
+        if (dx != 0 && (horizontalOffset == 0 || horizontalOffset == recyclerView.maxHorizontalScroll)) {
+            overScroller.overScroll((horizontalScrollSpeed * overScrollMultiplier) / recyclerView.width)
+        }
+
+        oldVerticalScrollOffset = verticalOffSet
+        oldHorizontalScrollOffset = horizontalOffset
+        oldTime = now
+    }
+
+    override fun equals(other: Any?): Boolean = other is OnScrollListener
+
+    override fun hashCode(): Int = 69420
 }

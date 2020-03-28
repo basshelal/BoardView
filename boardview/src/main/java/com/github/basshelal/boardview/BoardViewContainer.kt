@@ -72,7 +72,7 @@ class BoardViewContainer
     }
 
     private inline fun itemDragShadow() {
-        itemDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
+        itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
             val onNext = { _: Long ->
                 if (draggingItemVH != null && draggingItemVHColumn != null) {
@@ -116,11 +116,11 @@ class BoardViewContainer
                 if (disposable?.isDisposed == true) disposable = null
                 itemVHSwaps.clear()
             }
-        }
+        })
     }
 
     private inline fun listDragShadow() {
-        listDragShadow.dragBehavior.dragListener = object : ObservableDragBehavior.SimpleDragListener() {
+        listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
             val onNext = { _: Long ->
                 if (draggingColumnVH != null) {
@@ -157,7 +157,7 @@ class BoardViewContainer
                 if (disposable?.isDisposed == true) disposable = null
                 columnVHSwaps.clear()
             }
-        }
+        })
     }
 
     private fun findItemViewHolderUnder(point: PointF): Pair<BoardColumnViewHolder?, BoardItemViewHolder?> {

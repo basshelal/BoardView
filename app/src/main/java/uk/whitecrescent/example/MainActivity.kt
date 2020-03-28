@@ -114,7 +114,7 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
 class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, val position: Int)
     : BoardListAdapter<ItemVH>(exampleAdapter) {
 
-    var items = exampleAdapter.board[position]
+    var boardList = exampleAdapter.board[position]
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
         return ItemVH(LayoutInflater.from(parent.context)
@@ -127,20 +127,27 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
     }
 
     override fun getItemId(position: Int): Long {
-        return items[position].id
+        return boardList[position].id
     }
 
     override fun getItemCount(): Int {
-        return items.items.size
+        return boardList.items.size
     }
 
     override fun onBindViewHolder(holder: ItemVH, position: Int) {
-        val listItem = items[position]
+        val listItem = boardList[position]
         holder.textView.text = listItem.value
+        holder.itemView.setOnClickListener {
+            val pos = holder.adapterPosition
+            if (pos != NO_POSITION && boardList.items.isNotEmpty()) {
+                boardList.items.removeAt(pos)
+                notifyItemRemoved(pos)
+            }
+        }
     }
 
     override fun bindAdapter(holder: BoardColumnViewHolder, position: Int) {
-        items = exampleAdapter.board[position]
+        boardList = exampleAdapter.board[position]
     }
 
 }

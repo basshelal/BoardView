@@ -52,14 +52,14 @@ constructor(context: Context,
 
     val dragBehavior: ObservableDragBehavior = ObservableDragBehavior(this)
 
-    inline infix fun updateToMatch(view: View) {
+    infix fun updateToMatch(view: View) {
         updateToMatchBitmapOf(view)
         updateLayoutParams()
         updateToMatchPositionOf(view)
         this.bringToFront()
     }
 
-    inline fun updateLayoutParams() {
+    fun updateLayoutParams() {
         if (this.layoutParams == null) {
             this.layoutParams = ViewGroup.LayoutParams(
                     WRAP_CONTENT,
@@ -73,12 +73,12 @@ constructor(context: Context,
         }
     }
 
-    inline infix fun updateToMatchBitmapOf(view: View) {
+    infix fun updateToMatchBitmapOf(view: View) {
         if (ViewCompat.isLaidOut(this))
             this.setImageBitmap(view.drawToBitmap())
     }
 
-    inline infix fun updateToMatchPositionOf(view: View) {
+    infix fun updateToMatchPositionOf(view: View) {
         this.parentViewGroup?.also { parentVG ->
             val thisParentBounds = parentVG.globalVisibleRectF
             val viewBounds = view.globalVisibleRectF
@@ -109,7 +109,7 @@ constructor(context: Context,
     }
 
     // Same as updateToMatchPositionOf except this one crops the bitmap
-    inline infix fun updateToMatchVisibilityOf(view: View) {
+    infix fun updateToMatchVisibilityOf(view: View) {
         this.parentViewGroup?.also { parentVG ->
             val thisParentBounds = parentVG.globalVisibleRectF
             val viewBounds = view.globalVisibleRectF

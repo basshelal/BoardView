@@ -152,21 +152,32 @@ open class ObservableDragBehavior(view: View) : DragBehavior(view) {
 
     val initialTouchPoint = PointF()
 
-    var dragListener: DragListener? = null
-        set(value) {
-            field = value
-            value?.onDragStateChanged(view, dragState)
-        }
+    protected val dragListeners = ArrayList<DragListener>()
+
+    fun addDragListener(listener: DragListener) {
+        dragListeners.add(listener)
+        listener.onDragStateChanged(view, dragState)
+    }
+
+    fun addDragListenerIfNotExists(listener: DragListener) {
+        if (listener !in dragListeners) addDragListener(listener)
+    }
+
+    fun removeDragListener(listener: DragListener) {
+        dragListeners.remove(listener)
+    }
+
+    fun clearDragListeners() = dragListeners.clear()
 
     var dragState: DragState = DragState.IDLE
         private set(value) {
             field = value
-            dragListener?.onDragStateChanged(view, value)
+            dragListeners.forEach { it.onDragStateChanged(view, value) }
         }
 
     override fun onMove(event: MotionEvent) {
         super.onMove(event)
-        dragListener?.onUpdateLocation(view, touchPoint)
+        dragListeners.forEach { it.onUpdateLocation(view, touchPoint) }
     }
 
     override fun animateReturn() {
@@ -177,26 +188,25 @@ open class ObservableDragBehavior(view: View) : DragBehavior(view) {
     override fun afterEndAnimation() {
         super.afterEndAnimation()
         dragState = DragState.IDLE
-        dragListener?.onEndDrag(view)
+        dragListeners.forEach { it.onEndDrag(view) }
     }
 
     override fun startDrag() {
         super.startDrag()
         initialTouchPoint.set(touchPoint)
         dragState = DragState.DRAGGING
-        dragListener?.onStartDrag(view)
+        dragListeners.forEach { it.onStartDrag(view) }
     }
 
     override fun endDrag() {
         initialTouchPoint.set(0F, 0F)
-        dragListener?.onReleaseDrag(view, touchPoint)
+        dragListeners.forEach { it.onReleaseDrag(view, touchPoint) }
         super.endDrag()
     }
 
     override fun startDragFromView(otherView: View) {
         dragState = DragState.DRAGGING
-        dragListener?.onStartDrag(view)
-
+        dragListeners.forEach { it.onStartDrag(view) }
         super.startDragFromView(otherView)
     }
 

@@ -78,7 +78,13 @@ class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
             }
         }
         holder.footer?.also {
-            it.setOnClickListener { }
+            it.setOnClickListener {
+                val list = exampleAdapter.board[holder.adapterPosition]
+                val last = list.items.last()
+                list.items.add(StringListItem(last.id + 1, "Item #${last.id + 1}"))
+                holder.boardListAdapter?.notifyItemInserted(list.items.lastIndex)
+                holder.list?.smoothScrollToPosition(list.items.lastIndex)
+            }
         }
     }
 

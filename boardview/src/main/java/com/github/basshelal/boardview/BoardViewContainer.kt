@@ -106,13 +106,14 @@ class BoardViewContainer
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
                 draggingItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
-                disposable?.dispose()
+                if (disposable?.isDisposed == false) disposable?.dispose()
             }
 
             override fun onEndDrag(dragView: View) {
                 draggingItemVH?.itemView?.alpha = 1F
                 itemDragShadow.isVisible = false
                 draggingItemVH = null
+                if (disposable?.isDisposed == true) disposable = null
                 itemVHSwaps.clear()
             }
         }
@@ -146,13 +147,14 @@ class BoardViewContainer
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
                 draggingColumnVH?.itemView?.also { listDragShadow.dragBehavior.returnTo(it) }
-                disposable?.dispose()
+                if (disposable?.isDisposed == false) disposable?.dispose()
             }
 
             override fun onEndDrag(dragView: View) {
                 draggingColumnVH?.itemView?.alpha = 1F
                 listDragShadow.isVisible = false
                 draggingColumnVH = null
+                if (disposable?.isDisposed == true) disposable = null
                 columnVHSwaps.clear()
             }
         }

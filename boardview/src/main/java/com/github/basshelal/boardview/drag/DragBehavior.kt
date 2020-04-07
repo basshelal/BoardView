@@ -154,20 +154,20 @@ open class ObservableDragBehavior(view: View) : DragBehavior(view) {
 
     protected val dragListeners = ArrayList<DragListener>()
 
-    fun addDragListener(listener: DragListener) {
+    open fun addDragListener(listener: DragListener) {
         dragListeners.add(listener)
         listener.onDragStateChanged(view, dragState)
     }
 
-    fun addDragListenerIfNotExists(listener: DragListener) {
+    open fun addDragListenerIfNotExists(listener: DragListener) {
         if (listener !in dragListeners) addDragListener(listener)
     }
 
-    fun removeDragListener(listener: DragListener) {
+    open fun removeDragListener(listener: DragListener) {
         dragListeners.remove(listener)
     }
 
-    fun clearDragListeners() = dragListeners.clear()
+    open fun clearDragListeners() = dragListeners.clear()
 
     var dragState: DragState = DragState.IDLE
         private set(value) {

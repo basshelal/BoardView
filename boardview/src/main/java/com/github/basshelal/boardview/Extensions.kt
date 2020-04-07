@@ -83,6 +83,11 @@ inline val View.isClear: Boolean
 
 inline fun View.removeOnClickListener() = this.setOnClickListener(null)
 
+inline fun View.changeParent(newParent: ViewGroup) {
+    this.parentViewGroup?.removeView(this)
+    newParent.addView(this)
+}
+
 val View.parents: List<ViewGroup>
     get() {
         val result = ArrayList<ViewGroup>()

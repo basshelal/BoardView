@@ -32,7 +32,12 @@ class VerticalOverScroller(val recyclerView: RecyclerView) :
         VerticalOverScrollBounceEffectDecorator(
                 RecyclerViewOverScrollDecorAdapter(recyclerView)), OverScroller {
 
-    var isAttached: Boolean = true
+    private var isAttached: Boolean = true
+
+    override fun attachToRecyclerView(recyclerView: RecyclerView) {
+        super.attachToRecyclerView(recyclerView)
+        this.isEnabled = true
+    }
 
     override var isEnabled: Boolean
         get() = this.isAttached

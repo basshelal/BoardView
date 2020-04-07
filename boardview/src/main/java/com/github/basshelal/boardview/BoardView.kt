@@ -200,6 +200,7 @@ open class BoardView
      * The [adapterPosition] must be a position from a ViewHolder that is currently visible
      * otherwise nothing will happen
      */
+    // TODO: 07-Apr-20 Animations are sluggish!
     public fun switchToSingleColumnModeAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
         // Caller didn't check their position was valid :/
         if (adapterPosition > (boardAdapter?.itemCount ?: -1) || adapterPosition < 0) return
@@ -254,6 +255,7 @@ open class BoardView
             switchToMultiColumnMode(newColumnWidth,
                     animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
 
+    // TODO: 07-Apr-20 Animations are sluggish!
     public fun switchToMultiColumnMode(newColumnWidth: Int, animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
             // Initial count of children, should be 1

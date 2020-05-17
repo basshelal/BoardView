@@ -20,6 +20,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.IdRes
 import androidx.core.graphics.toRectF
+import androidx.core.view.children
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
@@ -166,6 +167,21 @@ inline val View.orientation: Orientation
 
 inline val ViewGroup.allChildren: List<View>
     get() = this.childrenRecursiveSequence().toList()
+
+inline fun ViewGroup.childUnder(x: Int, y: Int): View? {
+    // Copied from RecyclerView.findChildViewUnder()
+    children.toList().asReversed().forEach {
+        val translationX = it.translationX
+        val translationY = it.translationY
+        if (x >= it.left + translationX &&
+                x <= it.right + translationX &&
+                y >= it.top + translationY &&
+                y <= it.bottom + translationY) {
+            return it
+        }
+    }
+    return null
+}
 
 inline fun View.updateLayoutParamsSafe(block: ViewGroup.LayoutParams.() -> Unit) {
     layoutParams?.apply(block)

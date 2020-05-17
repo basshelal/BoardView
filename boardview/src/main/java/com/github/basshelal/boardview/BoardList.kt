@@ -30,6 +30,24 @@ class BoardList
     private val outsideBottomScrollBounds = RectF()
     private val bottomScrollBounds = RectF()
 
+    private val dataObserver = object : RecyclerView.AdapterDataObserver() {
+
+        override fun onChanged() {
+        }
+
+        override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
+        }
+
+        override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
+        }
+
+        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+        }
+
+        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
+        }
+    }
+
     init {
         setRecycledViewPool(BoardViewContainer.ITEM_VH_POOL)
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
@@ -71,7 +89,10 @@ class BoardList
      * The passed in [adapter] must be a descendant of [BoardListAdapter].
      */
     override fun setAdapter(adapter: Adapter<*>?) {
-        if (adapter is BoardListAdapter) super.setAdapter(adapter) else if (adapter != null)
+        if (adapter is BoardListAdapter) {
+            super.setAdapter(adapter)
+            adapter.registerAdapterDataObserver(dataObserver)
+        } else if (adapter != null)
             logE("BoardList adapter must be a descendant of BoardListAdapter!\n" +
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }

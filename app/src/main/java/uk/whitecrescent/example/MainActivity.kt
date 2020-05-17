@@ -56,6 +56,29 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         } else false
     }
 
+    override fun onSwapItemViewHolders(oldItem: BoardItemViewHolder, newItem: BoardItemViewHolder,
+                                       oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
+        val oldColumnPosition = oldColumn.adapterPosition
+        val newColumnPosition = newColumn.adapterPosition
+        val oldItemPosition = oldItem.adapterPosition
+        val newItemPosition = newItem.adapterPosition
+
+        if (oldColumnPosition == newColumnPosition) {
+            // Same column
+            if (oldItemPosition == newItemPosition) return false
+            else {
+                val boardList = board.boardLists[oldColumnPosition]
+                val value = boardList[oldItemPosition]
+                boardList.items.removeAt(oldItemPosition)
+                boardList.items.add(newItemPosition, value)
+                return true
+            }
+        } else {
+            // Different column
+            return false
+        }
+    }
+
 }
 
 class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)
@@ -118,12 +141,13 @@ class ExampleBoardListAdapter(val exampleAdapter: ExampleBoardContainerAdapter, 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
         return ItemVH(LayoutInflater.from(parent.context)
-                .inflate(R.layout.view_itemview, parent, false)).also { vh ->
-            vh.itemView.setOnLongClickListener {
-                exampleAdapter.boardViewContainer.startDraggingItem(vh)
-                true
-            }
-        }
+                .inflate(R.layout.view_itemview, parent, false))
+                .also { itemVH ->
+                    itemVH.itemView.setOnLongClickListener {
+                        exampleAdapter.boardViewContainer.startDraggingItem(itemVH)
+                        true
+                    }
+                }
     }
 
     override fun getItemId(position: Int): Long {

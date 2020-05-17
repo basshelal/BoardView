@@ -47,6 +47,7 @@ class BoardViewContainer
     public inline val itemDragShadow: DragShadow get() = this.item_dragShadow
     public inline val listDragShadow: DragShadow get() = this.list_dragShadow
 
+    // Current Touch Point
     private var touchPointF = PointF()
 
     // the column which the dragging Item belongs to, this will change when the item has been
@@ -67,30 +68,14 @@ class BoardViewContainer
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
 
-        itemDragShadow()
-        listDragShadow()
+        initializeItemDragShadow()
+        initializeListDragShadow()
     }
 
-    private inline fun itemDragShadow() {
+    private inline fun initializeItemDragShadow() {
         itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
-            val onNext = { _: Long ->
-                if (draggingItemVH != null && draggingItemVHColumn != null) {
-                    boardView.horizontalScroll(touchPointF)
-                    draggingItemVHColumn?.list?.also { it.verticalScroll(touchPointF) }
-
-                    draggingItemVHColumn?.also { draggingColumn ->
-                        draggingItemVH?.also { draggingVH ->
-                            findItemViewHolderUnder(touchPointF).also { (column, itemVH) ->
-                                if (column != null && itemVH != null)
-                                    swapItemViewHolders(draggingVH, itemVH, draggingColumn, column)
-                            }
-                        }
-                    }
-                }
-            }
-
-            var disposable: Disposable? = null
+            private var disposable: Disposable? = null
 
             override fun onStartDrag(dragView: View) {
                 val (column, item) = findItemViewHolderUnder(touchPointF)
@@ -101,7 +86,19 @@ class BoardViewContainer
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.computation())
-                        .subscribe(onNext)
+                        .subscribe {
+                            draggingItemVHColumn?.also { draggingItemVHColumn ->
+                                draggingItemVH?.also { draggingItemVH ->
+                                    boardView.horizontalScroll(touchPointF)
+                                    draggingItemVHColumn.list?.verticalScroll(touchPointF)
+
+                                    findItemViewHolderUnder(touchPointF).also { (column, itemVH) ->
+                                        if (column != null && itemVH != null)
+                                            swapItemViewHolders(draggingItemVH, itemVH, draggingItemVHColumn, column)
+                                    }
+                                }
+                            }
+                        }
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
@@ -119,19 +116,8 @@ class BoardViewContainer
         })
     }
 
-    private inline fun listDragShadow() {
+    private inline fun initializeListDragShadow() {
         listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
-
-            val onNext = { _: Long ->
-                if (draggingColumnVH != null) {
-                    boardView.horizontalScroll(touchPointF)
-                    findBoardViewHolderUnder(touchPointF)?.also { newVH ->
-                        draggingColumnVH?.also { draggingVH ->
-                            swapColumnViewHolders(draggingVH, newVH)
-                        }
-                    }
-                }
-            }
 
             var disposable: Disposable? = null
 
@@ -142,7 +128,14 @@ class BoardViewContainer
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.computation())
-                        .subscribe(onNext)
+                        .subscribe {
+                            draggingColumnVH?.also { draggingColumnVH ->
+                                boardView.horizontalScroll(touchPointF)
+                                findBoardViewHolderUnder(touchPointF)?.also { newVH ->
+                                    swapColumnViewHolders(draggingColumnVH, newVH)
+                                }
+                            }
+                        }
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
@@ -253,7 +246,9 @@ class BoardViewContainer
 
     fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
                             oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
-        if (oldItemVH != newItemVH) {
+        if (oldItemVH != newItemVH
+                && oldItemVH.isAdapterPositionValid && newItemVH.isAdapterPositionValid &&
+                oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid) {
             val swap = ViewHolderSwap(oldItemVH, newItemVH)
             itemVHSwaps.putIfAbsentSafe(swap, false)
             if (itemVHSwaps[swap] == false &&
@@ -262,6 +257,7 @@ class BoardViewContainer
                     newColumnVH.list?.itemAnimator?.isRunning == false) {
                 if (adapter?.onSwapItemViewHolders(oldItemVH, newItemVH, oldColumnVH, newColumnVH) == true) {
                     notifyItemViewHoldersSwapped(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
+                    itemDragShadow.dragBehavior.returnTo(newItemVH.itemView)
                 }
                 itemVHSwaps[swap] = true
                 itemVHSwaps.remove(swap)
@@ -278,17 +274,17 @@ class BoardViewContainer
 
         if (fromItem != NO_POSITION && toItem != NO_POSITION &&
                 fromColumn != NO_POSITION && toColumn != NO_POSITION) {
-            logE("Swapping item $fromItem from column $fromColumn " +
-                    "to column $toColumn at item $toItem")
+            logE("Swapping from column $fromColumn to column $toColumn " +
+                    " item $fromItem to $toItem")
 
             when {
                 // They are in the same list
-                fromColumn == toColumn -> {
-                    if (fromItem != toItem) {
-                        oldColumnVH.boardListAdapter?.notifyItemMoved(
-                                fromItem, toItem
-                        )
-                    }
+                fromColumn == toColumn -> when {
+                    // They are the same
+                    fromItem == toItem -> return
+                    // They are different
+                    fromItem != toItem ->
+                        oldColumnVH.boardListAdapter?.notifyItemMoved(fromItem, toItem)
                 }
                 // They are in different lists
                 fromColumn != toColumn -> {
@@ -318,7 +314,7 @@ class BoardViewContainer
         }
     }
 
-    fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
+    private inline fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         val from = oldVH.adapterPosition
         val to = newVH.adapterPosition
 
@@ -361,13 +357,13 @@ class BoardViewContainer
         }
     }
 
-    public inline fun startDraggingItem(vh: BoardItemViewHolder) {
-        itemDragShadow.updateToMatch(vh.itemView)
+    public inline fun startDraggingItem(boardItemViewHolder: BoardItemViewHolder) {
+        itemDragShadow.updateToMatch(boardItemViewHolder.itemView)
         itemDragShadow.dragBehavior.startDrag()
     }
 
-    public inline fun startDraggingColumn(vh: BoardColumnViewHolder) {
-        listDragShadow.updateToMatch(vh.itemView)
+    public inline fun startDraggingColumn(boardColumnViewHolder: BoardColumnViewHolder) {
+        listDragShadow.updateToMatch(boardColumnViewHolder.itemView)
         listDragShadow.dragBehavior.startDrag()
     }
 

@@ -203,7 +203,7 @@ open class BoardView
     // TODO: 07-Apr-20 Animations are sluggish!
     public fun switchToSingleColumnModeAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
         // Caller didn't check their position was valid :/
-        if (adapterPosition > (boardAdapter?.itemCount ?: -1) || adapterPosition < 0) return
+        if (boardAdapter?.isAdapterPositionNotValid(adapterPosition) == true) return
         (findViewHolderForAdapterPosition(adapterPosition) as? BoardColumnViewHolder)?.also { columnVH ->
             // Disable over-scrolling temporarily and reset it to what it was after the animation is done
             val overScrolling = this.isOverScrollingEnabled
@@ -258,9 +258,8 @@ open class BoardView
     // TODO: 07-Apr-20 Animations are sluggish!
     public fun switchToMultiColumnMode(newColumnWidth: Int, animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
-            // Initial count of children, should be 1
-            val initialChildCount = childCount
-            var currentChildCount = initialChildCount
+            // Initial count of children, should be 1 since we're in Single Column Mode
+            var currentChildCount = childCount
 
             // Key: Child View Value: hasAnimated
             val newChildren = HashMap<View, Boolean>()
@@ -281,22 +280,22 @@ open class BoardView
                             if (width > newColumnWidth) {
                                 width = initialWidth - (widthDifference * -interpolatedTime).I
                             }
-                            if (childCount > currentChildCount) {
-                                // A new child appears!
-                                // We can't know anything about the new child so we brute force all possibilities
-                                children.filter { it != columnVH.itemView }
-                                        .forEach { newChildren.putIfAbsentSafe(it, false) }
+                        }
+                        if (childCount > currentChildCount) {
+                            // A new child appears!
+                            // We can't know anything about the new child so we brute force all possibilities
+                            children.filter { it != columnVH.itemView }
+                                    .forEach { newChildren.putIfAbsentSafe(it, false) }
 
-                                // Below guarantees that each new child gets animated only once
-                                newChildren.forEach { (view, animated) ->
-                                    if (!animated) {
-                                        animateNewlyAppearedChild(view, newColumnWidth,
-                                                (animationDuration.F * (1.0F - interpolatedTime)).L)
-                                        newChildren[view] = true
-                                    }
+                            // Below guarantees that each new child gets animated only once
+                            newChildren.forEach { (view, hasAnimated) ->
+                                if (!hasAnimated) {
+                                    animateNewlyAppearedChild(view, newColumnWidth,
+                                            (animationDuration.F * (1.0F - interpolatedTime)).L)
+                                    newChildren[view] = true
                                 }
-                                currentChildCount = childCount
                             }
+                            currentChildCount = childCount
                         }
                     }.also {
                         it.interpolator = DecelerateInterpolator(0.75F)

@@ -214,6 +214,14 @@ inline fun recycledViewPool(maxCount: Int) =
 inline val RecyclerView.Adapter<*>.lastPosition: Int
     get() = this.itemCount - 1
 
+inline fun RecyclerView.Adapter<*>.isAdapterPositionValid(position: Int): Boolean {
+    return position >= 0 && position <= this.lastPosition
+}
+
+inline fun RecyclerView.Adapter<*>.isAdapterPositionNotValid(position: Int): Boolean {
+    return !isAdapterPositionValid(position)
+}
+
 inline fun RecyclerView.Adapter<*>.notifySwapped(fromPosition: Int, toPosition: Int) {
     notifyItemRemoved(fromPosition)
     notifyItemInserted(fromPosition)

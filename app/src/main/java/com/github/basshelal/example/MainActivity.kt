@@ -1,4 +1,4 @@
-package uk.whitecrescent.example
+package com.github.basshelal.example
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DiffUtil.DiffResult.NO_POSITION
+import com.github.basshelal.R
 import com.github.basshelal.boardview.BoardAdapter
 import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter

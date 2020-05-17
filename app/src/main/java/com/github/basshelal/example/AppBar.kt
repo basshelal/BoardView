@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE", "OVERRIDE_BY_INLINE")
 
-package uk.whitecrescent.waqti.frontend.customview
+package com.github.waqti.frontend.customview
 
 import android.content.Context
 import android.graphics.Color
@@ -10,12 +10,12 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.annotation.ColorRes
+import com.github.basshelal.R
 import com.github.basshelal.boardview.convertDpToPx
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
 import kotlinx.android.synthetic.main.view_appbar.view.*
-import uk.whitecrescent.example.R
 
 class AppBar
 @JvmOverloads constructor(

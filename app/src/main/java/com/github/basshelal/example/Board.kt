@@ -1,4 +1,4 @@
-package uk.whitecrescent.example
+package com.github.basshelal.example
 
 data class ListItem<T>(
         var id: Long,

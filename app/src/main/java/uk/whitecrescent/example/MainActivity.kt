@@ -64,7 +64,6 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         val newItemPosition = newItem.adapterPosition
 
         if (oldColumnPosition == newColumnPosition) {
-            // Same column
             if (oldItemPosition == newItemPosition) return false
             else {
                 val boardList = board.boardLists[oldColumnPosition]
@@ -74,8 +73,12 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
                 return true
             }
         } else {
-            // Different column
-            return false
+            val fromBoardList = board.boardLists[oldColumnPosition]
+            val toBoardList = board.boardLists[newColumnPosition]
+            val value = fromBoardList[oldItemPosition]
+            fromBoardList.items.removeAt(oldItemPosition)
+            toBoardList.items.add(newItemPosition, value)
+            return true
         }
     }
 

@@ -13,7 +13,6 @@ import androidx.core.view.get
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.boardview.drag.ObservableDragBehavior.DragState.DRAGGING
@@ -91,6 +90,10 @@ class BoardViewContainer
                                 draggingItemVH?.also { draggingItemVH ->
                                     boardView.horizontalScroll(touchPointF)
                                     draggingItemVHColumn.list?.verticalScroll(touchPointF)
+
+                                    logE("Item Pos: ${draggingItemVH.adapterPosition}")
+                                    logE("Column Pos: ${draggingItemVHColumn.adapterPosition}")
+                                    // TODO: 17-May-20 Dragging shit isn't changing automatically :/
 
                                     findItemViewHolderUnder(touchPointF).also { (column, itemVH) ->
                                         if (column != null && itemVH != null)
@@ -244,17 +247,17 @@ class BoardViewContainer
         }
     }
 
-    fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
-                            oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
+    private fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
+                                    oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         if (oldItemVH != newItemVH
                 && oldItemVH.isAdapterPositionValid && newItemVH.isAdapterPositionValid &&
                 oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid) {
             val swap = ViewHolderSwap(oldItemVH, newItemVH)
             itemVHSwaps.putIfAbsentSafe(swap, false)
             if (itemVHSwaps[swap] == false &&
-                    boardView.itemAnimator?.isRunning == false &&
-                    oldColumnVH.list?.itemAnimator?.isRunning == false &&
-                    newColumnVH.list?.itemAnimator?.isRunning == false) {
+                    boardView.itemAnimator?.isRunning != true &&
+                    oldColumnVH.list?.itemAnimator?.isRunning != true &&
+                    newColumnVH.list?.itemAnimator?.isRunning != true) {
                 if (adapter?.onSwapItemViewHolders(oldItemVH, newItemVH, oldColumnVH, newColumnVH) == true) {
                     notifyItemViewHoldersSwapped(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
                     itemDragShadow.dragBehavior.returnTo(newItemVH.itemView)
@@ -265,39 +268,37 @@ class BoardViewContainer
         }
     }
 
-    fun notifyItemViewHoldersSwapped(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
-                                     oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
+    private fun notifyItemViewHoldersSwapped(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
+                                             oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         val fromItem = oldItemVH.adapterPosition
         val toItem = newItemVH.adapterPosition
         val fromColumn = oldColumnVH.adapterPosition
         val toColumn = newColumnVH.adapterPosition
 
-        if (fromItem != NO_POSITION && toItem != NO_POSITION &&
-                fromColumn != NO_POSITION && toColumn != NO_POSITION) {
-            logE("Swapping from column $fromColumn to column $toColumn " +
-                    " item $fromItem to $toItem")
+        logE("Swapping from column $fromColumn to column $toColumn " +
+                " item $fromItem to $toItem")
 
-            when {
-                // They are in the same list
-                fromColumn == toColumn -> when {
-                    // They are the same
-                    fromItem == toItem -> return
-                    // They are different
-                    fromItem != toItem ->
-                        oldColumnVH.boardListAdapter?.notifyItemMoved(fromItem, toItem)
-                }
-                // They are in different lists
-                fromColumn != toColumn -> {
-                    oldColumnVH.boardListAdapter?.notifyItemRemoved(fromItem)
-                    newColumnVH.boardListAdapter?.notifyItemInserted(toItem)
-                }
+        when {
+            // They are in the same list
+            fromColumn == toColumn -> when {
+                // They are the same
+                fromItem == toItem -> return
+                // They are different
+                fromItem != toItem ->
+                    oldColumnVH.boardListAdapter?.notifyItemMoved(fromItem, toItem)
+            }
+            // They are in different lists
+            fromColumn != toColumn -> {
+                oldColumnVH.boardListAdapter?.notifyItemRemoved(fromItem)
+                newColumnVH.boardListAdapter?.notifyItemInserted(toItem)
             }
         }
+
     }
 
     fun swapColumnViewHolders(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         if (newVH != oldVH && oldVH.isAdapterPositionValid && newVH.isAdapterPositionValid) {
-            if (boardView.itemAnimator?.isRunning == false) {
+            if (boardView.itemAnimator?.isRunning != true) {
                 val swap = ViewHolderSwap(oldVH, newVH)
                 columnVHSwaps.putIfAbsentSafe(swap, false)
                 if (columnVHSwaps[swap] == false) {
@@ -318,7 +319,7 @@ class BoardViewContainer
         val from = oldVH.adapterPosition
         val to = newVH.adapterPosition
 
-        if (from != to && from != NO_POSITION && to != NO_POSITION) {
+        if (from != to) {
             /* Weird shit happens whenever we do a swap with an item at layout position 0,
              * This is because of how LinearLayoutManager works, it ends up scrolling for us even
              * though we never told it to, see more here
@@ -328,30 +329,32 @@ class BoardViewContainer
              */
             if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
                     boardView[0] == oldVH.itemView || boardView[0] == newVH.itemView) {
-                boardView.layoutManager?.also { layoutManager ->
-                    layoutManager.findFirstVisibleItemPosition().also { firstPosition ->
-                        boardView.findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
-                            // TODO: 26-Mar-20 Figure out RTL and margins but otherwise, mostly correct
-                            when (context.configuration.layoutDirection) {
-                                View.LAYOUT_DIRECTION_LTR -> {
-                                    val offset = layoutManager.getDecoratedLeft(firstView) -
-                                            layoutManager.getLeftDecorationWidth(firstView)
-                                    val margin = (firstView.layoutParams as? MarginLayoutParams)?.leftMargin
-                                            ?: 0
-                                    boardView.boardAdapter?.notifyItemMoved(from, to)
-                                    layoutManager.scrollToPositionWithOffset(firstPosition, offset)
-                                }
-                                View.LAYOUT_DIRECTION_RTL -> {
-                                    val offset = layoutManager.getDecoratedRight(firstView) -
-                                            layoutManager.getRightDecorationWidth(firstView)
-                                    val margin = (firstView.layoutParams as? MarginLayoutParams)?.rightMargin
-                                            ?: 0
-                                    boardView.boardAdapter?.notifyItemMoved(from, to)
-                                    layoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                boardView.layoutManager?.also { boardViewLayoutManager ->
+                    boardViewLayoutManager.findFirstVisibleItemPosition()
+                            .takeIf { it.isValidAdapterPosition }?.also { firstPosition ->
+                                boardView.findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
+                                    when (context.configuration.layoutDirection) {
+                                        View.LAYOUT_DIRECTION_LTR -> {
+                                            val offset = boardViewLayoutManager.getDecoratedLeft(firstView) -
+                                                    boardViewLayoutManager.getLeftDecorationWidth(firstView)
+                                            val margin = (firstView.layoutParams as? MarginLayoutParams)?.leftMargin
+                                                    ?: 0
+                                            boardView.boardAdapter?.notifyItemMoved(from, to)
+                                            boardViewLayoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                                        }
+                                        // TODO: 26-Mar-20 Figure out RTL and margins but
+                                        //  otherwise everything else is mostly correct
+                                        View.LAYOUT_DIRECTION_RTL -> {
+                                            val offset = boardViewLayoutManager.getDecoratedRight(firstView) -
+                                                    boardViewLayoutManager.getRightDecorationWidth(firstView)
+                                            val margin = (firstView.layoutParams as? MarginLayoutParams)?.rightMargin
+                                                    ?: 0
+                                            boardView.boardAdapter?.notifyItemMoved(from, to)
+                                            boardViewLayoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
                 }
             } else boardView.boardAdapter?.notifyItemMoved(from, to)
         }

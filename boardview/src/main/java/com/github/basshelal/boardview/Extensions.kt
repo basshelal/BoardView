@@ -279,6 +279,9 @@ inline fun RecyclerView.doOnFinishScroll(
 inline val RecyclerView.ViewHolder.isAdapterPositionValid: Boolean
     get() = adapterPosition != NO_POSITION
 
+inline val Number.isValidAdapterPosition: Boolean
+    get() = this.I >= 0
+
 inline fun animation(crossinline applyTransformation:
                      (interpolatedTime: Float, transformation: Transformation) -> Unit): Animation {
     return object : Animation() {

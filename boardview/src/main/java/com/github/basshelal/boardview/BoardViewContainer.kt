@@ -81,7 +81,7 @@ class BoardViewContainer
                 draggingItemVHColumn = column
                 draggingItemVH = item
                 itemDragShadow.isVisible = true
-                draggingItemVH?.itemView?.alpha = 1F
+                draggingItemVH?.itemView?.alpha = 0F
                 disposable = Observable.interval(updateRatePerMilli.L, TimeUnit.MILLISECONDS)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.computation())
@@ -91,9 +91,11 @@ class BoardViewContainer
                                     boardView.horizontalScroll(touchPointF)
                                     draggingItemVHColumn.list?.verticalScroll(touchPointF)
 
-                                    logE("Item Pos: ${draggingItemVH.adapterPosition}")
-                                    logE("Column Pos: ${draggingItemVHColumn.adapterPosition}")
+                                    //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
+                                    //  logE("Column Pos: ${draggingItemVHColumn.adapterPosition}")
                                     // TODO: 17-May-20 Dragging shit isn't changing automatically :/
+
+                                    logE(itemVHSwaps.size)
 
                                     findItemViewHolderUnder(touchPointF).also { (column, itemVH) ->
                                         if (column != null && itemVH != null)
@@ -252,18 +254,20 @@ class BoardViewContainer
         if (oldItemVH != newItemVH
                 && oldItemVH.isAdapterPositionValid && newItemVH.isAdapterPositionValid &&
                 oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid) {
-            val swap = ViewHolderSwap(oldItemVH, newItemVH)
-            itemVHSwaps.putIfAbsentSafe(swap, false)
-            if (itemVHSwaps[swap] == false &&
-                    boardView.itemAnimator?.isRunning != true &&
+            if (boardView.itemAnimator?.isRunning != true &&
                     oldColumnVH.list?.itemAnimator?.isRunning != true &&
                     newColumnVH.list?.itemAnimator?.isRunning != true) {
-                if (adapter?.onSwapItemViewHolders(oldItemVH, newItemVH, oldColumnVH, newColumnVH) == true) {
-                    notifyItemViewHoldersSwapped(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
-                    itemDragShadow.dragBehavior.returnTo(newItemVH.itemView)
+
+                val swap = ViewHolderSwap(oldItemVH, newItemVH)
+                itemVHSwaps.putIfAbsentSafe(swap, false)
+                if (itemVHSwaps[swap] == false) {
+                    if (adapter?.onSwapItemViewHolders(oldItemVH, newItemVH, oldColumnVH, newColumnVH) == true) {
+                        notifyItemViewHoldersSwapped(oldItemVH, newItemVH, oldColumnVH, newColumnVH)
+                        itemDragShadow.dragBehavior.returnTo(newItemVH.itemView)
+                    }
+                    itemVHSwaps[swap] = true
+                    itemVHSwaps.remove(swap)
                 }
-                itemVHSwaps[swap] = true
-                itemVHSwaps.remove(swap)
             }
         }
     }

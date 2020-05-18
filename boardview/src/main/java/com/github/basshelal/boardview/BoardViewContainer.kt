@@ -77,19 +77,16 @@ class BoardViewContainer
                 draggingItem.itemViewHolder?.itemView?.alpha = 0F
                 timer = fixedRateTimer(period = updateRatePerMilli.L) {
                     post {
-                        draggingItem.columnViewHolder?.also { draggingColumnVH ->
-                            draggingItem.itemViewHolder?.also { draggingItemVH ->
-                                boardView.horizontalScroll(touchPointF)
-                                draggingColumnVH.list?.verticalScroll(touchPointF)
+                        draggingItem.also { draggingColumnVH, draggingItemVH ->
+                            boardView.horizontalScroll(touchPointF)
+                            draggingColumnVH.list?.verticalScroll(touchPointF)
 
-                                //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
-                                //  logE("Column Pos: ${draggingColumnVH.adapterPosition}")
-                                // TODO: 17-May-20 Dragging shit isn't changing automatically :/
+                            //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
+                            //  logE("Column Pos: ${draggingColumnVH.adapterPosition}")
+                            // TODO: 17-May-20 Dragging shit isn't changing automatically :/
 
-                                findItemViewHolderUnder(touchPointF).also { (column, itemVH) ->
-                                    if (column != null && itemVH != null)
-                                        swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, column)
-                                }
+                            findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
+                                swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
                             }
                         }
                     }
@@ -393,4 +390,15 @@ private data class ViewHolderSwap(
 
 private data class DraggingItem(
         var columnViewHolder: BoardColumnViewHolder? = null,
-        var itemViewHolder: BoardItemViewHolder? = null)
+        var itemViewHolder: BoardItemViewHolder? = null) {
+
+    inline fun also(block: (columnViewHolder: BoardColumnViewHolder,
+                            itemViewHolder: BoardItemViewHolder) -> Unit): DraggingItem {
+        columnViewHolder?.also { columnViewHolder ->
+            itemViewHolder?.also { itemViewHolder ->
+                block(columnViewHolder, itemViewHolder)
+            }
+        }
+        return this
+    }
+}

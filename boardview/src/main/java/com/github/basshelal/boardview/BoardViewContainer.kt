@@ -45,10 +45,7 @@ class BoardViewContainer
     // Current Touch Point
     private var touchPointF = PointF()
 
-    // the column which the dragging Item belongs to, this will change when the item has been
-    // dragged across to a new column
-    private var draggingItemVHColumn: BoardColumnViewHolder? = null
-    private var draggingItemVH: BoardItemViewHolder? = null
+    private val draggingItem = DraggingItem()
 
     private var draggingColumnVH: BoardColumnViewHolder? = null
 
@@ -74,24 +71,24 @@ class BoardViewContainer
 
             override fun onStartDrag(dragView: View) {
                 val (column, item) = findItemViewHolderUnder(touchPointF)
-                draggingItemVHColumn = column
-                draggingItemVH = item
+                draggingItem.columnViewHolder = column
+                draggingItem.itemViewHolder = item
                 itemDragShadow.isVisible = true
-                draggingItemVH?.itemView?.alpha = 0F
+                draggingItem.itemViewHolder?.itemView?.alpha = 0F
                 timer = fixedRateTimer(period = updateRatePerMilli.L) {
                     post {
-                        draggingItemVHColumn?.also { draggingItemVHColumn ->
-                            draggingItemVH?.also { draggingItemVH ->
+                        draggingItem.columnViewHolder?.also { draggingColumnVH ->
+                            draggingItem.itemViewHolder?.also { draggingItemVH ->
                                 boardView.horizontalScroll(touchPointF)
-                                draggingItemVHColumn.list?.verticalScroll(touchPointF)
+                                draggingColumnVH.list?.verticalScroll(touchPointF)
 
                                 //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
-                                //  logE("Column Pos: ${draggingItemVHColumn.adapterPosition}")
+                                //  logE("Column Pos: ${draggingColumnVH.adapterPosition}")
                                 // TODO: 17-May-20 Dragging shit isn't changing automatically :/
 
                                 findItemViewHolderUnder(touchPointF).also { (column, itemVH) ->
                                     if (column != null && itemVH != null)
-                                        swapItemViewHolders(draggingItemVH, itemVH, draggingItemVHColumn, column)
+                                        swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, column)
                                 }
                             }
                         }
@@ -100,14 +97,14 @@ class BoardViewContainer
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                draggingItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
+                draggingItem.itemViewHolder?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
                 timer?.cancel()
             }
 
             override fun onEndDrag(dragView: View) {
-                draggingItemVH?.itemView?.alpha = 1F
+                draggingItem.itemViewHolder?.itemView?.alpha = 1F
                 itemDragShadow.isVisible = false
-                draggingItemVH = null
+                draggingItem.itemViewHolder = null
                 timer = null
                 pendingItemVHSwaps.clear()
             }
@@ -150,7 +147,7 @@ class BoardViewContainer
         })
     }
 
-    private fun findItemViewHolderUnder(point: PointF): Pair<BoardColumnViewHolder?, BoardItemViewHolder?> {
+    private fun findItemViewHolderUnder(point: PointF): DraggingItem {
         var boardVH: BoardColumnViewHolder? = null
         var itemVH: BoardItemViewHolder? = null
         findBoardViewHolderUnder(point)?.also {
@@ -159,10 +156,11 @@ class BoardViewContainer
                 itemVH = it
             }
         }
-        return Pair(boardVH, itemVH)
+        return DraggingItem(boardVH, itemVH)
     }
 
-    private fun findItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF): BoardItemViewHolder? {
+    private inline fun findItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF):
+            BoardItemViewHolder? {
         return boardVH.list?.let { boardList ->
             boardList.findChildViewUnderRaw(point.x, point.y)?.let { view ->
                 boardList.getChildViewHolder(view) as? BoardItemViewHolder
@@ -392,3 +390,7 @@ private data class ViewHolderSwap(
                 "hasSwapped: $hasSwapped)"
     }
 }
+
+private data class DraggingItem(
+        var columnViewHolder: BoardColumnViewHolder? = null,
+        var itemViewHolder: BoardItemViewHolder? = null)

@@ -65,6 +65,23 @@ open class BoardView
             snapHelper.attachToRecyclerView(if (value) this else null)
         }
 
+    /**
+     * This takes into account if the LayoutManager is using reverse layout, this is important
+     * for [BoardView] because it is horizontal
+     */
+    inline val boardLayoutDirection: Int
+        get() {
+            return when (layoutDirection) {
+                View.LAYOUT_DIRECTION_LTR ->
+                    if (layoutManager?.reverseLayout == true)
+                        View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
+                View.LAYOUT_DIRECTION_RTL ->
+                    if (layoutManager?.reverseLayout == true)
+                        View.LAYOUT_DIRECTION_LTR else View.LAYOUT_DIRECTION_RTL
+                else -> throw IllegalStateException("Invalid Layout Direction: $layoutDirection")
+            }
+        }
+
     // Horizontal Scrolling info, transient shit
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)

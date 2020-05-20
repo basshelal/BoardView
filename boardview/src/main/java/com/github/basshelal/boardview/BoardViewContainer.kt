@@ -16,8 +16,6 @@ import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.boardview.drag.ObservableDragBehavior.DragState.DRAGGING
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
-import java.util.Timer
-import kotlin.concurrent.fixedRateTimer
 import kotlin.math.floor
 
 /**
@@ -66,7 +64,20 @@ class BoardViewContainer
     private inline fun initializeItemDragShadow() {
         itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
-            private var timer: Timer? = null
+            private val renderer = SyncedRenderer {
+                draggingItem.also { draggingColumnVH, draggingItemVH ->
+                    boardView.horizontalScroll(touchPointF)
+                    draggingColumnVH.list?.verticalScroll(touchPointF)
+
+                    //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
+                    //  logE("Column Pos: ${draggingColumnVH.adapterPosition}")
+                    // TODO: 17-May-20 Dragging shit isn't changing automatically :/
+
+                    findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
+                        swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
+                    }
+                }
+            }
 
             override fun onStartDrag(dragView: View) {
                 val (column, item) = findItemViewHolderUnder(touchPointF)
@@ -74,37 +85,18 @@ class BoardViewContainer
                 draggingItem.itemViewHolder = item
                 itemDragShadow.isVisible = true
                 draggingItem.itemViewHolder?.itemView?.alpha = 0F
-                timer = fixedRateTimer(period = updateRatePerMilli.L) {
-                    // TODO: 20-May-20 Item updates seem to have a fairly clear delay :/
-                    //  swapping the order of scroll and update has interesting results,
-                    //  we should consider having two tasks separately for scroll and update
-                    post {
-                        draggingItem.also { draggingColumnVH, draggingItemVH ->
-                            boardView.horizontalScroll(touchPointF)
-                            draggingColumnVH.list?.verticalScroll(touchPointF)
-
-                            //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
-                            //  logE("Column Pos: ${draggingColumnVH.adapterPosition}")
-                            // TODO: 17-May-20 Dragging shit isn't changing automatically :/
-
-                            findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
-                                swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
-                            }
-                        }
-                    }
-                }
+                renderer.start()
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
                 draggingItem.itemViewHolder?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
-                timer?.cancel()
+                renderer.stop()
             }
 
             override fun onEndDrag(dragView: View) {
                 draggingItem.itemViewHolder?.itemView?.alpha = 1F
                 itemDragShadow.isVisible = false
                 draggingItem.itemViewHolder = null
-                timer = null
                 pendingItemVHSwaps.clear()
             }
         })
@@ -113,34 +105,31 @@ class BoardViewContainer
     private inline fun initializeListDragShadow() {
         listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
-            private var timer: Timer? = null
+            private val renderer = SyncedRenderer {
+                draggingColumnVH?.also { draggingColumnVH ->
+                    boardView.horizontalScroll(touchPointF)
+                    findBoardViewHolderUnder(touchPointF)?.also { newVH ->
+                        swapColumnViewHolders(draggingColumnVH, newVH)
+                    }
+                }
+            }
 
             override fun onStartDrag(dragView: View) {
                 draggingColumnVH = findBoardViewHolderUnder(touchPointF)
                 listDragShadow.isVisible = true
                 draggingColumnVH?.itemView?.alpha = 0F
-                timer = fixedRateTimer(period = updateRatePerMilli.L) {
-                    post {
-                        draggingColumnVH?.also { draggingColumnVH ->
-                            boardView.horizontalScroll(touchPointF)
-                            findBoardViewHolderUnder(touchPointF)?.also { newVH ->
-                                swapColumnViewHolders(draggingColumnVH, newVH)
-                            }
-                        }
-                    }
-                }
+                renderer.start()
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
                 draggingColumnVH?.itemView?.also { listDragShadow.dragBehavior.returnTo(it) }
-                timer?.cancel()
+                renderer.stop()
             }
 
             override fun onEndDrag(dragView: View) {
                 draggingColumnVH?.itemView?.alpha = 1F
                 listDragShadow.isVisible = false
                 draggingColumnVH = null
-                timer = null
                 pendingColumnVHSwaps.clear()
             }
         })
@@ -240,7 +229,7 @@ class BoardViewContainer
 
     @CalledOnce
     private inline fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
-                                    oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
+                                           oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         if (oldItemVH != newItemVH
                 && oldItemVH.isAdapterPositionValid && newItemVH.isAdapterPositionValid &&
                 oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid &&
@@ -262,7 +251,7 @@ class BoardViewContainer
 
     @CalledOnce
     private inline fun notifyItemViewHoldersSwapped(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
-                                             oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
+                                                    oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         val fromItem = oldItemVH.adapterPosition
         val toItem = newItemVH.adapterPosition
         val fromColumn = oldColumnVH.adapterPosition

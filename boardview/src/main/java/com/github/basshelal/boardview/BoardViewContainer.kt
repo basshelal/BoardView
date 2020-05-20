@@ -64,15 +64,15 @@ class BoardViewContainer
     private inline fun initializeItemDragShadow() {
         itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
-            private val renderer = SyncedRenderer {
-                draggingItem.also { draggingColumnVH, draggingItemVH ->
-                    boardView.horizontalScroll(touchPointF)
+            private val scroller = SyncedRenderer {
+                boardView.horizontalScroll(touchPointF)
+                draggingItem.columnViewHolder?.also { draggingColumnVH ->
                     draggingColumnVH.list?.verticalScroll(touchPointF)
+                }
+            }
 
-                    //  logE("Item Pos: ${draggingItemVH.adapterPosition}")
-                    //  logE("Column Pos: ${draggingColumnVH.adapterPosition}")
-                    // TODO: 17-May-20 Dragging shit isn't changing automatically :/
-
+            private val swapper = SyncedRenderer {
+                draggingItem.also { draggingColumnVH, draggingItemVH ->
                     findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
                         swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
                     }
@@ -85,18 +85,23 @@ class BoardViewContainer
                 draggingItem.itemViewHolder = item
                 itemDragShadow.isVisible = true
                 draggingItem.itemViewHolder?.itemView?.alpha = 0F
-                renderer.start()
+                scroller.start()
+                swapper.start()
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                draggingItem.itemViewHolder?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
-                renderer.stop()
+                scroller.stop()
+                swapper.stop()
             }
 
             override fun onEndDrag(dragView: View) {
-                draggingItem.itemViewHolder?.itemView?.alpha = 1F
+                draggingItem.itemViewHolder?.itemView?.also {
+                    itemDragShadow.dragBehavior.returnTo(it)
+                    it.alpha = 1F
+                }
                 itemDragShadow.isVisible = false
                 draggingItem.itemViewHolder = null
+                draggingItem.columnViewHolder = null
                 pendingItemVHSwaps.clear()
             }
         })
@@ -105,9 +110,12 @@ class BoardViewContainer
     private inline fun initializeListDragShadow() {
         listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
-            private val renderer = SyncedRenderer {
+            private val scroller = SyncedRenderer {
+                boardView.horizontalScroll(touchPointF)
+            }
+
+            private val swapper = SyncedRenderer {
                 draggingColumnVH?.also { draggingColumnVH ->
-                    boardView.horizontalScroll(touchPointF)
                     findBoardViewHolderUnder(touchPointF)?.also { newVH ->
                         swapColumnViewHolders(draggingColumnVH, newVH)
                     }
@@ -118,16 +126,20 @@ class BoardViewContainer
                 draggingColumnVH = findBoardViewHolderUnder(touchPointF)
                 listDragShadow.isVisible = true
                 draggingColumnVH?.itemView?.alpha = 0F
-                renderer.start()
+                scroller.start()
+                swapper.start()
             }
 
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                draggingColumnVH?.itemView?.also { listDragShadow.dragBehavior.returnTo(it) }
-                renderer.stop()
+                scroller.stop()
+                swapper.stop()
             }
 
             override fun onEndDrag(dragView: View) {
-                draggingColumnVH?.itemView?.alpha = 1F
+                draggingColumnVH?.itemView?.also {
+                    listDragShadow.dragBehavior.returnTo(it)
+                    it.alpha = 1F
+                }
                 listDragShadow.isVisible = false
                 draggingColumnVH = null
                 pendingColumnVHSwaps.clear()

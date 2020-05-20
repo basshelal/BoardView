@@ -9,7 +9,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.get
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
@@ -76,6 +75,9 @@ class BoardViewContainer
                 itemDragShadow.isVisible = true
                 draggingItem.itemViewHolder?.itemView?.alpha = 0F
                 timer = fixedRateTimer(period = updateRatePerMilli.L) {
+                    // TODO: 20-May-20 Item updates seem to have a fairly clear delay :/
+                    //  swapping the order of scroll and update has interesting results,
+                    //  we should consider having two tasks separately for scroll and update
                     post {
                         draggingItem.also { draggingColumnVH, draggingItemVH ->
                             boardView.horizontalScroll(touchPointF)
@@ -276,7 +278,7 @@ class BoardViewContainer
                 fromItem == toItem -> return
                 // They are different
                 fromItem != toItem ->
-                    oldColumnVH.boardListAdapter?.notifyItemMoved(fromItem, toItem)
+                    oldColumnVH.list?.notifyItemViewHoldersSwapped(oldItemVH, newItemVH)
             }
             // They are in different lists
             fromColumn != toColumn -> {
@@ -296,7 +298,7 @@ class BoardViewContainer
             pendingColumnVHSwaps.add(swap) // Will only be added if it doesn't exist already
             if (swap in pendingColumnVHSwaps && !swap.hasSwapped) { // VHSwap has been queued but not executed, perform swap!
                 if (adapter?.onSwapBoardViewHolders(oldVH, newVH) == true) { // Caller has told us the swap is successful, let's animate the swap!
-                    notifyColumnViewHoldersSwapped(oldVH, newVH)
+                    boardView.notifyColumnViewHoldersSwapped(oldVH, newVH)
                     listDragShadow.dragBehavior.returnTo(newVH.itemView)
                 }
                 // Remove the swap in any case, its life is over
@@ -304,51 +306,6 @@ class BoardViewContainer
                 pendingColumnVHSwaps.remove(swap)
             }
         }
-    }
-
-    @CalledOnce
-    private inline fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
-        // From & To are guarenteed to be valid and different!
-        val from = oldVH.adapterPosition
-        val to = newVH.adapterPosition
-
-        /* Weird shit happens whenever we do a swap with an item at layout position 0,
-         * This is because of how LinearLayoutManager works, it ends up scrolling for us even
-         * though we never told it to, see more here
-         * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
-         * So we solve this by forcing it back where it was, essentially cancelling the
-         * scroll it did
-         */
-        if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
-                boardView[0] == oldVH.itemView || boardView[0] == newVH.itemView) {
-            boardView.layoutManager?.also { boardViewLayoutManager ->
-                boardViewLayoutManager.findFirstVisibleItemPosition()
-                        .takeIf { it.isValidAdapterPosition }?.also { firstPosition ->
-                            boardView.findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
-                                when (boardView.boardLayoutDirection) {
-                                    View.LAYOUT_DIRECTION_LTR -> {
-                                        val offset = boardViewLayoutManager.getDecoratedLeft(firstView) -
-                                                boardViewLayoutManager.getLeftDecorationWidth(firstView)
-                                        val margin = (firstView.layoutParams as? MarginLayoutParams)?.leftMargin
-                                                ?: 0
-                                        boardView.boardAdapter?.notifyItemMoved(from, to)
-                                        boardViewLayoutManager.scrollToPositionWithOffset(firstPosition, offset)
-                                    }
-                                    // TODO: 26-Mar-20 Figure out RTL and margins but
-                                    //  otherwise everything else is mostly correct
-                                    View.LAYOUT_DIRECTION_RTL -> {
-                                        val offset = boardViewLayoutManager.getDecoratedRight(firstView) -
-                                                boardViewLayoutManager.getRightDecorationWidth(firstView)
-                                        val margin = (firstView.layoutParams as? MarginLayoutParams)?.rightMargin
-                                                ?: 0
-                                        boardView.boardAdapter?.notifyItemMoved(from, to)
-                                        boardViewLayoutManager.scrollToPositionWithOffset(firstPosition, offset)
-                                    }
-                                }
-                            }
-                        }
-            }
-        } else boardView.boardAdapter?.notifyItemMoved(from, to)
     }
 
     public inline fun startDraggingItem(boardItemViewHolder: BoardItemViewHolder) {

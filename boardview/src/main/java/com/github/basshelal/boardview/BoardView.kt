@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier")
+@file:Suppress("RedundantVisibilityModifier", "NOTHING_TO_INLINE")
 
 package com.github.basshelal.boardview
 
@@ -24,6 +24,10 @@ import androidx.annotation.Px
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.children
+import androidx.core.view.get
+import androidx.core.view.marginLeft
+import androidx.core.view.marginRight
+import androidx.core.view.marginStart
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
@@ -353,6 +357,49 @@ open class BoardView
         )
     }
 
+    internal inline fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
+        // From & To are guaranteed to be valid and different!
+        val from = oldVH.adapterPosition
+        val to = newVH.adapterPosition
+
+        /* Weird shit happens whenever we do a swap with an item at layout position 0,
+         * This is because of how LinearLayoutManager works, it ends up scrolling for us even
+         * though we never told it to, see more here
+         * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
+         * So we solve this by forcing it back where it was, essentially cancelling the
+         * scroll it did
+         */
+        if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+                this[0] == oldVH.itemView || this[0] == newVH.itemView) {
+            layoutManager?.also { layoutManager ->
+                layoutManager.findFirstVisibleItemPosition().takeIf { it.isValidAdapterPosition }
+                        ?.also { firstPosition ->
+                            findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
+                                var offset = 0
+                                var margin = 0
+                                when (boardLayoutDirection) {
+                                    View.LAYOUT_DIRECTION_LTR -> {
+                                        offset = layoutManager.getDecoratedLeft(firstView) -
+                                                layoutManager.getLeftDecorationWidth(firstView)
+                                        margin = firstView.marginLeft
+                                    }
+                                    // TODO: 26-Mar-20 Figure out RTL and margins but
+                                    //  otherwise everything else is mostly correct
+                                    View.LAYOUT_DIRECTION_RTL -> {
+                                        offset = layoutManager.getDecoratedRight(firstView) -
+                                                layoutManager.getRightDecorationWidth(firstView)
+                                        firstView.marginStart
+                                        margin = firstView.marginRight
+                                    }
+                                }
+                                boardAdapter?.notifyItemMoved(from, to)
+                                layoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                            }
+                        }
+            }
+        } else boardAdapter?.notifyItemMoved(from, to)
+    }
+
     /**
      * The passed in [adapter] must be a descendant of [BoardAdapter].
      */
@@ -512,7 +559,7 @@ abstract class BoardAdapter(
             layoutStates.add(null)
         }
         layoutStates[holder.adapterPosition].also {
-            if (it == null) {
+            if (it == null && holder.isAdapterPositionValid) {
                 holder.list?.layoutManager?.saveState()?.also {
                     holder.list?.layoutManager?.scrollToPosition(0)
                     layoutStates[holder.adapterPosition] = it
@@ -526,7 +573,7 @@ abstract class BoardAdapter(
     @CallSuper
     override fun onViewDetachedFromWindow(holder: BoardColumnViewHolder) {
         holder.list?.layoutManager?.saveState()?.also {
-            layoutStates[holder.adapterPosition] = it
+            if (holder.isAdapterPositionValid) layoutStates[holder.adapterPosition] = it
         }
     }
 }

@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.github.basshelal.boardview
 
 import android.content.Context
@@ -6,6 +8,8 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.contains
+import androidx.core.view.get
+import androidx.core.view.marginLeft
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -120,6 +124,35 @@ class BoardList
         this.scrollBy(0, scrollBy)
     }
 
+    internal inline fun notifyItemViewHoldersSwapped(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder) {
+        // From & To are guaranteed to be valid and different!
+        val from = oldVH.adapterPosition
+        val to = newVH.adapterPosition
+
+        /* Weird shit happens whenever we do a swap with an item at layout position 0,
+         * This is because of how LinearLayoutManager works, it ends up scrolling for us even
+         * though we never told it to, see more here
+         * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
+         * So we solve this by forcing it back where it was, essentially cancelling the
+         * scroll it did
+         */
+        if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+                this[0] == oldVH.itemView || this[0] == newVH.itemView) {
+            layoutManager?.also { layoutManager ->
+                layoutManager.findFirstVisibleItemPosition().takeIf { it.isValidAdapterPosition }
+                        ?.also { firstPosition ->
+                            findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
+                                val offset = layoutManager.getDecoratedTop(firstView) -
+                                        layoutManager.getTopDecorationHeight(firstView)
+                                val margin = firstView.marginLeft
+                                boardListAdapter?.notifyItemMoved(from, to)
+                                layoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                                // TODO Above line seems to cause the list to blink for a sec :/
+                            }
+                        }
+            }
+        } else boardListAdapter?.notifyItemMoved(from, to)
+    }
 }
 
 /**

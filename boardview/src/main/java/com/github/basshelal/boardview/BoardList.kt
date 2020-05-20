@@ -55,6 +55,9 @@ class BoardList
             it.isItemPrefetchEnabled = true
             it.initialPrefetchItemCount = 6
         }
+        isHorizontalScrollBarEnabled = false
+        isVerticalScrollBarEnabled = true
+        this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener {
             resetScrollInfo()
         }

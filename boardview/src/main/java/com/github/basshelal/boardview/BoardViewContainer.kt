@@ -236,7 +236,8 @@ class BoardViewContainer
         }
     }
 
-    private fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
+    @CalledOnce
+    private inline fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
                                     oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         if (oldItemVH != newItemVH
                 && oldItemVH.isAdapterPositionValid && newItemVH.isAdapterPositionValid &&
@@ -257,7 +258,8 @@ class BoardViewContainer
         }
     }
 
-    private fun notifyItemViewHoldersSwapped(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
+    @CalledOnce
+    private inline fun notifyItemViewHoldersSwapped(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
                                              oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         val fromItem = oldItemVH.adapterPosition
         val toItem = newItemVH.adapterPosition
@@ -285,7 +287,8 @@ class BoardViewContainer
 
     }
 
-    fun swapColumnViewHolders(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
+    @CalledOnce
+    private inline fun swapColumnViewHolders(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         // VHs must be valid, different and Board is not animating anything
         if (newVH != oldVH && boardView.itemAnimator?.isRunning != true &&
                 oldVH.isAdapterPositionValid && newVH.isAdapterPositionValid) {
@@ -303,6 +306,7 @@ class BoardViewContainer
         }
     }
 
+    @CalledOnce
     private inline fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
         // From & To are guarenteed to be valid and different!
         val from = oldVH.adapterPosition

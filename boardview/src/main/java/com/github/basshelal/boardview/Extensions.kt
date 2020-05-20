@@ -43,6 +43,13 @@ import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
 
+// Denotes a function is called only once inside a file
+// Just a marker to denote a safe inline
+// Usually this is placed on a `private inline fun`
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.FUNCTION)
+annotation class CalledOnce
+
 @PublishedApi
 internal inline val Number.I: Int
     get() = this.toInt()

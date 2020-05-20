@@ -10,6 +10,7 @@ import android.view.View
 import androidx.core.graphics.contains
 import androidx.core.view.get
 import androidx.core.view.marginLeft
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -64,6 +65,14 @@ class BoardList
         this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener {
             resetScrollInfo()
+        }
+        itemAnimator = object : DefaultItemAnimator() {
+            override fun animateAdd(holder: ViewHolder?): Boolean {
+                holder?.itemView?.alpha = 0F
+                return super.animateAdd(holder)
+            }
+        }.also {
+            it.moveDuration = 120
         }
     }
 

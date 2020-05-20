@@ -285,6 +285,15 @@ class BoardViewContainer
             fromColumn != toColumn -> {
                 oldColumnVH.boardListAdapter?.notifyItemRemoved(fromItem)
                 newColumnVH.boardListAdapter?.notifyItemInserted(toItem)
+                doOnceChoreographed({
+                    oldColumnVH.list?.itemAnimator?.isRunning != true &&
+                            newColumnVH.list?.itemAnimator?.isRunning != true
+                }) {
+                    draggingItem.itemViewHolder = newColumnVH.list
+                            ?.findViewHolderForAdapterPosition(toItem) as? BoardItemViewHolder
+                    //  draggingItem.itemViewHolder?.itemView?.alpha = 0F
+                    draggingItem.columnViewHolder = newColumnVH
+                }
             }
         }
 

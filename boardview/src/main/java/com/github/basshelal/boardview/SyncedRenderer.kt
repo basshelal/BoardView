@@ -8,7 +8,7 @@ import android.view.Choreographer
  * [doFrame] is run on the main thread and is executed on the next frame.
  * The [SyncedRenderer] can be restarted freely.
  */
-internal class SyncedRenderer(val doFrame: (frameTimeNanos: Long) -> Unit) {
+internal open class SyncedRenderer(val doFrame: (frameTimeNanos: Long) -> Unit) {
 
     private var callback: (Long) -> Unit = {}
 
@@ -24,4 +24,17 @@ internal class SyncedRenderer(val doFrame: (frameTimeNanos: Long) -> Unit) {
         Choreographer.getInstance().removeFrameCallback(callback)
         callback = {}
     }
+}
+
+inline fun doOnceChoreographed(crossinline predicate: (frameTimeNanos: Long) -> Boolean,
+                               crossinline onNextFrame: (frameTimeNanos: Long) -> Unit) {
+    var callback: (Long) -> Unit = {}
+    callback = {
+        if (predicate(it)) {
+            onNextFrame(it)
+            Choreographer.getInstance().removeFrameCallback(callback)
+            callback = {}
+        } else Choreographer.getInstance().postFrameCallback(callback)
+    }
+    Choreographer.getInstance().postFrameCallback(callback)
 }

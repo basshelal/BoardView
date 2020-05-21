@@ -9,7 +9,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.github.basshelal.boardview.drag.DragShadow
@@ -159,62 +158,16 @@ class BoardViewContainer
         return DraggingItem(boardVH, itemVH)
     }
 
-    private inline fun findItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF):
-            BoardItemViewHolder? {
+    private fun findItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF): BoardItemViewHolder? {
         return boardVH.list?.let { boardList ->
-            boardList.findChildViewUnderRaw(point.x, point.y)?.let { view ->
+            boardList.findChildViewUnderRaw(point)?.let { view ->
                 boardList.getChildViewHolder(view) as? BoardItemViewHolder
             }
         }
     }
 
-    private fun forceFindItemViewHolderUnder(point: PointF): Pair<BoardColumnViewHolder?, BoardItemViewHolder?> {
-        var boardVH: BoardColumnViewHolder? = null
-        var itemVH: BoardItemViewHolder? = null
-        findBoardViewHolderUnder(point)?.also {
-            boardVH = it
-            forceFindItemViewHolderUnder(it, point)?.also {
-                itemVH = it
-            }
-        }
-        return Pair(boardVH, itemVH)
-    }
-
-    // Forces to find a VH within the vertical bounds unless none even exist
-    // TODO: 15-Mar-20 Not yet finished, not optimal and causes freezes because too much work
-    private fun forceFindItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF): BoardItemViewHolder? {
-        boardVH.list?.let { boardList ->
-            if (boardList.isEmpty() || boardList.adapter?.itemCount == 0) return null
-
-            var result: BoardItemViewHolder? = findItemViewHolderUnder(boardVH, point)
-            val pointUp = point
-            val pointDown = point
-
-            val diff = 4
-            val maxAttempts = boardList.globalVisibleRect.height() / 2 * diff
-            var attemptNumber = 0
-
-            while (result == null && attemptNumber < maxAttempts) {
-                result = boardList.findChildViewUnderRaw(pointUp.x, pointUp.y)?.let { view ->
-                    boardList.getChildViewHolder(view) as? BoardItemViewHolder
-                }
-                if (result != null) return result
-                result = boardList.findChildViewUnderRaw(pointDown.x, pointDown.y)?.let { view ->
-                    boardList.getChildViewHolder(view) as? BoardItemViewHolder
-                }
-                if (result != null) return result
-                pointUp.y -= 4
-                pointDown.y += 4
-                attemptNumber++
-            }
-            logE(result)
-            return result
-        }
-        return null
-    }
-
     private fun findBoardViewHolderUnder(point: PointF): BoardColumnViewHolder? {
-        return boardView.findChildViewUnderRaw(point.x, point.y)?.let {
+        return boardView.findChildViewUnderRaw(point)?.let {
             boardView.getChildViewHolder(it) as? BoardColumnViewHolder
         }
     }

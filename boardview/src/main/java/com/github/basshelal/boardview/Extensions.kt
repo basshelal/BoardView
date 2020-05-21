@@ -21,6 +21,10 @@ import androidx.activity.OnBackPressedCallback
 import androidx.annotation.IdRes
 import androidx.core.graphics.toRectF
 import androidx.core.view.children
+import androidx.core.view.marginBottom
+import androidx.core.view.marginLeft
+import androidx.core.view.marginRight
+import androidx.core.view.marginTop
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
@@ -175,19 +179,26 @@ inline val View.orientation: Orientation
 inline val ViewGroup.allChildren: List<View>
     get() = this.childrenRecursiveSequence().toList()
 
-inline fun ViewGroup.childUnder(x: Int, y: Int): View? {
+inline val View.marginedWidth: Int
+    get() = width + marginLeft + marginRight
+
+inline fun ViewGroup.childUnder(x: Float, y: Float): View? {
     // Copied from RecyclerView.findChildViewUnder()
     children.toList().asReversed().forEach {
-        val translationX = it.translationX
-        val translationY = it.translationY
-        if (x >= it.left + translationX &&
-                x <= it.right + translationX &&
-                y >= it.top + translationY &&
-                y <= it.bottom + translationY) {
+        if (x >= (it.left + it.translationX) &&
+                x <= (it.right + it.translationX) &&
+                y >= (it.top + it.translationY) &&
+                y <= (it.bottom + it.translationY)) {
             return it
         }
     }
     return null
+}
+
+inline fun ViewGroup.forEachReversed(action: (view: View) -> Unit) {
+    for (index in childCount downTo 0) {
+        getChildAt(index)?.also(action)
+    }
 }
 
 inline fun View.updateLayoutParamsSafe(block: ViewGroup.LayoutParams.() -> Unit) {
@@ -201,11 +212,20 @@ inline fun <reified T : ViewGroup.LayoutParams> View.updateLayoutParamsSafe(bloc
     requestLayout()
 }
 
-inline fun RecyclerView.findChildViewUnderRaw(rawX: Float, rawY: Float): View? {
+inline fun RecyclerView.findChildViewUnderRaw(pointF: PointF): View? {
     val rect = this.globalVisibleRectF
-    val x = rawX - rect.left
-    val y = rawY - rect.top
-    return this.findChildViewUnder(x, y)
+    val x = pointF.x - rect.left
+    val y = pointF.y - rect.top
+    this.forEachReversed {
+        // This takes margins into account so the bounds box is larger
+        if (x >= (it.left + it.translationX - it.marginLeft) &&
+                x <= (it.right + it.translationX + it.marginRight) &&
+                y >= (it.top + it.translationY - it.marginTop) &&
+                y <= (it.bottom + it.translationY + it.marginBottom)) {
+            return it
+        }
+    }
+    return null
 }
 
 inline fun RecyclerView.addOnScrollListener(

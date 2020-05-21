@@ -26,7 +26,7 @@ class AppBar
 
     companion object {
         const val DEFAULT_ELEVATION = 32F
-        const val CORNER_RADIUS = 8
+        const val CORNER_RADIUS = 10
     }
 
     private val materialShapeDrawable = MaterialShapeDrawable(context, attributeSet, defStyle, 0)

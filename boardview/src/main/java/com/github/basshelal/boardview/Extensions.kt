@@ -312,6 +312,10 @@ inline fun logE(message: Any?, tag: String = "BoardView") {
     if (BuildConfig.DEBUG) Log.e(tag, message.toString())
 }
 
+inline fun View.logS(message: Any?, tag: String = "BoardView") {
+    if (BuildConfig.DEBUG) Snackbar.make(this, message.toString(), Snackbar.LENGTH_SHORT).show()
+}
+
 inline fun FragmentManager.commitTransaction(block: FragmentTransaction.() -> Unit) {
     this.beginTransaction().apply(block).commit()
 }

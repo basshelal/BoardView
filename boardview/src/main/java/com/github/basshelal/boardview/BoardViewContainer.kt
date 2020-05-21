@@ -289,9 +289,11 @@ class BoardViewContainer
                     oldColumnVH.list?.itemAnimator?.isRunning != true &&
                             newColumnVH.list?.itemAnimator?.isRunning != true
                 }) {
+                    logE("Animation finished! $now")
+                    logE(draggingItem.itemViewHolder?.itemView?.alpha)
                     draggingItem.itemViewHolder = newColumnVH.list
                             ?.findViewHolderForAdapterPosition(toItem) as? BoardItemViewHolder
-                    //  draggingItem.itemViewHolder?.itemView?.alpha = 0F
+                    draggingItem.itemViewHolder?.itemView?.alpha = 0F
                     draggingItem.columnViewHolder = newColumnVH
                 }
             }

@@ -76,12 +76,12 @@ open class BoardView
     inline val boardLayoutDirection: Int
         get() {
             return when (layoutDirection) {
-                View.LAYOUT_DIRECTION_LTR ->
+                LAYOUT_DIRECTION_LTR ->
                     if (layoutManager?.reverseLayout == true)
-                        View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
-                View.LAYOUT_DIRECTION_RTL ->
+                        LAYOUT_DIRECTION_RTL else LAYOUT_DIRECTION_LTR
+                LAYOUT_DIRECTION_RTL ->
                     if (layoutManager?.reverseLayout == true)
-                        View.LAYOUT_DIRECTION_LTR else View.LAYOUT_DIRECTION_RTL
+                        LAYOUT_DIRECTION_LTR else LAYOUT_DIRECTION_RTL
                 else -> throw IllegalStateException("Invalid Layout Direction: $layoutDirection")
             }
         }
@@ -95,6 +95,8 @@ open class BoardView
     private val leftScrollBounds = RectF()
     private val outsideRightScrollBounds = RectF()
     private val rightScrollBounds = RectF()
+    private val outsideTopBounds = RectF()
+    private val outsideBottomBounds = RectF()
 
     private val snapHelper = PagerSnapHelper()
 
@@ -183,6 +185,14 @@ open class BoardView
         rightScrollBounds.set(this.globalVisibleRectF.also {
             it.left = it.right - horizontalScrollBoundWidth
         })
+        outsideTopBounds.set(this.globalVisibleRectF.also {
+            it.bottom = it.top
+            it.top = 0F
+        })
+        outsideBottomBounds.set(this.globalVisibleRectF.also {
+            it.top = it.bottom
+            it.bottom = realScreenHeight.F
+        })
     }
 
     fun horizontalScroll(touchPoint: PointF) {
@@ -202,6 +212,28 @@ open class BoardView
             in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
         }
         this.scrollBy(scrollBy, 0)
+    }
+
+    internal fun getViewHolderUnder(point: PointF): BoardColumnViewHolder? {
+        if (point in outsideTopBounds) logE("TOP")
+        if (point in outsideBottomBounds) logE("BOTTOM")
+        return if ((point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ||
+                (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL))
+            layoutManager?.findFirstVisibleItemPosition()?.let {
+                findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder
+            }
+        else if ((point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ||
+                (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR))
+            layoutManager?.findLastVisibleItemPosition()?.let {
+                findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder
+            }
+        // TODO: 23-May-20 If point is outside top or bottom bounds, force the point to be
+        //  vertically in the middle of us (BoardView) and find the child there
+        //  this means while dragging we should as much as possible never return null and always
+        //  return the closest VH even if out of bounds
+        else findChildViewUnderRaw(point)?.let {
+            getChildViewHolder(it) as? BoardColumnViewHolder
+        }
     }
 
     public inline fun switchToSingleColumnModeAt(adapterPosition: Int,

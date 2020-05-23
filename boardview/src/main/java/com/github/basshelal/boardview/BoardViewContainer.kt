@@ -65,9 +65,7 @@ class BoardViewContainer
 
             private val scroller = SyncedRenderer {
                 boardView.horizontalScroll(touchPointF)
-                draggingItem.columnViewHolder?.also { draggingColumnVH ->
-                    draggingColumnVH.list?.verticalScroll(touchPointF)
-                }
+                draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
             }
 
             private val swapper = SyncedRenderer {
@@ -115,14 +113,14 @@ class BoardViewContainer
 
             private val swapper = SyncedRenderer {
                 draggingColumnVH?.also { draggingColumnVH ->
-                    findBoardViewHolderUnder(touchPointF)?.also { newVH ->
+                    boardView.getViewHolderUnder(touchPointF)?.also { newVH ->
                         swapColumnViewHolders(draggingColumnVH, newVH)
                     }
                 }
             }
 
             override fun onStartDrag(dragView: View) {
-                draggingColumnVH = findBoardViewHolderUnder(touchPointF)
+                draggingColumnVH = boardView.getViewHolderUnder(touchPointF)
                 listDragShadow.isVisible = true
                 draggingColumnVH?.itemView?.alpha = 0F
                 scroller.start()
@@ -149,27 +147,15 @@ class BoardViewContainer
     private fun findItemViewHolderUnder(point: PointF): DraggingItem {
         var boardVH: BoardColumnViewHolder? = null
         var itemVH: BoardItemViewHolder? = null
-        findBoardViewHolderUnder(point)?.also {
+        boardView.getViewHolderUnder(point)?.also {
             boardVH = it
-            findItemViewHolderUnder(it, point)?.also {
+            it.list?.getViewHolderUnder(point)?.also {
                 itemVH = it
             }
         }
+        // TODO: 23-May-20 Both null when dragging out of bounds
+        logE(DraggingItem(boardVH, itemVH))
         return DraggingItem(boardVH, itemVH)
-    }
-
-    private fun findItemViewHolderUnder(boardVH: BoardColumnViewHolder, point: PointF): BoardItemViewHolder? {
-        return boardVH.list?.let { boardList ->
-            boardList.findChildViewUnderRaw(point)?.let { view ->
-                boardList.getChildViewHolder(view) as? BoardItemViewHolder
-            }
-        }
-    }
-
-    private fun findBoardViewHolderUnder(point: PointF): BoardColumnViewHolder? {
-        return boardView.findChildViewUnderRaw(point)?.let {
-            boardView.getChildViewHolder(it) as? BoardColumnViewHolder
-        }
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {

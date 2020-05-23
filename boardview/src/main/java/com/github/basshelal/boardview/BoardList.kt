@@ -63,9 +63,7 @@ class BoardList
         isHorizontalScrollBarEnabled = false
         isVerticalScrollBarEnabled = true
         this.setHasFixedSize(true)
-        viewTreeObserver.addOnScrollChangedListener {
-            resetScrollInfo()
-        }
+        viewTreeObserver.addOnScrollChangedListener { resetScrollInfo() }
         itemAnimator = object : DefaultItemAnimator() {
             override fun animateAdd(holder: ViewHolder?): Boolean {
                 logE("Add: ${holder?.adapterPosition} $now")
@@ -100,7 +98,7 @@ class BoardList
     }
 
     private fun resetScrollInfo() {
-        doInBackground {
+        postOnAnimation {
             verticalScrollBoundWidth = this.globalVisibleRectF.height() / 10F
             outsideTopScrollBounds.set(this.globalVisibleRectF.also {
                 it.bottom = it.top
@@ -131,6 +129,19 @@ class BoardList
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
 
+    internal fun getViewHolderUnder(point: PointF): BoardItemViewHolder? {
+        return if (point in outsideTopScrollBounds)
+            layoutManager?.findFirstVisibleItemPosition()?.let {
+                findViewHolderForAdapterPosition(it) as? BoardItemViewHolder
+            }
+        else if (point in outsideBottomScrollBounds)
+            layoutManager?.findLastVisibleItemPosition()?.let {
+                findViewHolderForAdapterPosition(it) as? BoardItemViewHolder
+            }
+        else findChildViewUnderRaw(point)?.let { view ->
+            getChildViewHolder(view) as? BoardItemViewHolder
+        }
+    }
 
     fun verticalScroll(touchPoint: PointF) {
         var scrollBy = 0

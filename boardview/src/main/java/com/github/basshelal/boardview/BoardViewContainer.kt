@@ -15,7 +15,6 @@ import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.boardview.drag.ObservableDragBehavior.DragState.DRAGGING
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
-import kotlin.math.floor
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
@@ -27,6 +26,14 @@ class BoardViewContainer
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr) {
 
+    /**
+     * The [BoardContainerAdapter] of this [BoardViewContainer].
+     * This is the main API entry point, callers implement their own [BoardContainerAdapter] and
+     * set the adapter of this [BoardViewContainer] created in a layout file to an instance of
+     * their custom [BoardContainerAdapter].
+     *
+     * @see BoardContainerAdapter
+     */
     public var adapter: BoardContainerAdapter? = null
         set(value) {
             field = value
@@ -34,24 +41,47 @@ class BoardViewContainer
             value?.boardViewContainer = this
         }
 
+    /**
+     * The [BoardView] this container holds.
+     * This is the [RecyclerView] that draws and holds the [BoardColumnViewHolder]s
+     * @see BoardView
+     */
     public inline val boardView: BoardView get() = this._boardView
+
+    /**
+     * The [DragShadow] that appears when dragging [BoardItemViewHolder]s.
+     * This is a simple shadow that resembles the original [BoardItemViewHolder]
+     * but can be dragged outside the bounds of the [BoardView]
+     * @see DragShadow
+     */
     public inline val itemDragShadow: DragShadow get() = this.item_dragShadow
+
+    /**
+     * The [DragShadow] that appears when dragging [BoardColumnViewHolder]s.
+     * This is a simple shadow that resembles the original [BoardColumnViewHolder]
+     * but can be dragged outside the bounds of the [BoardView]
+     * @see DragShadow
+     */
     public inline val listDragShadow: DragShadow get() = this.list_dragShadow
 
-    // Current Touch Point
+    //region Private variables
+
+    /** The current touch point, updated in [onTouchEvent] */
     private var touchPointF = PointF()
 
+    /** The current [DraggingItem] when dragging [itemDragShadow] */
     private val draggingItem = DraggingItem()
 
+    /** The current [BoardColumnViewHolder] when dragging [listDragShadow] */
     private var draggingColumnVH: BoardColumnViewHolder? = null
 
-    // We update observers based on the screen refresh rate because animations are not able to
-    // keep up with a faster update rate
-    private val updateRatePerMilli = floor(millisPerFrame)
-
-    // Animation stuff
+    /** The pending [ViewHolderSwap]s for [BoardColumnViewHolder]s when dragging [listDragShadow] */
     private val pendingColumnVHSwaps = LinkedHashSet<ViewHolderSwap>()
+
+    /** The pending [ViewHolderSwap]s for [BoardItemViewHolder]s when dragging [itemDragShadow] */
     private val pendingItemVHSwaps = LinkedHashSet<ViewHolderSwap>()
+
+    //endregion Private variables
 
     init {
         View.inflate(context, R.layout.container_boardviewcontainer, this)
@@ -60,14 +90,66 @@ class BoardViewContainer
         initializeListDragShadow()
     }
 
+    /**
+     * Used to tell [BoardViewContainer] to begin dragging [itemDragShadow]
+     * and to make it mirror [boardItemViewHolder]
+     */
+    public inline fun startDraggingItem(boardItemViewHolder: BoardItemViewHolder) {
+        itemDragShadow.rootUpdateToMatch(boardItemViewHolder.itemView)
+        itemDragShadow.dragBehavior.startDrag()
+    }
+
+    /**
+     * Used to tell [BoardViewContainer] to begin dragging [listDragShadow]
+     * and to make it mirror [boardColumnViewHolder]
+     */
+    public inline fun startDraggingColumn(boardColumnViewHolder: BoardColumnViewHolder) {
+        listDragShadow.rootUpdateToMatch(boardColumnViewHolder.itemView)
+        listDragShadow.dragBehavior.startDrag()
+    }
+
+    /** Return `true` to tell system that we will handle all touch events in [onTouchEvent] */
+    override fun onInterceptTouchEvent(event: MotionEvent) = true
+
+    /**
+     * Handle touch events and set [touchPointF]
+     * Unless user is dragging, all events are forwarded to [boardView]
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        touchPointF.set(event.rawX, event.rawY)
+        return when {
+            // Item is being dragged, send all events to its onTouchEvent
+            itemDragShadow.dragBehavior.dragState == DRAGGING ->
+                itemDragShadow.dragBehavior.onTouchEvent(event)
+            // List is being dragged, send all events to its onTouchEvent
+            listDragShadow.dragBehavior.dragState == DRAGGING ->
+                listDragShadow.dragBehavior.onTouchEvent(event)
+            // Send all other events to BoardView (scrolling etc)
+            else -> boardView.dispatchTouchEvent(event)
+        }
+    }
+
+    //region Private functions
+
+    @CalledOnce
     private inline fun initializeItemDragShadow() {
         itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
+            /**
+             * Scrolls the [boardView] depending on position of [touchPointF]
+             * Executes every frame, courtesy of [SyncedRenderer]
+             */
             private val scroller = SyncedRenderer {
                 boardView.horizontalScroll(touchPointF)
                 draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
             }
 
+            /**
+             * Swaps the [BoardItemViewHolder]s depending on position of [touchPointF]
+             * This does it for both, inside the same list and across lists
+             * Executes every frame, courtesy of [SyncedRenderer]
+             */
             private val swapper = SyncedRenderer {
                 draggingItem.also { draggingColumnVH, draggingItemVH ->
                     findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
@@ -76,6 +158,7 @@ class BoardViewContainer
                 }
             }
 
+            /** User has started drag, initialize everything */
             override fun onStartDrag(dragView: View) {
                 val (column, item) = findItemViewHolderUnder(touchPointF)
                 draggingItem.columnViewHolder = column
@@ -86,11 +169,13 @@ class BoardViewContainer
                 swapper.start()
             }
 
+            /** User has released drag, animation is starting */
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
                 scroller.stop()
                 swapper.stop()
             }
 
+            /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 draggingItem.itemViewHolder?.itemView?.also {
                     itemDragShadow.dragBehavior.returnTo(it)
@@ -104,6 +189,7 @@ class BoardViewContainer
         })
     }
 
+    @CalledOnce
     private inline fun initializeListDragShadow() {
         listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
@@ -119,6 +205,7 @@ class BoardViewContainer
                 }
             }
 
+            /** User has started drag, initialize everything */
             override fun onStartDrag(dragView: View) {
                 draggingColumnVH = boardView.getViewHolderUnder(touchPointF)
                 listDragShadow.isVisible = true
@@ -127,11 +214,13 @@ class BoardViewContainer
                 swapper.start()
             }
 
+            /** User has released drag, animation is starting */
             override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
                 scroller.stop()
                 swapper.stop()
             }
 
+            /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 draggingColumnVH?.itemView?.also {
                     listDragShadow.dragBehavior.returnTo(it)
@@ -142,40 +231,6 @@ class BoardViewContainer
                 pendingColumnVHSwaps.clear()
             }
         })
-    }
-
-    private fun findItemViewHolderUnder(point: PointF): DraggingItem {
-        var boardVH: BoardColumnViewHolder? = null
-        var itemVH: BoardItemViewHolder? = null
-        boardView.getViewHolderUnder(point)?.also {
-            boardVH = it
-            it.list?.getViewHolderUnder(point)?.also {
-                itemVH = it
-            }
-        }
-        // TODO: 23-May-20 Both null when dragging out of bounds
-        logE(DraggingItem(boardVH, itemVH))
-        return DraggingItem(boardVH, itemVH)
-    }
-
-    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        // return true to tell system that we will handle all touch events in onTouchEvent
-        return true
-    }
-
-    @SuppressLint("ClickableViewAccessibility") // We are not Accessibility friendly :/
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        touchPointF.set(event.rawX, event.rawY)
-        return when {
-            // Item is being dragged, send all events to its onTouchEvent
-            itemDragShadow.dragBehavior.dragState == DRAGGING ->
-                itemDragShadow.dragBehavior.onTouchEvent(event)
-            // List is being dragged, send all events to its onTouchEvent
-            listDragShadow.dragBehavior.dragState == DRAGGING ->
-                listDragShadow.dragBehavior.onTouchEvent(event)
-            // Send all other events to BoardView (scrolling etc)
-            else -> boardView.dispatchTouchEvent(event)
-        }
     }
 
     @CalledOnce
@@ -259,15 +314,21 @@ class BoardViewContainer
         }
     }
 
-    public inline fun startDraggingItem(boardItemViewHolder: BoardItemViewHolder) {
-        itemDragShadow.updateToMatch(boardItemViewHolder.itemView)
-        itemDragShadow.dragBehavior.startDrag()
+    private fun findItemViewHolderUnder(point: PointF): DraggingItem {
+        var boardVH: BoardColumnViewHolder? = null
+        var itemVH: BoardItemViewHolder? = null
+        boardView.getViewHolderUnder(point)?.also {
+            boardVH = it
+            it.list?.getViewHolderUnder(point)?.also {
+                itemVH = it
+            }
+        }
+        // TODO: 23-May-20 Both null when dragging out of bounds
+        logE(DraggingItem(boardVH, itemVH))
+        return DraggingItem(boardVH, itemVH)
     }
 
-    public inline fun startDraggingColumn(boardColumnViewHolder: BoardColumnViewHolder) {
-        listDragShadow.updateToMatch(boardColumnViewHolder.itemView)
-        listDragShadow.dragBehavior.startDrag()
-    }
+    //endregion Private functions
 
     companion object {
         internal val MAX_POOL_COUNT = 25
@@ -279,7 +340,7 @@ class BoardViewContainer
 
 }
 
-// Represents a ViewHolder Swap which we can use to track if swaps are completed
+/** Represents a ViewHolder Swap which we can use to track if swaps are completed */
 private data class ViewHolderSwap(
         val oldPosition: Int,
         val newPosition: Int,
@@ -300,10 +361,12 @@ private data class ViewHolderSwap(
     }
 }
 
+/** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder], can be used for anything really */
 private data class DraggingItem(
         var columnViewHolder: BoardColumnViewHolder? = null,
         var itemViewHolder: BoardItemViewHolder? = null) {
 
+    /** Executes [block] only if both [columnViewHolder] and [itemViewHolder] are not `null` */
     inline fun also(block: (columnViewHolder: BoardColumnViewHolder,
                             itemViewHolder: BoardItemViewHolder) -> Unit): DraggingItem {
         columnViewHolder?.also { columnViewHolder ->

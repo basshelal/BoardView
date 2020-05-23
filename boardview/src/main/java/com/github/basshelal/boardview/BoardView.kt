@@ -90,11 +90,12 @@ open class BoardView
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)
     private val horizontalMaxScrollBy = (updateRatePerMilli * 2F).roundToInt()
-    private var horizontalScrollBoundWidth = 0F
+    private var horizontalScrollBoundsInsideWidth = 0F
+
     private val outsideLeftScrollBounds = RectF()
-    private val leftScrollBounds = RectF()
+    private val insideLeftScrollBounds = RectF()
     private val outsideRightScrollBounds = RectF()
-    private val rightScrollBounds = RectF()
+    private val insideRightScrollBounds = RectF()
     private val outsideTopBounds = RectF()
     private val outsideBottomBounds = RectF()
 
@@ -170,20 +171,20 @@ open class BoardView
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
 
-        horizontalScrollBoundWidth = this.globalVisibleRectF.width() / 5F
+        horizontalScrollBoundsInsideWidth = this.globalVisibleRectF.width() / 5F
         outsideLeftScrollBounds.set(this.globalVisibleRectF.also {
             it.right = it.left
             it.left = 0F
         })
-        leftScrollBounds.set(this.globalVisibleRectF.also {
-            it.right = it.left + horizontalScrollBoundWidth
+        insideLeftScrollBounds.set(this.globalVisibleRectF.also {
+            it.right = it.left + horizontalScrollBoundsInsideWidth
         })
         outsideRightScrollBounds.set(this.globalVisibleRectF.also {
             it.left = it.right
             it.right = realScreenWidth.F
         })
-        rightScrollBounds.set(this.globalVisibleRectF.also {
-            it.left = it.right - horizontalScrollBoundWidth
+        insideRightScrollBounds.set(this.globalVisibleRectF.also {
+            it.left = it.right - horizontalScrollBoundsInsideWidth
         })
         outsideTopBounds.set(this.globalVisibleRectF.also {
             it.bottom = it.top
@@ -198,14 +199,16 @@ open class BoardView
     fun horizontalScroll(touchPoint: PointF) {
         var scrollBy = 0
         when (touchPoint) {
-            in leftScrollBounds -> {
-                val multiplier = interpolator[
-                        1F - (touchPoint.x - leftScrollBounds.left) / (leftScrollBounds.right - leftScrollBounds.left)]
+            in insideLeftScrollBounds -> {
+                val multiplier = interpolator[1F -
+                        (touchPoint.x - insideLeftScrollBounds.left) /
+                        (insideLeftScrollBounds.right - insideLeftScrollBounds.left)]
                 scrollBy = -(horizontalMaxScrollBy * multiplier).roundToInt()
             }
-            in rightScrollBounds -> {
+            in insideRightScrollBounds -> {
                 val multiplier = interpolator[
-                        (touchPoint.x - rightScrollBounds.left) / (rightScrollBounds.right - rightScrollBounds.left)]
+                        (touchPoint.x - insideRightScrollBounds.left) /
+                                (insideRightScrollBounds.right - insideRightScrollBounds.left)]
                 scrollBy = (horizontalMaxScrollBy * multiplier).roundToInt()
             }
             in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy

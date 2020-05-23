@@ -130,16 +130,12 @@ class BoardList
     }
 
     internal fun getViewHolderUnder(point: PointF): BoardItemViewHolder? {
-        return if (point in outsideTopScrollBounds)
-            layoutManager?.findFirstVisibleItemPosition()?.let {
-                findViewHolderForAdapterPosition(it) as? BoardItemViewHolder
-            }
-        else if (point in outsideBottomScrollBounds)
-            layoutManager?.findLastVisibleItemPosition()?.let {
-                findViewHolderForAdapterPosition(it) as? BoardItemViewHolder
-            }
-        else findChildViewUnderRaw(point)?.let { view ->
-            getChildViewHolder(view) as? BoardItemViewHolder
+        return when (point) {
+            in outsideTopScrollBounds ->
+                layoutManager?.findFirstVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardItemViewHolder }
+            in outsideBottomScrollBounds ->
+                layoutManager?.findLastVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardItemViewHolder }
+            else -> findChildViewUnderRaw(point)?.let { view -> getChildViewHolder(view) as? BoardItemViewHolder }
         }
     }
 

@@ -283,8 +283,6 @@ class BoardViewContainer
                     oldColumnVH.list?.itemAnimator?.isRunning != true &&
                             newColumnVH.list?.itemAnimator?.isRunning != true
                 }) {
-                    logE("Animation finished! $now")
-                    logE(draggingItem.itemViewHolder?.itemView?.alpha)
                     draggingItem.itemViewHolder = newColumnVH.list
                             ?.findViewHolderForAdapterPosition(toItem) as? BoardItemViewHolder
                     draggingItem.itemViewHolder?.itemView?.alpha = 0F
@@ -321,10 +319,20 @@ class BoardViewContainer
             boardVH = it
             it.list?.getViewHolderUnder(point)?.also {
                 itemVH = it
+            } ?: kotlin.run {
+                // We are not over a VH
+                logE("NOT OVER VH $now")
+                // TODO: 23-May-20 Here is when we are over empty part of non full list or
+                //  completely empty list
+                //  we already know which list we are over, we just need to handle the action
+                //  correctly depending on whether the list has elements or not
+                //  Can't do adapter changes here :/ we need to return details used to modify :/
+                boardVH?.boardListAdapter?.lastPosition?.let {
+                    itemVH = (if (it > 0) boardVH?.list?.findViewHolderForAdapterPosition(it) else null)
+                            as? BoardItemViewHolder
+                }
             }
         }
-        // TODO: 23-May-20 Both null when dragging out of bounds
-        logE(DraggingItem(boardVH, itemVH))
         return DraggingItem(boardVH, itemVH)
     }
 

@@ -218,24 +218,18 @@ open class BoardView
     }
 
     internal fun getViewHolderUnder(point: PointF): BoardColumnViewHolder? {
-        if (point in outsideTopBounds) logE("TOP")
-        if (point in outsideBottomBounds) logE("BOTTOM")
-        return if ((point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ||
-                (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL))
-            layoutManager?.findFirstVisibleItemPosition()?.let {
-                findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder
+        return when {
+            point in outsideTopBounds -> getViewHolderUnder(point.also { it.y = this.globalVisibleRectF.top + 1 })
+            point in outsideBottomBounds -> getViewHolderUnder(point.also { it.y = this.globalVisibleRectF.bottom - 1 })
+            (point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ||
+                    (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ->
+                layoutManager?.findFirstVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder }
+            (point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ||
+                    (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ->
+                layoutManager?.findLastVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder }
+            else -> findChildViewUnderRaw(point)?.let {
+                getChildViewHolder(it) as? BoardColumnViewHolder
             }
-        else if ((point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ||
-                (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR))
-            layoutManager?.findLastVisibleItemPosition()?.let {
-                findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder
-            }
-        // TODO: 23-May-20 If point is outside top or bottom bounds, force the point to be
-        //  vertically in the middle of us (BoardView) and find the child there
-        //  this means while dragging we should as much as possible never return null and always
-        //  return the closest VH even if out of bounds
-        else findChildViewUnderRaw(point)?.let {
-            getChildViewHolder(it) as? BoardColumnViewHolder
         }
     }
 

@@ -30,7 +30,7 @@ data class Board<T>(
 }
 
 val boardListsSize = 100
-val itemsSize = 100
+val itemsSize = 10
 
 val exampleBoard = Board<String>(
         id = 69420,

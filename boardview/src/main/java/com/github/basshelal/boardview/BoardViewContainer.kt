@@ -138,9 +138,9 @@ class BoardViewContainer
 
             /**
              * Scrolls the [boardView] depending on position of [touchPointF]
-             * Executes every frame, courtesy of [SyncedRenderer]
+             * Executes every frame, courtesy of [FrameSynchronizer]
              */
-            private val scroller = SyncedRenderer {
+            private val scroller = FrameSynchronizer {
                 boardView.horizontalScroll(touchPointF)
                 draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
             }
@@ -148,9 +148,9 @@ class BoardViewContainer
             /**
              * Swaps the [BoardItemViewHolder]s depending on position of [touchPointF]
              * This does it for both, inside the same list and across lists
-             * Executes every frame, courtesy of [SyncedRenderer]
+             * Executes every frame, courtesy of [FrameSynchronizer]
              */
-            private val swapper = SyncedRenderer {
+            private val swapper = FrameSynchronizer {
                 draggingItem.also { draggingColumnVH, draggingItemVH ->
                     findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
                         swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
@@ -186,6 +186,15 @@ class BoardViewContainer
                 draggingItem.columnViewHolder = null
                 pendingItemVHSwaps.clear()
             }
+
+            private fun swap() {
+                // TODO: 25-May-20 Here we need to check first what touchPoint is over,
+                //  empty space or VH, if findItemViewHolderUnder returns null then it's empty space
+                //  in which case we need to tell Container to perform the correct swap or insert,
+                //  if findItemViewHolderUnder returned non null then do what we're already doing
+                //  BTW, when swapping with the empty part of a list, it's technically considered an
+                //  insert into that list's nextIndex (lastIndex + 1) even when the list is empty
+            }
         })
     }
 
@@ -193,11 +202,11 @@ class BoardViewContainer
     private inline fun initializeListDragShadow() {
         listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
 
-            private val scroller = SyncedRenderer {
+            private val scroller = FrameSynchronizer {
                 boardView.horizontalScroll(touchPointF)
             }
 
-            private val swapper = SyncedRenderer {
+            private val swapper = FrameSynchronizer {
                 draggingColumnVH?.also { draggingColumnVH ->
                     boardView.getViewHolderUnder(touchPointF)?.also { newVH ->
                         swapColumnViewHolders(draggingColumnVH, newVH)
@@ -321,12 +330,12 @@ class BoardViewContainer
                 itemVH = it
             } ?: kotlin.run {
                 // We are not over a VH
-                logE("NOT OVER VH $now")
                 // TODO: 23-May-20 Here is when we are over empty part of non full list or
                 //  completely empty list
                 //  we already know which list we are over, we just need to handle the action
                 //  correctly depending on whether the list has elements or not
                 //  Can't do adapter changes here :/ we need to return details used to modify :/
+                // delete below!
                 boardVH?.boardListAdapter?.lastPosition?.let {
                     itemVH = (if (it > 0) boardVH?.list?.findViewHolderForAdapterPosition(it) else null)
                             as? BoardItemViewHolder

@@ -1,14 +1,16 @@
 package com.github.basshelal.boardview
 
 import android.view.Choreographer
+import androidx.annotation.UiThread
 
 /**
  * Small utility class that allows for [doFrame] to be executed every frame based on the native
  * [Choreographer] instead of using precomputed values and timers.
- * [doFrame] is run on the main thread and is executed on the next frame.
- * The [SyncedRenderer] can be restarted freely.
+ * [doFrame] is run on the UI thread and is executed on the next frame.
+ * The [FrameSynchronizer] can be stopped and restarted.
  */
-internal open class SyncedRenderer(val doFrame: (frameTimeNanos: Long) -> Unit) {
+@UiThread
+open class FrameSynchronizer(val doFrame: (frameTimeNanos: Long) -> Unit) {
 
     private var callback: (Long) -> Unit = {}
 

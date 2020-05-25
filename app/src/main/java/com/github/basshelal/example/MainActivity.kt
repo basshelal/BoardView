@@ -83,6 +83,23 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         }
     }
 
+    override fun onInsertItemViewHolder(item: BoardItemViewHolder,
+                                        oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
+        val oldColumnPosition = oldColumn.adapterPosition
+        val newColumnPosition = newColumn.adapterPosition
+        val itemPosition = item.adapterPosition
+
+        if (oldColumnPosition == newColumnPosition) return false
+        else {
+            val fromBoardList = board.boardLists[oldColumnPosition]
+            val toBoardList = board.boardLists[newColumnPosition]
+            val value = fromBoardList[itemPosition]
+            fromBoardList.items.removeAt(itemPosition)
+            toBoardList.items.add(value)
+            return true
+        }
+    }
+
 }
 
 class ExampleBoardAdapter(val exampleAdapter: ExampleBoardContainerAdapter)

@@ -25,3 +25,26 @@ abstract class FrameSyncDragListener : ObservableDragBehavior.DragListener {
     override fun onReleaseDrag(dragView: View, touchPoint: PointF) {}
     override fun onDragStateChanged(dragView: View, newState: ObservableDragBehavior.DragState) {}
 }
+
+abstract class MultipleFrameSyncDragListener : ObservableDragBehavior.DragListener {
+
+    protected val frameSynchronizers = ArrayList<FrameSynchronizer>()
+
+    @CallSuper
+    override fun onStartDrag(dragView: View) {
+        frameSynchronizers.forEach { it.start() }
+    }
+
+    @CallSuper
+    override fun onEndDrag(dragView: View) {
+        frameSynchronizers.forEach { it.stop() }
+    }
+
+    fun addCallback(callback: (frameTimeNanos: Long) -> Unit) {
+        frameSynchronizers.add(FrameSynchronizer(callback))
+    }
+
+    override fun onUpdateLocation(dragView: View, touchPoint: PointF) {}
+    override fun onReleaseDrag(dragView: View, touchPoint: PointF) {}
+    override fun onDragStateChanged(dragView: View, newState: ObservableDragBehavior.DragState) {}
+}

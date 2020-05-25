@@ -59,4 +59,7 @@ abstract class BoardContainerAdapter {
     // Return true if they have successfully been swapped and false otherwise
     open fun onSwapItemViewHolders(oldItem: BoardItemViewHolder, newItem: BoardItemViewHolder,
                                    oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
+
+    open fun onInsertItemViewHolder(item: BoardItemViewHolder,
+                                    oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
 }

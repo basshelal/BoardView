@@ -151,8 +151,12 @@ class BoardViewContainer
                 boardView.horizontalScroll(touchPointF)
                 draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
                 draggingItem.also { draggingColumnVH, draggingItemVH ->
-                    findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
-                        swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
+                    val (column, item) = findItemViewHolderUnder(touchPointF)
+
+                    column?.also { columnVH ->
+                        item?.also { itemVH ->
+                            swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
+                        } ?: insertItemViewHolder(draggingItemVH, draggingColumnVH, columnVH)
                     }
                 }
             }
@@ -168,15 +172,6 @@ class BoardViewContainer
                 draggingItem.itemViewHolder = null
                 draggingItem.columnViewHolder = null
                 pendingItemVHSwaps.clear()
-            }
-
-            private fun swap() {
-                // TODO: 25-May-20 Here we need to check first what touchPoint is over,
-                //  empty space or VH, if findItemViewHolderUnder returns null then it's empty space
-                //  in which case we need to tell Container to perform the correct swap or insert,
-                //  if findItemViewHolderUnder returned non null then do what we're already doing
-                //  BTW, when swapping with the empty part of a list, it's technically considered an
-                //  insert into that list's nextIndex (lastIndex + 1) even when the list is empty
             }
         })
     }
@@ -215,6 +210,33 @@ class BoardViewContainer
                 pendingColumnVHSwaps.clear()
             }
         })
+    }
+
+    private inline fun insertItemViewHolder(itemVH: BoardItemViewHolder,
+                                            oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
+        if (itemVH.isAdapterPositionValid &&
+                oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid &&
+                oldColumnVH != newColumnVH &&
+                boardView.itemAnimator?.isRunning != true &&
+                oldColumnVH.list?.itemAnimator?.isRunning != true &&
+                newColumnVH.list?.itemAnimator?.isRunning != true) {
+
+            newColumnVH.boardListAdapter?.lastPosition?.also { lastPosition ->
+                val swap = ViewHolderSwap.InsertSwap(itemVH)
+                pendingItemVHSwaps.add(swap)
+                if (swap in pendingItemVHSwaps && !swap.hasSwapped) {
+                    if (adapter?.onInsertItemViewHolder(itemVH, oldColumnVH, newColumnVH) == true) {
+
+                        oldColumnVH.boardListAdapter?.notifyItemRemoved(itemVH.adapterPosition)
+                        newColumnVH.boardListAdapter?.notifyItemInserted(lastPosition + 1)
+
+                        itemDragShadow.dragBehavior.returnTo(itemVH.itemView)
+                    }
+                    swap.hasSwapped = true
+                    pendingItemVHSwaps.remove(swap)
+                }
+            }
+        }
     }
 
     @CalledOnce
@@ -303,18 +325,6 @@ class BoardViewContainer
             boardVH = it
             it.list?.getViewHolderUnder(point)?.also {
                 itemVH = it
-            } ?: kotlin.run {
-                // We are not over a VH
-                // TODO: 23-May-20 Here is when we are over empty part of non full list or
-                //  completely empty list
-                //  we already know which list we are over, we just need to handle the action
-                //  correctly depending on whether the list has elements or not
-                //  Can't do adapter changes here :/ we need to return details used to modify :/
-                // delete below!
-                boardVH?.boardListAdapter?.lastPosition?.let {
-                    itemVH = (if (it > 0) boardVH?.list?.findViewHolderForAdapterPosition(it) else null)
-                            as? BoardItemViewHolder
-                }
             }
         }
         return DraggingItem(boardVH, itemVH)
@@ -350,6 +360,11 @@ private data class ViewHolderSwap(
                 "oldId: $oldId, " +
                 "newId: $newId, " +
                 "hasSwapped: $hasSwapped)"
+    }
+
+    companion object {
+        fun InsertSwap(viewHolder: RecyclerView.ViewHolder) =
+                ViewHolderSwap(viewHolder.adapterPosition, -1, viewHolder.itemId, -1)
     }
 }
 

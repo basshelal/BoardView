@@ -12,7 +12,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.github.basshelal.boardview.drag.DragShadow
-import com.github.basshelal.boardview.drag.ObservableDragBehavior
+import com.github.basshelal.boardview.drag.FrameSyncDragListener
 import com.github.basshelal.boardview.drag.ObservableDragBehavior.DragState.DRAGGING
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 
@@ -134,23 +134,22 @@ class BoardViewContainer
 
     @CalledOnce
     private inline fun initializeItemDragShadow() {
-        itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
+        itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : FrameSyncDragListener() {
 
-            /**
-             * Scrolls the [boardView] depending on position of [touchPointF]
-             * Executes every frame, courtesy of [FrameSynchronizer]
-             */
-            private val scroller = FrameSynchronizer {
-                boardView.horizontalScroll(touchPointF)
-                draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
+            /** User has started drag, initialize everything */
+            override fun onStartDrag(dragView: View) {
+                super.onStartDrag(dragView)
+                val (column, item) = findItemViewHolderUnder(touchPointF)
+                draggingItem.columnViewHolder = column
+                draggingItem.itemViewHolder = item
+                itemDragShadow.isVisible = true
+                draggingItem.itemViewHolder?.itemView?.alpha = 0F
             }
 
-            /**
-             * Swaps the [BoardItemViewHolder]s depending on position of [touchPointF]
-             * This does it for both, inside the same list and across lists
-             * Executes every frame, courtesy of [FrameSynchronizer]
-             */
-            private val swapper = FrameSynchronizer {
+            /** Next frame has executed, scroll and swap */
+            override fun onNextFrame(frameTimeNanos: Long) {
+                boardView.horizontalScroll(touchPointF)
+                draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
                 draggingItem.also { draggingColumnVH, draggingItemVH ->
                     findItemViewHolderUnder(touchPointF).also { columnVH, itemVH ->
                         swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
@@ -158,25 +157,9 @@ class BoardViewContainer
                 }
             }
 
-            /** User has started drag, initialize everything */
-            override fun onStartDrag(dragView: View) {
-                val (column, item) = findItemViewHolderUnder(touchPointF)
-                draggingItem.columnViewHolder = column
-                draggingItem.itemViewHolder = item
-                itemDragShadow.isVisible = true
-                draggingItem.itemViewHolder?.itemView?.alpha = 0F
-                scroller.start()
-                swapper.start()
-            }
-
-            /** User has released drag, animation is starting */
-            override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                scroller.stop()
-                swapper.stop()
-            }
-
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
+                super.onEndDrag(dragView)
                 draggingItem.itemViewHolder?.itemView?.also {
                     itemDragShadow.dragBehavior.returnTo(it)
                     it.alpha = 1F
@@ -200,13 +183,19 @@ class BoardViewContainer
 
     @CalledOnce
     private inline fun initializeListDragShadow() {
-        listDragShadow.dragBehavior.addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
+        listDragShadow.dragBehavior.addDragListenerIfNotExists(object : FrameSyncDragListener() {
 
-            private val scroller = FrameSynchronizer {
-                boardView.horizontalScroll(touchPointF)
+            /** User has started drag, initialize everything */
+            override fun onStartDrag(dragView: View) {
+                super.onStartDrag(dragView)
+                draggingColumnVH = boardView.getViewHolderUnder(touchPointF)
+                listDragShadow.isVisible = true
+                draggingColumnVH?.itemView?.alpha = 0F
             }
 
-            private val swapper = FrameSynchronizer {
+            /** Next frame has executed, scroll and swap */
+            override fun onNextFrame(frameTimeNanos: Long) {
+                boardView.horizontalScroll(touchPointF)
                 draggingColumnVH?.also { draggingColumnVH ->
                     boardView.getViewHolderUnder(touchPointF)?.also { newVH ->
                         swapColumnViewHolders(draggingColumnVH, newVH)
@@ -214,23 +203,9 @@ class BoardViewContainer
                 }
             }
 
-            /** User has started drag, initialize everything */
-            override fun onStartDrag(dragView: View) {
-                draggingColumnVH = boardView.getViewHolderUnder(touchPointF)
-                listDragShadow.isVisible = true
-                draggingColumnVH?.itemView?.alpha = 0F
-                scroller.start()
-                swapper.start()
-            }
-
-            /** User has released drag, animation is starting */
-            override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                scroller.stop()
-                swapper.stop()
-            }
-
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
+                super.onEndDrag(dragView)
                 draggingColumnVH?.itemView?.also {
                     listDragShadow.dragBehavior.returnTo(it)
                     it.alpha = 1F

@@ -67,7 +67,7 @@ class BoardViewContainer
     //region Private variables
 
     /** The current touch point, updated in [onTouchEvent] */
-    private var touchPointF = PointF()
+    private var touchPoint = PointF()
 
     /** The current [DraggingItem] when dragging [itemDragShadow] */
     private val draggingItem = DraggingItem()
@@ -112,12 +112,12 @@ class BoardViewContainer
     override fun onInterceptTouchEvent(event: MotionEvent) = true
 
     /**
-     * Handle touch events and set [touchPointF]
+     * Handle touch events and set [touchPoint]
      * Unless user is dragging, all events are forwarded to [boardView]
      */
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        touchPointF.set(event.rawX, event.rawY)
+        touchPoint.set(event.rawX, event.rawY)
         return when {
             // Item is being dragged, send all events to its onTouchEvent
             itemDragShadow.dragBehavior.dragState == DRAGGING ->
@@ -139,7 +139,7 @@ class BoardViewContainer
             /** User has started drag, initialize everything */
             override fun onStartDrag(dragView: View) {
                 super.onStartDrag(dragView)
-                val (column, item) = findItemViewHolderUnder(touchPointF)
+                val (column, item) = itemUnderTouchPoint
                 draggingItem.columnViewHolder = column
                 draggingItem.itemViewHolder = item
                 itemDragShadow.isVisible = true
@@ -148,10 +148,10 @@ class BoardViewContainer
 
             /** Next frame has executed, scroll and swap */
             override fun onNextFrame(frameTimeNanos: Long) {
-                boardView.horizontalScroll(touchPointF)
-                draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPointF) }
+                boardView.horizontalScroll(touchPoint)
+                draggingItem.columnViewHolder?.also { it.list?.verticalScroll(touchPoint) }
                 draggingItem.also { draggingColumnVH, draggingItemVH ->
-                    val (column, item) = findItemViewHolderUnder(touchPointF)
+                    val (column, item) = itemUnderTouchPoint
 
                     column?.also { columnVH ->
                         item?.also { itemVH ->
@@ -183,16 +183,16 @@ class BoardViewContainer
             /** User has started drag, initialize everything */
             override fun onStartDrag(dragView: View) {
                 super.onStartDrag(dragView)
-                draggingColumnVH = boardView.getViewHolderUnder(touchPointF)
+                draggingColumnVH = boardView.getViewHolderUnder(touchPoint)
                 listDragShadow.isVisible = true
                 draggingColumnVH?.itemView?.alpha = 0F
             }
 
             /** Next frame has executed, scroll and swap */
             override fun onNextFrame(frameTimeNanos: Long) {
-                boardView.horizontalScroll(touchPointF)
+                boardView.horizontalScroll(touchPoint)
                 draggingColumnVH?.also { draggingColumnVH ->
-                    boardView.getViewHolderUnder(touchPointF)?.also { newVH ->
+                    boardView.getViewHolderUnder(touchPoint)?.also { newVH ->
                         swapColumnViewHolders(draggingColumnVH, newVH)
                     }
                 }
@@ -212,6 +212,7 @@ class BoardViewContainer
         })
     }
 
+    @CalledOnce
     private inline fun insertItemViewHolder(itemVH: BoardItemViewHolder,
                                             oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
         if (itemVH.isAdapterPositionValid &&
@@ -318,17 +319,16 @@ class BoardViewContainer
         }
     }
 
-    private fun findItemViewHolderUnder(point: PointF): DraggingItem {
-        var boardVH: BoardColumnViewHolder? = null
-        var itemVH: BoardItemViewHolder? = null
-        boardView.getViewHolderUnder(point)?.also {
-            boardVH = it
-            it.list?.getViewHolderUnder(point)?.also {
-                itemVH = it
+    private inline val itemUnderTouchPoint: DraggingItem
+        get() {
+            var boardVH: BoardColumnViewHolder? = null
+            var itemVH: BoardItemViewHolder? = null
+            boardView.getViewHolderUnder(touchPoint)?.also {
+                boardVH = it
+                it.list?.getViewHolderUnder(touchPoint)?.also { itemVH = it }
             }
+            return DraggingItem(boardVH, itemVH)
         }
-        return DraggingItem(boardVH, itemVH)
-    }
 
     //endregion Private functions
 

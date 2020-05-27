@@ -10,7 +10,6 @@ import android.view.View
 import androidx.core.graphics.contains
 import androidx.core.view.get
 import androidx.core.view.marginLeft
-import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -64,32 +63,6 @@ class BoardList
         isVerticalScrollBarEnabled = true
         this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener { resetScrollInfo() }
-        itemAnimator = object : DefaultItemAnimator() {
-            override fun animateAdd(holder: ViewHolder?): Boolean {
-                logE("Add: ${holder?.adapterPosition} $now")
-                holder?.itemView?.alpha = 0F
-                return super.animateAdd(holder)
-            }
-
-            override fun onAddStarting(item: ViewHolder?) {
-                logE("Add Starting: ${item?.adapterPosition} $now")
-                item?.itemView?.alpha = 0F
-                super.onAddStarting(item)
-            }
-
-            override fun onAddFinished(item: ViewHolder?) {
-                logE("Add Finished: ${item?.adapterPosition} $now")
-                super.onAddFinished(item)
-            }
-
-            override fun animateAppearance(viewHolder: ViewHolder, preLayoutInfo: ItemHolderInfo?, postLayoutInfo: ItemHolderInfo): Boolean {
-                logE("Appearance: ${viewHolder.adapterPosition} $now")
-                return super.animateAppearance(viewHolder, preLayoutInfo, postLayoutInfo)
-            }
-
-        }.also {
-            it.moveDuration = 120
-        }
         itemAnimator = null
     }
 

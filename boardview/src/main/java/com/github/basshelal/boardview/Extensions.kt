@@ -379,6 +379,14 @@ inline fun RectF.horizontalPercentInverted(pointF: PointF): Float {
     return (((pointF.y - max) / (min - max)) * 100F)
 }
 
+inline fun <T> List<T>.reversedForEach(action: (T) -> Unit) {
+    this.asReversed().forEach(action)
+}
+
+inline fun <T> List<T>.reversedForEachIndexed(action: (index: Int, T) -> Unit) {
+    this.asReversed().forEachIndexed(action)
+}
+
 inline fun <T> Subscriber(
         crossinline onError: (Throwable?) -> Unit = {},
         crossinline onComplete: () -> Unit = {},

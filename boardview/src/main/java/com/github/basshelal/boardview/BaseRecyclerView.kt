@@ -134,5 +134,5 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
 
     override fun canScrollHorizontally(): Boolean = super.canScrollHorizontally() && isScrollEnabled
 
-    override fun supportsPredictiveItemAnimations(): Boolean = false
+    override fun supportsPredictiveItemAnimations(): Boolean = true
 }

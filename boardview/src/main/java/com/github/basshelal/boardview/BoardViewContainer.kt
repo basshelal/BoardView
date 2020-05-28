@@ -270,9 +270,6 @@ class BoardViewContainer
         val fromColumn = oldColumnVH.adapterPosition
         val toColumn = newColumnVH.adapterPosition
 
-        logE("Swapping from column $fromColumn to column $toColumn " +
-                " item $fromItem to $toItem")
-
         when {
             // They are in the same list
             fromColumn == toColumn -> when {

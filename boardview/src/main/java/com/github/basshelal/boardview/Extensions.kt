@@ -27,6 +27,7 @@ import androidx.core.view.marginRight
 import androidx.core.view.marginTop
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.google.android.material.snackbar.Snackbar
@@ -302,6 +303,18 @@ inline fun RecyclerView.doOnFinishScroll(
         }
     })
 }
+
+inline val RecyclerView.canScrollVertically: Boolean
+    get() = this.canScrollVertically(-1) || this.canScrollVertically(1)
+
+inline val RecyclerView.canScrollHorizontally: Boolean
+    get() = this.canScrollHorizontally(-1) || this.canScrollHorizontally(1)
+
+inline val RecyclerView.firstVisibleViewHolder: RecyclerView.ViewHolder?
+    get() = (this.layoutManager as? LinearLayoutManager)
+            ?.findFirstVisibleItemPosition()
+            ?.takeIf { it.isValidAdapterPosition }
+            ?.let { this.findViewHolderForAdapterPosition(it) }
 
 inline val RecyclerView.ViewHolder.isAdapterPositionValid: Boolean
     get() = adapterPosition != NO_POSITION

@@ -398,33 +398,32 @@ open class BoardView
          * So we solve this by forcing it back where it was, essentially cancelling the
          * scroll it did
          */
-        if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
-                this[0] == oldVH.itemView || this[0] == newVH.itemView) {
+        if (canScrollHorizontally && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+                        this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
             layoutManager?.also { layoutManager ->
-                layoutManager.findFirstVisibleItemPosition().takeIf { it.isValidAdapterPosition }
-                        ?.also { firstPosition ->
-                            findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
-                                var offset = 0
-                                var margin = 0
-                                when (boardLayoutDirection) {
-                                    View.LAYOUT_DIRECTION_LTR -> {
-                                        offset = layoutManager.getDecoratedLeft(firstView) -
-                                                layoutManager.getLeftDecorationWidth(firstView)
-                                        margin = firstView.marginLeft
-                                    }
-                                    // TODO: 26-Mar-20 Figure out RTL and margins but
-                                    //  otherwise everything else is mostly correct
-                                    View.LAYOUT_DIRECTION_RTL -> {
-                                        offset = layoutManager.getDecoratedRight(firstView) -
-                                                layoutManager.getRightDecorationWidth(firstView)
-                                        firstView.marginStart
-                                        margin = firstView.marginRight
-                                    }
-                                }
-                                boardAdapter?.notifyItemMoved(from, to)
-                                layoutManager.scrollToPositionWithOffset(firstPosition, offset)
-                            }
+                firstVisibleViewHolder?.also { vh ->
+                    val firstView = vh.itemView
+                    var offset = 0
+                    var margin = 0
+                    when (boardLayoutDirection) {
+                        View.LAYOUT_DIRECTION_LTR -> {
+                            offset = layoutManager.getDecoratedLeft(firstView) -
+                                    layoutManager.getLeftDecorationWidth(firstView)
+                            margin = firstView.marginLeft
                         }
+                        // TODO: 26-Mar-20 Figure out RTL and margins but
+                        //  otherwise everything else is mostly correct
+                        View.LAYOUT_DIRECTION_RTL -> {
+                            offset = layoutManager.getDecoratedRight(firstView) -
+                                    layoutManager.getRightDecorationWidth(firstView)
+                            firstView.marginStart
+                            margin = firstView.marginRight
+                        }
+                    }
+                    val pos = vh.adapterPosition
+                    boardAdapter?.notifyItemMoved(from, to)
+                    layoutManager.scrollToPositionWithOffset(pos, offset)
+                }
             }
         } else boardAdapter?.notifyItemMoved(from, to)
     }

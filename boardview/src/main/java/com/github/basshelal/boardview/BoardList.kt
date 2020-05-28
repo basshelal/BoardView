@@ -144,19 +144,18 @@ class BoardList
          * So we solve this by forcing it back where it was, essentially cancelling the
          * scroll it did
          */
-        if (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
-                this[0] == oldVH.itemView || this[0] == newVH.itemView) {
+        if (canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+                        this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
             layoutManager?.also { layoutManager ->
-                layoutManager.findFirstVisibleItemPosition().takeIf { it.isValidAdapterPosition }
-                        ?.also { firstPosition ->
-                            findViewHolderForAdapterPosition(firstPosition)?.itemView?.also { firstView ->
-                                val offset = layoutManager.getDecoratedTop(firstView) -
-                                        layoutManager.getTopDecorationHeight(firstView)
-                                val margin = firstView.marginLeft
-                                boardListAdapter?.notifyItemMoved(from, to)
-                                layoutManager.scrollToPositionWithOffset(firstPosition, offset)
-                            }
-                        }
+                firstVisibleViewHolder?.also { vh ->
+                    val firstView = vh.itemView
+                    val offset = layoutManager.getDecoratedTop(firstView) -
+                            layoutManager.getTopDecorationHeight(firstView)
+                    val margin = firstView.marginLeft
+                    val pos = vh.adapterPosition
+                    boardListAdapter?.notifyItemMoved(from, to)
+                    layoutManager.scrollToPositionWithOffset(pos, offset)
+                }
             }
         } else boardListAdapter?.notifyItemMoved(from, to)
     }

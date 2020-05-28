@@ -63,7 +63,7 @@ class BoardList
         isVerticalScrollBarEnabled = true
         this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener { resetScrollInfo() }
-        itemAnimator = BaseItemAnimator()
+        itemAnimator = CustomItemAnimator()
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {

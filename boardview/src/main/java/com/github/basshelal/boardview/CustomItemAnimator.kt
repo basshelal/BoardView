@@ -5,15 +5,21 @@ import android.animation.AnimatorListenerAdapter
 import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.postOnAnimationDelayed
-import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.recyclerview.widget.SimpleItemAnimator
 import org.jetbrains.anko.collections.forEachReversedByIndex
 import org.jetbrains.anko.collections.forEachReversedWithIndex
 import java.util.ArrayList
 
-/** Copied from [DefaultItemAnimator] */
-open class BaseItemAnimator : SimpleItemAnimator() {
+/* TODO: 28-May-20 ItemAnimator
+ *  What do we need? We need an ItemAnimator that is 2 things:
+ *  * Aware of ViewHolder swaps so that the animate appearance uses a 0F alpha
+ *  * Applies animations as soon as they come instead of bulking them so that we get the effect that
+ *    ItemTouchHelper does which is, as soon as we are over a ViewHolder begin animating, and
+ *    have animations run in parallel
+ */
+
+open class CustomItemAnimator : SimpleItemAnimator() {
 
     private val interpolator = LogarithmicInterpolator()
 
@@ -30,10 +36,6 @@ open class BaseItemAnimator : SimpleItemAnimator() {
     private val moveAnimations = ArrayList<ViewHolder>()
     private val removeAnimations = ArrayList<ViewHolder>()
     private val changeAnimations = ArrayList<ViewHolder>()
-
-    init {
-        supportsChangeAnimations = false
-    }
 
     override fun runPendingAnimations() {
         val removalsPending = pendingRemovals.isNotEmpty()
@@ -108,8 +110,7 @@ open class BaseItemAnimator : SimpleItemAnimator() {
         return true
     }
 
-    override fun animateMove(holder: ViewHolder, fromX: Int, fromY: Int,
-                             toX: Int, toY: Int): Boolean {
+    override fun animateMove(holder: ViewHolder, fromX: Int, fromY: Int, toX: Int, toY: Int): Boolean {
         val fromXOffset = fromX + holder.itemView.translationX.toInt()
         val fromYOffset = fromY + holder.itemView.translationY.toInt()
         val view = holder.itemView
@@ -202,7 +203,7 @@ open class BaseItemAnimator : SimpleItemAnimator() {
                 if (additions.isEmpty()) additionsList.removeAt(index)
             }
         }
-        dispatchFinishedWhenDone()
+        if (!isRunning) dispatchAnimationsFinished()
     }
 
     private fun animateAddImpl(holder: ViewHolder) {
@@ -224,7 +225,7 @@ open class BaseItemAnimator : SimpleItemAnimator() {
                         animation.setListener(null)
                         dispatchAddFinished(holder)
                         addAnimations.remove(holder)
-                        dispatchFinishedWhenDone()
+                        if (!isRunning) dispatchAnimationsFinished()
                     }
                 }).start()
     }
@@ -252,7 +253,7 @@ open class BaseItemAnimator : SimpleItemAnimator() {
                         animation.setListener(null)
                         dispatchMoveFinished(holder)
                         moveAnimations.remove(holder)
-                        dispatchFinishedWhenDone()
+                        if (!isRunning) dispatchAnimationsFinished()
                     }
                 }).start()
     }
@@ -282,7 +283,7 @@ open class BaseItemAnimator : SimpleItemAnimator() {
                             }
                             dispatchChangeFinished(oldHolder, true)
                             changeAnimations.remove(oldHolder)
-                            dispatchFinishedWhenDone()
+                            if (!isRunning) dispatchAnimationsFinished()
                         }
                     }).start()
         }
@@ -307,7 +308,7 @@ open class BaseItemAnimator : SimpleItemAnimator() {
                             }
                             dispatchChangeFinished(newHolder, false)
                             changeAnimations.remove(newHolder)
-                            dispatchFinishedWhenDone()
+                            if (!isRunning) dispatchAnimationsFinished()
                         }
                     }).start()
         }
@@ -437,21 +438,13 @@ open class BaseItemAnimator : SimpleItemAnimator() {
                         view.alpha = 1F
                         dispatchRemoveFinished(holder)
                         removeAnimations.remove(holder)
-                        dispatchFinishedWhenDone()
+                        if (!isRunning) dispatchAnimationsFinished()
                     }
                 }).start()
     }
 
-    private fun dispatchFinishedWhenDone() {
-        if (!isRunning) dispatchAnimationsFinished()
-    }
-
     private fun cancelAll(viewHolders: List<ViewHolder?>) {
         viewHolders.forEachReversedByIndex { it?.itemView?.animate()?.cancel() }
-    }
-
-    override fun canReuseUpdatedViewHolder(viewHolder: ViewHolder, payloads: List<Any?>): Boolean {
-        return payloads.isNotEmpty() || super.canReuseUpdatedViewHolder(viewHolder, payloads)
     }
 
     @Suppress("NOTHING_TO_INLINE")

@@ -152,9 +152,13 @@ class BoardList
                     val offset = layoutManager.getDecoratedTop(firstView) -
                             layoutManager.getTopDecorationHeight(firstView)
                     val margin = firstView.marginLeft
-                    val pos = vh.adapterPosition
+                    val firstPosition = vh.adapterPosition
                     boardListAdapter?.notifyItemMoved(from, to)
-                    layoutManager.scrollToPositionWithOffset(pos, offset)
+                    // TODO: 08-Jun-20 Below is culprit of Issue #3 (0th Child Swap bug)
+                    // layoutManager.scrollToPositionWithOffset(firstPosition, offset)
+                    // prepare for drop does all the heavy work for us but is an unofficial API
+                    //  the same problems and issues persist though
+                    layoutManager.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
                 }
             }
         } else boardListAdapter?.notifyItemMoved(from, to)

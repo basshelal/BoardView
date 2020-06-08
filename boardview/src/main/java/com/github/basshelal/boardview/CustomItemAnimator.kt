@@ -44,6 +44,15 @@ open class CustomItemAnimator : SimpleItemAnimator() {
         val additionsPending = pendingAdditions.isNotEmpty()
         if (!removalsPending && !movesPending && !additionsPending && !changesPending) return
 
+        if (removalsPending && movesPending) {
+            // TODO: 08-Jun-20 Issue #3 (0th Child Swap bug):
+            //  Below happens when 0th child bug in BoardList
+            //  solution to this is to simply have no animations done for removals
+            //  so we need to notify Item Animator somehow
+            logE("Removals: ${pendingRemovals.size}")
+            logE("Moves: ${pendingMoves.size}")
+        }
+
         // First, remove stuff
         for (holder in pendingRemovals) animateRemoveImpl(holder)
         pendingRemovals.clear()

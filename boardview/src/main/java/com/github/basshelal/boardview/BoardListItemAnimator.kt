@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.github.basshelal.boardview
 
 import android.animation.Animator
@@ -19,7 +21,7 @@ import java.util.ArrayList
  *    have animations run in parallel
  */
 
-open class CustomItemAnimator : SimpleItemAnimator() {
+open class BoardListItemAnimator : SimpleItemAnimator() {
 
     private val interpolator = LogarithmicInterpolator()
 
@@ -37,12 +39,30 @@ open class CustomItemAnimator : SimpleItemAnimator() {
     private val removeAnimations = ArrayList<ViewHolder>()
     private val changeAnimations = ArrayList<ViewHolder>()
 
+    var onRunPendingAnimations: () -> Unit = {}
+
+    inline var duration: Long
+        set(value) {
+            this.addDuration = value
+            this.changeDuration = value
+            this.moveDuration = value
+            this.removeDuration = value
+        }
+        get() = throw Exception("No getter for duration!")
+
+    fun prepareForDrop() {
+        onRunPendingAnimations = { pendingRemovals.clear() }
+    }
+
     override fun runPendingAnimations() {
         val removalsPending = pendingRemovals.isNotEmpty()
         val movesPending = pendingMoves.isNotEmpty()
         val changesPending = pendingChanges.isNotEmpty()
         val additionsPending = pendingAdditions.isNotEmpty()
         if (!removalsPending && !movesPending && !additionsPending && !changesPending) return
+
+        onRunPendingAnimations()
+        onRunPendingAnimations = {}
 
         if (removalsPending && movesPending) {
             // TODO: 08-Jun-20 Issue #3 (0th Child Swap bug):

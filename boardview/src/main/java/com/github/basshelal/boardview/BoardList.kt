@@ -23,6 +23,8 @@ class BoardList
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
     inline val boardListAdapter: BoardListAdapter<*>? get() = this.adapter as? BoardListAdapter
+    inline val boardListItemAnimator: BoardListItemAnimator?
+        get() = this.itemAnimator as? BoardListItemAnimator
 
     // Vertical Scrolling info
     private val interpolator = LogarithmicInterpolator()
@@ -63,7 +65,8 @@ class BoardList
         isVerticalScrollBarEnabled = true
         this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener { resetScrollInfo() }
-        itemAnimator = CustomItemAnimator()
+        itemAnimator = BoardListItemAnimator()
+        boardListItemAnimator?.duration = 0
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
@@ -153,6 +156,7 @@ class BoardList
                             layoutManager.getTopDecorationHeight(firstView)
                     val margin = firstView.marginLeft
                     val firstPosition = vh.adapterPosition
+                    boardListItemAnimator?.prepareForDrop()
                     boardListAdapter?.notifyItemMoved(from, to)
                     // TODO: 08-Jun-20 Below is culprit of Issue #3 (0th Child Swap bug)
                     // layoutManager.scrollToPositionWithOffset(firstPosition, offset)

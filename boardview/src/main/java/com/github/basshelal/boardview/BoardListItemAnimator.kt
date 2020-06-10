@@ -21,7 +21,7 @@ import kotlin.math.max
  *    ItemTouchHelper does which is, as soon as we are over a ViewHolder begin animating, and
  *    have animations run in parallel
  */
-abstract class BoardListItemAnimator : SimpleItemAnimator() {
+class BoardListItemAnimator : SimpleItemAnimator() {
 
     protected val interpolator = LogarithmicInterpolator()
 
@@ -44,7 +44,6 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
 
     inline var duration: Long
         set(value) {
-            obtainHolderInfo()
             this.addDuration = value
             this.changeDuration = value
             this.moveDuration = value
@@ -70,7 +69,7 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
         onRunPendingAnimations = {}
 
         // First, remove stuff
-        pendingRemovals.onEach { animateRemoveImpl(it) }.clear()
+        pendingRemovals.onEach { startRemoveAnimation(it) }.clear()
 
         // Next, move stuff
         if (movesPending) {
@@ -78,9 +77,7 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
             movesList.add(moves)
             pendingMoves.clear()
             val mover: () -> Unit = {
-                moves.onEach {
-                    animateMoveImpl(it.holder, it.fromX, it.fromY, it.toX, it.toY)
-                }.clear()
+                moves.onEach { startMoveAnimation(it) }.clear()
                 movesList.remove(moves)
             }
             if (removesPending) moves[0].holder.itemView.postOnAnimationDelayed(removeDuration, mover)
@@ -92,7 +89,7 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
             changesList.add(changes)
             pendingChanges.clear()
             val changer: () -> Unit = {
-                changes.onEach { animateChangeImpl(it) }.clear()
+                changes.onEach { startChangeAnimation(it) }.clear()
                 changesList.remove(changes)
             }
             if (removesPending)
@@ -105,7 +102,7 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
             additionsList.add(additions)
             pendingAdditions.clear()
             val adder: () -> Unit = {
-                additions.onEach { animateAddImpl(it) }.clear()
+                additions.onEach { startAddAnimation(it) }.clear()
                 additionsList.remove(additions)
             }
             if (removesPending || movesPending || changesPending) {
@@ -118,16 +115,16 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
         }
     }
 
-    override fun animateRemove(holder: ViewHolder): Boolean {
-        resetAnimation(holder)
-        pendingRemovals.add(holder)
-        return true
-    }
-
     override fun animateAdd(holder: ViewHolder): Boolean {
         resetAnimation(holder)
         holder.itemView.alpha = 0F
         pendingAdditions.add(holder)
+        return true
+    }
+
+    override fun animateRemove(holder: ViewHolder): Boolean {
+        resetAnimation(holder)
+        pendingRemovals.add(holder)
         return true
     }
 
@@ -227,7 +224,7 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
         if (!isRunning) dispatchAnimationsFinished()
     }
 
-    private fun animateAddImpl(holder: ViewHolder) {
+    private fun startAddAnimation(holder: ViewHolder) {
         val view = holder.itemView
         val animation = view.animate()
         addAnimations.add(holder)
@@ -251,18 +248,18 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
                 }).start()
     }
 
-    private fun animateMoveImpl(holder: ViewHolder, fromX: Int, fromY: Int, toX: Int, toY: Int) {
-        val view = holder.itemView
-        val deltaX = toX - fromX
-        val deltaY = toY - fromY
+    private fun startMoveAnimation(moveInfo: MoveInfo) {
+        val view = moveInfo.holder.itemView
+        val deltaX = moveInfo.toX - moveInfo.fromX
+        val deltaY = moveInfo.toY - moveInfo.fromY
         if (deltaX != 0) view.animate().translationX(0F)
         if (deltaY != 0) view.animate().translationY(0F)
         val animation = view.animate()
-        moveAnimations.add(holder)
+        moveAnimations.add(moveInfo.holder)
         animation.setDuration(moveDuration)
                 .setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationStart(animator: Animator) {
-                        dispatchMoveStarting(holder)
+                        dispatchMoveStarting(moveInfo.holder)
                     }
 
                     override fun onAnimationCancel(animator: Animator) {
@@ -272,14 +269,35 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
 
                     override fun onAnimationEnd(animator: Animator) {
                         animation.setListener(null)
-                        dispatchMoveFinished(holder)
-                        moveAnimations.remove(holder)
+                        dispatchMoveFinished(moveInfo.holder)
+                        moveAnimations.remove(moveInfo.holder)
                         if (!isRunning) dispatchAnimationsFinished()
                     }
                 }).start()
     }
 
-    private fun animateChangeImpl(changeInfo: ChangeInfo) {
+    private fun startRemoveAnimation(holder: ViewHolder) {
+        val view = holder.itemView
+        val animation = view.animate()
+        removeAnimations.add(holder)
+        animation.setDuration(removeDuration)
+                .alpha(0F)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationStart(animator: Animator) {
+                        dispatchRemoveStarting(holder)
+                    }
+
+                    override fun onAnimationEnd(animator: Animator) {
+                        animation.setListener(null)
+                        view.alpha = 1F
+                        dispatchRemoveFinished(holder)
+                        removeAnimations.remove(holder)
+                        if (!isRunning) dispatchAnimationsFinished()
+                    }
+                }).start()
+    }
+
+    private fun startChangeAnimation(changeInfo: ChangeInfo) {
         val oldHolder = changeInfo.oldHolder
         val oldView = oldHolder?.itemView
         val newHolder = changeInfo.newHolder
@@ -349,7 +367,7 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
                 || changesList.isNotEmpty()
     }
 
-    open fun isNotRunning(): Boolean {
+    fun isNotRunning(): Boolean {
         return pendingAdditions.isEmpty()
                 && pendingChanges.isEmpty()
                 && pendingMoves.isEmpty()
@@ -459,27 +477,6 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
         endAnimation(holder)
     }
 
-    private fun animateRemoveImpl(holder: ViewHolder) {
-        val view = holder.itemView
-        val animation = view.animate()
-        removeAnimations.add(holder)
-        animation.setDuration(removeDuration)
-                .alpha(0F)
-                .setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationStart(animator: Animator) {
-                        dispatchRemoveStarting(holder)
-                    }
-
-                    override fun onAnimationEnd(animator: Animator) {
-                        animation.setListener(null)
-                        view.alpha = 1F
-                        dispatchRemoveFinished(holder)
-                        removeAnimations.remove(holder)
-                        if (!isRunning) dispatchAnimationsFinished()
-                    }
-                }).start()
-    }
-
     private fun cancelAll(viewHolders: List<ViewHolder?>) {
         viewHolders.forEachReversedByIndex { it?.itemView?.animate()?.cancel() }
     }
@@ -516,7 +513,5 @@ abstract class BoardListItemAnimator : SimpleItemAnimator() {
                           var toY: Int)
 
     // struct we can use to contain additional information about a VH that may be useful for animations
-    class BoardItemHolderInfo : ItemHolderInfo() {
-
-    }
+    class BoardItemHolderInfo : ItemHolderInfo()
 }

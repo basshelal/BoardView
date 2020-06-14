@@ -280,6 +280,16 @@ class BoardViewContainer
             targetColumnVH.boardListAdapter?.notifyItemInserted(targetItemVHPosition)
 
 
+            doOnceChoreographed({
+                draggingColumnVH.list?.itemAnimator?.isRunning != true &&
+                        targetColumnVH.list?.itemAnimator?.isRunning != true
+            }) {
+                draggingItem.itemViewHolder = targetColumnVH.list
+                        ?.findViewHolderForAdapterPosition(targetItemVHPosition) as? BoardItemViewHolder
+                draggingItem.itemViewHolder?.itemView?.alpha = 0F
+                draggingItem.columnViewHolder = targetColumnVH
+            }
+
             // remove draggingItemVH from draggingColumnVH
             // insert draggingItemVH into targetColumnVH into the position of targetItemVH
 

@@ -386,10 +386,11 @@ open class BoardView
         )
     }
 
-    internal inline fun notifyColumnViewHoldersSwapped(oldVH: BoardColumnViewHolder, newVH: BoardColumnViewHolder) {
+    internal inline fun notifyColumnViewHoldersSwapped(draggingColumn: BoardColumnViewHolder,
+                                                       targetColumn: BoardColumnViewHolder) {
         // From & To are guaranteed to be valid and different!
-        val from = oldVH.adapterPosition
-        val to = newVH.adapterPosition
+        val from = draggingColumn.adapterPosition
+        val to = targetColumn.adapterPosition
 
         /* Weird shit happens whenever we do a swap with an item at layout position 0,
          * This is because of how LinearLayoutManager works, it ends up scrolling for us even
@@ -398,8 +399,8 @@ open class BoardView
          * So we solve this by forcing it back where it was, essentially cancelling the
          * scroll it did
          */
-        if (canScrollHorizontally && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
-                        this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
+        if (canScrollHorizontally && (draggingColumn.layoutPosition == 0 || targetColumn.layoutPosition == 0 ||
+                        this[0] == draggingColumn.itemView || this[0] == targetColumn.itemView)) {
             layoutManager?.also { layoutManager ->
                 firstVisibleViewHolder?.also { vh ->
                     val firstView = vh.itemView

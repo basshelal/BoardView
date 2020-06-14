@@ -167,6 +167,10 @@ class BoardList
             }
         } else boardListAdapter?.notifyItemMoved(from, to)
     }
+
+    internal inline fun notifyItemViewHolderInserted(itemVH: BoardItemViewHolder) {
+        // TODO: 10-Jun-20 Inserted where??
+    }
 }
 
 /**

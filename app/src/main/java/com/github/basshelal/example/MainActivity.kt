@@ -46,23 +46,23 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
                 .inflate(R.layout.view_footer, parentView, false)
     }
 
-    override fun onSwapBoardViewHolders(oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
-        val from = oldColumn.adapterPosition
-        val to = newColumn.adapterPosition
-        return if (from != NO_POSITION && to != NO_POSITION) {
+    override fun onMoveColumn(draggingColumn: BoardColumnViewHolder,
+                              targetPosition: Int): Boolean {
+        val from = draggingColumn.adapterPosition
+        return if (from != NO_POSITION && targetPosition != NO_POSITION) {
             val value = board[from]
             board.boardLists.removeAt(from)
-            board.boardLists.add(to, value)
+            board.boardLists.add(targetPosition, value)
             true
         } else false
     }
 
-    override fun onSwapItemViewHolders(oldItem: BoardItemViewHolder, newItem: BoardItemViewHolder,
-                                       oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
-        val oldColumnPosition = oldColumn.adapterPosition
-        val newColumnPosition = newColumn.adapterPosition
-        val oldItemPosition = oldItem.adapterPosition
-        val newItemPosition = newItem.adapterPosition
+    override fun onMoveItem(draggingItem: BoardItemViewHolder, targetPosition: Int,
+                            draggingColumn: BoardColumnViewHolder, targetColumn: BoardColumnViewHolder): Boolean {
+        val oldColumnPosition = draggingColumn.adapterPosition
+        val newColumnPosition = targetColumn.adapterPosition
+        val oldItemPosition = draggingItem.adapterPosition
+        val newItemPosition = targetPosition
 
         if (oldColumnPosition == newColumnPosition) {
             if (oldItemPosition == newItemPosition) return false
@@ -83,8 +83,8 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         }
     }
 
-    override fun onInsertItemViewHolder(item: BoardItemViewHolder,
-                                        oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
+    fun onInsertItemViewHolder(item: BoardItemViewHolder,
+                               oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean {
         val oldColumnPosition = oldColumn.adapterPosition
         val newColumnPosition = newColumn.adapterPosition
         val itemPosition = item.adapterPosition

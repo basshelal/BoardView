@@ -2,6 +2,7 @@ package com.github.basshelal.boardview
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.IntRange
 import androidx.recyclerview.widget.RecyclerView
 
 abstract class BoardContainerAdapter {
@@ -53,13 +54,13 @@ abstract class BoardContainerAdapter {
      */
     abstract fun onCreateFooter(parentView: ViewGroup): View?
 
-    // Return true if they have successfully been swapped and false otherwise
-    open fun onSwapBoardViewHolders(oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
+    // Called to request that the draggingColumn be moved to the targetPosition, return true to
+    // allow and false otherwise
+    // targetPosition will always be valid, i.e. not NO_POSITION
+    open fun onMoveColumn(draggingColumn: BoardColumnViewHolder,
+                          @IntRange(from = 0) targetPosition: Int): Boolean = false
 
     // Return true if they have successfully been swapped and false otherwise
-    open fun onSwapItemViewHolders(oldItem: BoardItemViewHolder, newItem: BoardItemViewHolder,
-                                   oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
-
-    open fun onInsertItemViewHolder(item: BoardItemViewHolder,
-                                    oldColumn: BoardColumnViewHolder, newColumn: BoardColumnViewHolder): Boolean = false
+    open fun onMoveItem(draggingItem: BoardItemViewHolder, targetPosition: Int,
+                        draggingColumn: BoardColumnViewHolder, targetColumn: BoardColumnViewHolder): Boolean = false
 }

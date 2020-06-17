@@ -273,7 +273,7 @@ class BoardViewContainer
 
             draggingColumnVH.boardListAdapter?.notifyItemRemoved(draggingItemVHPosition)
             targetColumnVH.boardListAdapter?.notifyItemInserted(targetItemVHPosition)
-            targetColumnVH.list?.notifyItemViewHolderInserted(draggingItemVH, targetItemVHPosition)
+            targetColumnVH.list?.notifyItemViewHolderInserted(draggingItemVH, targetItemVH)
 
             // TODO: 17-Jun-20 Tell ItemAnimator we are about to make a drag insert
             //  this means that the draggingColumn list will get a remove and

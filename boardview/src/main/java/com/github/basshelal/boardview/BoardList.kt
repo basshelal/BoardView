@@ -9,7 +9,6 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.contains
 import androidx.core.view.get
-import androidx.core.view.marginLeft
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -149,29 +148,20 @@ class BoardList
          */
         if (canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
                         this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
-            layoutManager?.also { layoutManager ->
-                firstVisibleViewHolder?.also { vh ->
-                    val firstView = vh.itemView
-                    val offset = layoutManager.getDecoratedTop(firstView) -
-                            layoutManager.getTopDecorationHeight(firstView)
-                    val margin = firstView.marginLeft
-                    val firstPosition = vh.adapterPosition
-                    boardListItemAnimator?.prepareForDrop()
-                    boardListAdapter?.notifyItemMoved(from, to)
-                    // TODO: 08-Jun-20 Below is culprit of Issue #3 (0th Child Swap bug)
-                    // layoutManager.scrollToPositionWithOffset(firstPosition, offset)
-                    // prepare for drop does all the heavy work for us but is an unofficial API
-                    //  the same problems and issues persist though
-                    layoutManager.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
-                }
-            }
+            boardListItemAnimator?.prepareForDrop()
+            boardListAdapter?.notifyItemMoved(from, to)
+            // Below is culprit of Issue #3 (0th Child Swap bug)
+            layoutManager?.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
         } else boardListAdapter?.notifyItemMoved(from, to)
     }
 
-    internal inline fun notifyItemViewHolderInserted(itemVH: BoardItemViewHolder, position: Int) {
-        // TODO: 17-Jun-20 Continue here
-        boardListItemAnimator?.prepareForDrop()
-        layoutManager?.prepareForDrop(itemVH.itemView, itemVH.itemView, -1, -1)
+    internal inline fun notifyItemViewHolderInserted(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder?) {
+        if (newVH != null &&
+                canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+                        this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
+            boardListItemAnimator?.prepareForDrop()
+            layoutManager?.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
+        }
     }
 }
 

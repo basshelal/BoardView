@@ -148,10 +148,7 @@ class BoardViewContainer
                     val (column, item) = itemUnderTouchPoint
 
                     column?.also { columnVH ->
-                        _swapItemViewHolders(draggingItemVH, item, draggingColumnVH, columnVH)
-                        /*item?.also { itemVH ->
-                            //  swapItemViewHolders(draggingItemVH, itemVH, draggingColumnVH, columnVH)
-                        } ?: insertItemViewHolder(draggingItemVH, draggingColumnVH, columnVH)*/
+                        swapItemViewHolders(draggingItemVH, item, draggingColumnVH, columnVH)
                     }
                 }
             }
@@ -209,8 +206,8 @@ class BoardViewContainer
     private inline fun swapColumnViewHolders(draggingColumn: BoardColumnViewHolder,
                                              targetColumn: BoardColumnViewHolder) {
         val targetPosition = targetColumn.adapterPosition
-        // VHs must be valid, different and Board is not animating anything
-        if (targetColumn != draggingColumn && boardView.itemAnimator?.isRunning != true &&
+        if (targetColumn != draggingColumn &&
+                boardView.itemAnimator?.isRunning != true &&
                 draggingColumn.isAdapterPositionValid && targetPosition.isValidAdapterPosition) {
             if (adapter?.onMoveColumn(draggingColumn, targetPosition) == true) {
                 boardView.notifyColumnViewHoldersSwapped(draggingColumn, targetColumn)
@@ -220,10 +217,10 @@ class BoardViewContainer
     }
 
     @CalledOnce
-    private inline fun _swapItemViewHolders(draggingItemVH: BoardItemViewHolder,
-                                            targetItemVH: BoardItemViewHolder?,
-                                            draggingColumnVH: BoardColumnViewHolder,
-                                            targetColumnVH: BoardColumnViewHolder) {
+    private inline fun swapItemViewHolders(draggingItemVH: BoardItemViewHolder,
+                                           targetItemVH: BoardItemViewHolder?,
+                                           draggingColumnVH: BoardColumnViewHolder,
+                                           targetColumnVH: BoardColumnViewHolder) {
 
         val draggingItemVHPosition = draggingItemVH.adapterPosition
         val targetItemVHPosition = targetItemVH?.adapterPosition ?: -1
@@ -231,16 +228,13 @@ class BoardViewContainer
         val targetColumnVHPosition = targetColumnVH.adapterPosition
 
         if (draggingColumnVHPosition == targetColumnVHPosition) {
-            // draggingItemVH has moved to targetItemVH position
             if (draggingItemVHPosition == targetItemVHPosition) return
-            else if (targetItemVH != null)
-                swapItemVHsSameList(draggingItemVH, targetItemVH, draggingColumnVH)
-        } else {
-            swapItemVHsDiffList(draggingItemVH, targetItemVH, draggingColumnVH, targetColumnVH)
-        }
+            else if (targetItemVH != null) swapItemVHsSameList(draggingItemVH, targetItemVH, draggingColumnVH)
+        } else swapItemVHsDiffList(draggingItemVH, targetItemVH, draggingColumnVH, targetColumnVH)
         targetItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
     }
 
+    @CalledOnce
     private inline fun swapItemVHsSameList(draggingItemVH: BoardItemViewHolder,
                                            targetItemVH: BoardItemViewHolder,
                                            columnVH: BoardColumnViewHolder) {
@@ -253,6 +247,7 @@ class BoardViewContainer
         }
     }
 
+    @CalledOnce
     private inline fun swapItemVHsDiffList(draggingItemVH: BoardItemViewHolder,
                                            targetItemVH: BoardItemViewHolder?,
                                            draggingColumnVH: BoardColumnViewHolder,
@@ -278,7 +273,12 @@ class BoardViewContainer
 
             draggingColumnVH.boardListAdapter?.notifyItemRemoved(draggingItemVHPosition)
             targetColumnVH.boardListAdapter?.notifyItemInserted(targetItemVHPosition)
+            targetColumnVH.list?.notifyItemViewHolderInserted(draggingItemVH, targetItemVHPosition)
 
+            // TODO: 17-Jun-20 Tell ItemAnimator we are about to make a drag insert
+            //  this means that the draggingColumn list will get a remove and
+            //  targetColumn list will get an insert which requires that the alpha is 0
+            //  and after the animation happens some code is executed
 
             doOnceChoreographed({
                 draggingColumnVH.list?.itemAnimator?.isRunning != true &&
@@ -290,76 +290,6 @@ class BoardViewContainer
                 draggingItem.columnViewHolder = targetColumnVH
             }
 
-            // remove draggingItemVH from draggingColumnVH
-            // insert draggingItemVH into targetColumnVH into the position of targetItemVH
-
-            // if targetColumnVH is null
-            // insert draggingItemVH into end of targetColumnVH and remove it from draggingColumnVH
-
-        }
-    }
-
-    @CalledOnce
-    private inline fun insertItemViewHolder(itemVH: BoardItemViewHolder,
-                                            oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
-        if (itemVH.isAdapterPositionValid &&
-                oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid &&
-                oldColumnVH != newColumnVH &&
-                boardView.itemAnimator?.isRunning != true &&
-                oldColumnVH.list?.itemAnimator?.isRunning != true &&
-                newColumnVH.list?.itemAnimator?.isRunning != true) {
-
-            newColumnVH.boardListAdapter?.lastPosition?.also { lastPosition ->
-                oldColumnVH.boardListAdapter?.notifyItemRemoved(itemVH.adapterPosition)
-                newColumnVH.boardListAdapter?.notifyItemInserted(lastPosition + 1)
-
-                itemDragShadow.dragBehavior.returnTo(itemVH.itemView)
-            }
-        }
-    }
-
-
-    @CalledOnce
-    private inline fun swapItemViewHolders(oldItemVH: BoardItemViewHolder, newItemVH: BoardItemViewHolder,
-                                           oldColumnVH: BoardColumnViewHolder, newColumnVH: BoardColumnViewHolder) {
-        if (oldItemVH != newItemVH
-                && oldItemVH.isAdapterPositionValid && newItemVH.isAdapterPositionValid &&
-                oldColumnVH.isAdapterPositionValid && newColumnVH.isAdapterPositionValid &&
-                boardView.itemAnimator?.isRunning != true &&
-                oldColumnVH.list?.itemAnimator?.isRunning != true &&
-                newColumnVH.list?.itemAnimator?.isRunning != true) {
-            if (adapter?.onMoveItem(oldItemVH, newItemVH.adapterPosition, oldColumnVH, newColumnVH) == true) {
-                val fromItem = oldItemVH.adapterPosition
-                val toItem = newItemVH.adapterPosition
-                val fromColumn = oldColumnVH.adapterPosition
-                val toColumn = newColumnVH.adapterPosition
-
-                when {
-                    // They are in the same list
-                    fromColumn == toColumn -> when {
-                        // They are the same
-                        fromItem == toItem -> return
-                        // They are different
-                        fromItem != toItem ->
-                            oldColumnVH.list?.notifyItemViewHoldersSwapped(oldItemVH, newItemVH)
-                    }
-                    // They are in different lists
-                    fromColumn != toColumn -> {
-                        oldColumnVH.boardListAdapter?.notifyItemRemoved(fromItem)
-                        newColumnVH.boardListAdapter?.notifyItemInserted(toItem)
-                        doOnceChoreographed({
-                            oldColumnVH.list?.itemAnimator?.isRunning != true &&
-                                    newColumnVH.list?.itemAnimator?.isRunning != true
-                        }) {
-                            draggingItem.itemViewHolder = newColumnVH.list
-                                    ?.findViewHolderForAdapterPosition(toItem) as? BoardItemViewHolder
-                            draggingItem.itemViewHolder?.itemView?.alpha = 0F
-                            draggingItem.columnViewHolder = newColumnVH
-                        }
-                    }
-                }
-                itemDragShadow.dragBehavior.returnTo(newItemVH.itemView)
-            }
         }
     }
 

@@ -66,7 +66,7 @@ class BoardList
         this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener { resetScrollInfo() }
         itemAnimator = BoardListItemAnimator()
-        boardListItemAnimator?.duration = 0
+        boardListItemAnimator?.duration = 60
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
@@ -168,8 +168,10 @@ class BoardList
         } else boardListAdapter?.notifyItemMoved(from, to)
     }
 
-    internal inline fun notifyItemViewHolderInserted(itemVH: BoardItemViewHolder) {
-        // TODO: 10-Jun-20 Inserted where??
+    internal inline fun notifyItemViewHolderInserted(itemVH: BoardItemViewHolder, position: Int) {
+        // TODO: 17-Jun-20 Continue here
+        boardListItemAnimator?.prepareForDrop()
+        layoutManager?.prepareForDrop(itemVH.itemView, itemVH.itemView, -1, -1)
     }
 }
 

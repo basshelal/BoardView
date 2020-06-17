@@ -40,7 +40,7 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     private val moveAnimations = ArrayList<ViewHolder>()
     private val changeAnimations = ArrayList<ViewHolder>()
 
-    var onRunPendingAnimations: () -> Unit = {}
+    val onRunPendingAnimations = ArrayList<Action>()
 
     inline var duration: Long
         set(value) {
@@ -55,7 +55,7 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     fun prepareForDrop() {
         // hacky? we just ignore the pending removals because we know (or at least trust)
         // that they're incorrect
-        onRunPendingAnimations = { pendingRemovals.clear() }
+        onRunPendingAnimations.add { pendingRemovals.clear() }
     }
 
     override fun runPendingAnimations() {
@@ -65,8 +65,7 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         val addsPending = pendingAdditions.isNotEmpty()
         if (!removesPending && !movesPending && !addsPending && !changesPending) return
 
-        onRunPendingAnimations()
-        onRunPendingAnimations = {}
+        onRunPendingAnimations.onEach { it() }.clear()
 
         // First, remove stuff
         pendingRemovals.onEach { startRemoveAnimation(it) }.clear()
@@ -515,3 +514,5 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     // struct we can use to contain additional information about a VH that may be useful for animations
     class BoardItemHolderInfo : ItemHolderInfo()
 }
+
+private typealias Action = () -> Unit

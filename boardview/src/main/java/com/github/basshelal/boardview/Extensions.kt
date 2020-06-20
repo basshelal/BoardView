@@ -4,6 +4,7 @@ package com.github.basshelal.boardview
 
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.Point
 import android.graphics.PointF
 import android.graphics.Rect
@@ -47,6 +48,7 @@ import org.reactivestreams.Subscription
 import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 // Denotes a function is called only once inside a file
 // Just a marker to denote a safe inline
@@ -399,6 +401,13 @@ inline fun <T> List<T>.reversedForEach(action: (T) -> Unit) {
 inline fun <T> List<T>.reversedForEachIndexed(action: (index: Int, T) -> Unit) {
     this.asReversed().forEachIndexed(action)
 }
+
+inline val randomColor: Int
+    get() = Color.rgb(
+            Random.nextInt(0, 256),
+            Random.nextInt(0, 256),
+            Random.nextInt(0, 256)
+    )
 
 inline fun <T> Subscriber(
         crossinline onError: (Throwable?) -> Unit = {},

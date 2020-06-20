@@ -229,20 +229,23 @@ class BoardViewContainer
 
         if (draggingColumnVHPosition == targetColumnVHPosition) {
             if (draggingItemVHPosition == targetItemVHPosition) return
-            else if (targetItemVH != null) swapItemVHsSameList(draggingItemVH, targetItemVH, draggingColumnVH)
+            else swapItemVHsSameList(draggingItemVH, targetItemVH, draggingColumnVH)
         } else swapItemVHsDiffList(draggingItemVH, targetItemVH, draggingColumnVH, targetColumnVH)
         targetItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
     }
 
     @CalledOnce
     private inline fun swapItemVHsSameList(draggingItemVH: BoardItemViewHolder,
-                                           targetItemVH: BoardItemViewHolder,
+                                           targetItemVH: BoardItemViewHolder?,
                                            columnVH: BoardColumnViewHolder) {
-        val targetPosition = targetItemVH.adapterPosition
+        val targetPosition = targetItemVH?.adapterPosition
+                ?: columnVH.boardListAdapter?.lastPosition
+                ?: return
         if (boardView.itemAnimator?.isRunning != true &&
                 columnVH.list?.itemAnimator?.isRunning != true &&
                 targetPosition.isValidAdapterPosition &&
                 adapter?.onMoveItem(draggingItemVH, targetPosition, columnVH, columnVH) == true) {
+            columnVH.boardListAdapter?.notifyItemMoved(draggingItemVH.adapterPosition, targetPosition)
             columnVH.list?.notifyItemViewHoldersSwapped(draggingItemVH, targetItemVH)
         }
     }

@@ -134,11 +134,7 @@ class BoardList
         this.scrollBy(0, scrollBy)
     }
 
-    internal inline fun notifyItemViewHoldersSwapped(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder) {
-        // From & To are guaranteed to be valid and different!
-        val from = oldVH.adapterPosition
-        val to = newVH.adapterPosition
-
+    internal inline fun notifyItemViewHoldersSwapped(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder?) {
         /* Weird shit happens whenever we do a swap with an item at layout position 0,
          * This is because of how LinearLayoutManager works, it ends up scrolling for us even
          * though we never told it to, see more here
@@ -146,13 +142,13 @@ class BoardList
          * So we solve this by forcing it back where it was, essentially cancelling the
          * scroll it did
          */
-        if (canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
+        if (newVH != null &&
+                canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
                         this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
             boardListItemAnimator?.prepareForDrop()
-            boardListAdapter?.notifyItemMoved(from, to)
             // Below is culprit of Issue #3 (0th Child Swap bug)
             layoutManager?.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
-        } else boardListAdapter?.notifyItemMoved(from, to)
+        }
     }
 
     internal inline fun notifyItemViewHolderInserted(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder?) {

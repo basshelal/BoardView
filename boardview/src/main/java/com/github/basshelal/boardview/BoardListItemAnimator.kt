@@ -55,6 +55,9 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     fun prepareForDrop() {
         // hacky? we just ignore the pending removals because we know (or at least trust)
         // that they're incorrect
+        // TODO: 20-Jun-20 This can cause bugs! Difficult to replicate but does happen
+        //  essentially what happens is, what was meant to be removed will remain, thus you will
+        //  have a lingering View that I guess was meant to animate removal
         onRunPendingAnimations.add { pendingRemovals.clear() }
     }
 

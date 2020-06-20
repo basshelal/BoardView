@@ -1,6 +1,5 @@
 package com.github.basshelal.example
 
-import android.graphics.PointF
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,8 +13,6 @@ import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
-import com.github.basshelal.boardview.drag.ViewAwareDragListener
-import com.github.basshelal.boardview.randomColor
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.view_header.view.*
 import kotlinx.android.synthetic.main.view_itemview.view.*
@@ -27,14 +24,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         boardViewContainer.adapter = ExampleBoardContainerAdapter(exampleBoard)
-
-        boardViewContainer.itemDragShadow.dragBehavior.addDragListenerIfNotExists(object : ViewAwareDragListener() {
-            override fun onDragOverView(dragView: View, touchPoint: PointF, targetView: View?) {
-                if (targetView == appBar) {
-                    appBar.setBackgroundColor(randomColor)
-                }
-            }
-        })
     }
 }
 

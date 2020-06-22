@@ -74,23 +74,21 @@ class BoardList
     }
 
     private fun resetScrollInfo() {
-        postOnAnimation {
-            verticalScrollBoundWidth = this.globalVisibleRectF.height() / 10F
-            outsideTopScrollBounds.set(this.globalVisibleRectF.also {
-                it.bottom = it.top
-                it.top = 0F
-            })
-            topScrollBounds.set(this.globalVisibleRectF.also {
-                it.bottom = it.top + verticalScrollBoundWidth
-            })
-            outsideBottomScrollBounds.set(this.globalVisibleRectF.also {
-                it.top = it.bottom
-                it.bottom = realScreenHeight.F
-            })
-            bottomScrollBounds.set(this.globalVisibleRectF.also {
-                it.top = it.bottom - verticalScrollBoundWidth
-            })
-        }
+        verticalScrollBoundWidth = this.globalVisibleRectF.height() / 10F
+        outsideTopScrollBounds.set(this.globalVisibleRectF.also {
+            it.bottom = it.top
+            it.top = 0F
+        })
+        topScrollBounds.set(this.globalVisibleRectF.also {
+            it.bottom = it.top + verticalScrollBoundWidth
+        })
+        outsideBottomScrollBounds.set(this.globalVisibleRectF.also {
+            it.top = it.bottom
+            it.bottom = realScreenHeight.F
+        })
+        bottomScrollBounds.set(this.globalVisibleRectF.also {
+            it.top = it.bottom - verticalScrollBoundWidth
+        })
     }
 
     /**

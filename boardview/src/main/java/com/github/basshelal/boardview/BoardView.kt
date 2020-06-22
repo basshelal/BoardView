@@ -25,9 +25,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.children
 import androidx.core.view.get
-import androidx.core.view.marginLeft
-import androidx.core.view.marginRight
-import androidx.core.view.marginStart
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
@@ -386,47 +383,21 @@ open class BoardView
         )
     }
 
-    internal inline fun notifyColumnViewHoldersSwapped(draggingColumn: BoardColumnViewHolder,
-                                                       targetColumn: BoardColumnViewHolder) {
-        // From & To are guaranteed to be valid and different!
-        val from = draggingColumn.adapterPosition
-        val to = targetColumn.adapterPosition
-
-        /* Weird shit happens whenever we do a swap with an item at layout position 0,
-         * This is because of how LinearLayoutManager works, it ends up scrolling for us even
-         * though we never told it to, see more here
-         * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
-         * So we solve this by forcing it back where it was, essentially cancelling the
-         * scroll it did
-         */
-        if (canScrollHorizontally && (draggingColumn.layoutPosition == 0 || targetColumn.layoutPosition == 0 ||
+    /* Weird shit happens whenever we do a swap with an item at layout position 0,
+     * This is because of how LinearLayoutManager works, it ends up scrolling for us even
+     * though we never told it to, see more here
+     * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
+     * So we solve this by forcing it back where it was, essentially cancelling the
+     * scroll it did
+     * This is fully done for us in LinearLayoutManager.prepareForDrop()
+     */
+    internal inline fun prepareForDrop(draggingColumn: BoardColumnViewHolder,
+                                       targetColumn: BoardColumnViewHolder) {
+        if (canScrollHorizontally &&
+                (draggingColumn.layoutPosition == 0 || targetColumn.layoutPosition == 0 ||
                         this[0] == draggingColumn.itemView || this[0] == targetColumn.itemView)) {
-            layoutManager?.also { layoutManager ->
-                firstVisibleViewHolder?.also { vh ->
-                    val firstView = vh.itemView
-                    var offset = 0
-                    var margin = 0
-                    when (boardLayoutDirection) {
-                        View.LAYOUT_DIRECTION_LTR -> {
-                            offset = layoutManager.getDecoratedLeft(firstView) -
-                                    layoutManager.getLeftDecorationWidth(firstView)
-                            margin = firstView.marginLeft
-                        }
-                        // TODO: 26-Mar-20 Figure out RTL and margins but
-                        //  otherwise everything else is mostly correct
-                        View.LAYOUT_DIRECTION_RTL -> {
-                            offset = layoutManager.getDecoratedRight(firstView) -
-                                    layoutManager.getRightDecorationWidth(firstView)
-                            firstView.marginStart
-                            margin = firstView.marginRight
-                        }
-                    }
-                    val pos = vh.adapterPosition
-                    boardAdapter?.notifyItemMoved(from, to)
-                    layoutManager.scrollToPositionWithOffset(pos, offset)
-                }
-            }
-        } else boardAdapter?.notifyItemMoved(from, to)
+            layoutManager?.prepareForDrop(draggingColumn.itemView, targetColumn.itemView, 0, 0)
+        }
     }
 
     /**

@@ -294,7 +294,7 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     }
 
     // Useless invisible "animation" used in prepareForDrop
-    private fun startBasicRemoveAnimation(holder: ViewHolder) {
+    private inline fun startBasicRemoveAnimation(holder: ViewHolder) {
         val animation = holder.itemView.animate()
         removeAnimations.add(holder)
         animation.setDuration(0)

@@ -35,24 +35,6 @@ class BoardList
     private val outsideBottomScrollBounds = RectF()
     private val bottomScrollBounds = RectF()
 
-    private val dataObserver = object : RecyclerView.AdapterDataObserver() {
-
-        override fun onChanged() {
-        }
-
-        override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
-        }
-
-        override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
-        }
-
-        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
-        }
-
-        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
-        }
-    }
-
     init {
         setRecycledViewPool(BoardViewContainer.ITEM_VH_POOL)
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
@@ -95,10 +77,9 @@ class BoardList
      * The passed in [adapter] must be a descendant of [BoardListAdapter].
      */
     override fun setAdapter(adapter: Adapter<*>?) {
-        if (adapter is BoardListAdapter) {
+        if (adapter is BoardListAdapter)
             super.setAdapter(adapter)
-            adapter.registerAdapterDataObserver(dataObserver)
-        } else if (adapter != null)
+        else if (adapter != null)
             logE("BoardList adapter must be a descendant of BoardListAdapter!\n" +
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
@@ -140,8 +121,7 @@ class BoardList
      * scroll it did
      * This is fully done for us in LinearLayoutManager.prepareForDrop()
      */
-
-    inline fun prepareForDrop(draggingVH: BoardItemViewHolder, targetVH: BoardItemViewHolder?) {
+    internal inline fun prepareForDrop(draggingVH: BoardItemViewHolder, targetVH: BoardItemViewHolder?) {
         if (targetVH != null && canScrollVertically &&
                 (draggingVH.layoutPosition == 0 || targetVH.layoutPosition == 0 ||
                         this[0] == draggingVH.itemView || this[0] == targetVH.itemView)) {

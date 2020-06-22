@@ -210,7 +210,8 @@ class BoardViewContainer
                 boardView.itemAnimator?.isRunning != true &&
                 draggingColumn.isAdapterPositionValid && targetPosition.isValidAdapterPosition) {
             if (adapter?.onMoveColumn(draggingColumn, targetPosition) == true) {
-                boardView.notifyColumnViewHoldersSwapped(draggingColumn, targetColumn)
+                boardView.boardAdapter?.notifyItemMoved(draggingColumn.adapterPosition, targetPosition)
+                boardView.prepareForDrop(draggingColumn, targetColumn)
                 listDragShadow.dragBehavior.returnTo(targetColumn.itemView)
             }
         }

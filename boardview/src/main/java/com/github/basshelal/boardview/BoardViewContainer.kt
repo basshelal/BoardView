@@ -246,7 +246,7 @@ class BoardViewContainer
                 targetPosition.isValidAdapterPosition &&
                 adapter?.onMoveItem(draggingItemVH, targetPosition, columnVH, columnVH) == true) {
             columnVH.boardListAdapter?.notifyItemMoved(draggingItemVH.adapterPosition, targetPosition)
-            columnVH.list?.notifyItemViewHoldersSwapped(draggingItemVH, targetItemVH)
+            columnVH.list?.prepareForDrop(draggingItemVH, targetItemVH)
         }
     }
 
@@ -271,12 +271,9 @@ class BoardViewContainer
                 targetItemVHPosition.isValidAdapterPosition &&
                 adapter?.onMoveItem(draggingItemVH, targetItemVHPosition, draggingColumnVH, targetColumnVH) == true) {
 
-            logE("ACROSS! $targetItemVHPosition $draggingItemVHPosition $draggingColumnVHPosition" +
-                    " $targetColumnVHPosition")
-
             draggingColumnVH.boardListAdapter?.notifyItemRemoved(draggingItemVHPosition)
             targetColumnVH.boardListAdapter?.notifyItemInserted(targetItemVHPosition)
-            targetColumnVH.list?.notifyItemViewHolderInserted(draggingItemVH, targetItemVH)
+            targetColumnVH.list?.prepareForDrop(draggingItemVH, targetItemVH)
 
             // TODO: 17-Jun-20 Tell ItemAnimator we are about to make a drag insert
             //  this means that the draggingColumn list will get a remove and

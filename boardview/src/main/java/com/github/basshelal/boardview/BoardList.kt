@@ -134,29 +134,21 @@ class BoardList
         this.scrollBy(0, scrollBy)
     }
 
-    internal inline fun notifyItemViewHoldersSwapped(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder?) {
-        /* Weird shit happens whenever we do a swap with an item at layout position 0,
-         * This is because of how LinearLayoutManager works, it ends up scrolling for us even
-         * though we never told it to, see more here
-         * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
-         * So we solve this by forcing it back where it was, essentially cancelling the
-         * scroll it did
-         */
-        if (newVH != null &&
-                canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
-                        this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
-            boardListItemAnimator?.prepareForDrop()
-            // Below is culprit of Issue #3 (0th Child Swap bug)
-            layoutManager?.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
-        }
-    }
+    /* Weird shit happens whenever we do a swap with an item at layout position 0,
+     * This is because of how LinearLayoutManager works, it ends up scrolling for us even
+     * though we never told it to, see more here
+     * https://stackoverflow.com/questions/27992427/recyclerview-adapter-notifyitemmoved0-1-scrolls-screen
+     * So we solve this by forcing it back where it was, essentially cancelling the
+     * scroll it did
+     * This is fully done for us in LinearLayoutManager.prepareForDrop()
+     */
 
-    internal inline fun notifyItemViewHolderInserted(oldVH: BoardItemViewHolder, newVH: BoardItemViewHolder?) {
-        if (newVH != null &&
-                canScrollVertically && (oldVH.layoutPosition == 0 || newVH.layoutPosition == 0 ||
-                        this[0] == oldVH.itemView || this[0] == newVH.itemView)) {
+    inline fun prepareForDrop(draggingVH: BoardItemViewHolder, targetVH: BoardItemViewHolder?) {
+        if (targetVH != null && canScrollVertically &&
+                (draggingVH.layoutPosition == 0 || targetVH.layoutPosition == 0 ||
+                        this[0] == draggingVH.itemView || this[0] == targetVH.itemView)) {
             boardListItemAnimator?.prepareForDrop()
-            layoutManager?.prepareForDrop(oldVH.itemView, newVH.itemView, -1, -1)
+            layoutManager?.prepareForDrop(draggingVH.itemView, targetVH.itemView, 0, 0)
         }
     }
 }

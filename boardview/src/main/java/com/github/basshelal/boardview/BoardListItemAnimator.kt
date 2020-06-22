@@ -52,13 +52,15 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         @Deprecated("No getter for duration!", level = DeprecationLevel.ERROR)
         get() = throw Exception("No getter for duration!")
 
+    // when calling LinearLayoutManager.prepareForDrop() the scrolling it does for us will create
+    // unnecessary animations for some odd reasons, we thus must ignore them somehow
+    // make sure that whenever that method is called, this one is too
     fun prepareForDrop() {
-        // hacky? we just ignore the pending removals because we know (or at least trust)
-        // that they're incorrect
-        // TODO: 20-Jun-20 This can cause bugs! Difficult to replicate but does happen
-        //  essentially what happens is, what was meant to be removed will remain, thus you will
-        //  have a lingering View that I guess was meant to animate removal
-        onRunPendingAnimations.add { pendingRemovals.clear() }
+        // instead of ignoring the incorrect removals, we simply "animate" them
+        // this prevents issues with lingering views and animations that were meant to happen etc
+        onRunPendingAnimations.add {
+            pendingRemovals.onEach { startBasicRemoveAnimation(it) }.clear()
+        }
     }
 
     override fun runPendingAnimations() {
@@ -273,6 +275,24 @@ class BoardListItemAnimator : SimpleItemAnimator() {
                         animation.setListener(null)
                         dispatchMoveFinished(moveInfo.holder)
                         moveAnimations.remove(moveInfo.holder)
+                        if (!isRunning) dispatchAnimationsFinished()
+                    }
+                }).start()
+    }
+
+    private fun startBasicRemoveAnimation(holder: ViewHolder) {
+        val animation = holder.itemView.animate()
+        removeAnimations.add(holder)
+        animation.setDuration(0)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationStart(animator: Animator) {
+                        dispatchRemoveStarting(holder)
+                    }
+
+                    override fun onAnimationEnd(animator: Animator) {
+                        animation.setListener(null)
+                        dispatchRemoveFinished(holder)
+                        removeAnimations.remove(holder)
                         if (!isRunning) dispatchAnimationsFinished()
                     }
                 }).start()

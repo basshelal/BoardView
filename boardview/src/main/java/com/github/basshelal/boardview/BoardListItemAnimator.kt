@@ -14,13 +14,6 @@ import org.jetbrains.anko.collections.forEachReversedWithIndex
 import java.util.ArrayList
 import kotlin.math.max
 
-/* TODO: 28-May-20 ItemAnimator
- *  What do we need? We need an ItemAnimator that is 2 things:
- *  * Aware of ViewHolder swaps so that the animate appearance uses a 0F alpha
- *  * Applies animations as soon as they come instead of bulking them so that we get the effect that
- *    ItemTouchHelper does which is, as soon as we are over a ViewHolder begin animating, and
- *    have animations run in parallel
- */
 class BoardListItemAnimator : SimpleItemAnimator() {
 
     protected val interpolator = LogarithmicInterpolator()
@@ -30,7 +23,6 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     private val pendingMoves = ArrayList<MoveInfo>()
     private val pendingChanges = ArrayList<ChangeInfo>()
 
-    // TODO: 08-Jun-20 Why do we have double nested lists??
     private val additionsList = ArrayList<ArrayList<ViewHolder>>()
     private val movesList = ArrayList<ArrayList<MoveInfo>>()
     private val changesList = ArrayList<ArrayList<ChangeInfo>>()
@@ -40,7 +32,11 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     private val moveAnimations = ArrayList<ViewHolder>()
     private val changeAnimations = ArrayList<ViewHolder>()
 
-    val onRunPendingAnimations = ArrayList<Action>()
+    // New stuff for dragging aware functionality
+    private val onRunPendingAnimations = ArrayList<Action>()
+    private var nextAddIsDraggingItem = false
+    private var onAdd: (ViewHolder) -> Unit = {}
+    private var draggingItemVH: ViewHolder? = null
 
     inline var duration: Long
         set(value) {
@@ -61,6 +57,12 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         onRunPendingAnimations.add {
             pendingRemovals.onEach { startBasicRemoveAnimation(it) }.clear()
         }
+    }
+
+    fun draggingItemInserted(onAdded: (ViewHolder) -> Unit) {
+        // Tell animateAdd() that the next add is the draggingItem
+        nextAddIsDraggingItem = true
+        onAdd = onAdded
     }
 
     override fun runPendingAnimations() {
@@ -121,6 +123,12 @@ class BoardListItemAnimator : SimpleItemAnimator() {
 
     override fun animateAdd(holder: ViewHolder): Boolean {
         resetAnimation(holder)
+        if (nextAddIsDraggingItem) {
+            draggingItemVH = holder
+            onAdd(holder)
+            onAdd = {}
+            nextAddIsDraggingItem = false
+        }
         holder.itemView.alpha = 0F
         pendingAdditions.add(holder)
         return true
@@ -232,24 +240,29 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         val view = holder.itemView
         val animation = view.animate()
         addAnimations.add(holder)
-        animation.setDuration(addDuration)
-                .alpha(1F)
-                .setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationStart(animator: Animator) {
-                        dispatchAddStarting(holder)
-                    }
+        // If the holder to be animated is the draggingItemVH
+        // then animate it with a useless invisible instant animation
+        // this ensures everything will still work while not having any visible side effects
+        if (holder == draggingItemVH) {
+            draggingItemVH = null
+            animation.setDuration(0)
+        } else animation.setDuration(addDuration).alpha(1F)
+        animation.setListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationStart(animator: Animator) {
+                dispatchAddStarting(holder)
+            }
 
-                    override fun onAnimationCancel(animator: Animator) {
-                        view.alpha = 1F
-                    }
+            override fun onAnimationCancel(animator: Animator) {
+                view.alpha = 1F
+            }
 
-                    override fun onAnimationEnd(animator: Animator) {
-                        animation.setListener(null)
-                        dispatchAddFinished(holder)
-                        addAnimations.remove(holder)
-                        if (!isRunning) dispatchAnimationsFinished()
-                    }
-                }).start()
+            override fun onAnimationEnd(animator: Animator) {
+                animation.setListener(null)
+                dispatchAddFinished(holder)
+                addAnimations.remove(holder)
+                if (!isRunning) dispatchAnimationsFinished()
+            }
+        }).start()
     }
 
     private fun startMoveAnimation(moveInfo: MoveInfo) {
@@ -280,6 +293,7 @@ class BoardListItemAnimator : SimpleItemAnimator() {
                 }).start()
     }
 
+    // Useless invisible "animation" used in prepareForDrop
     private fun startBasicRemoveAnimation(holder: ViewHolder) {
         val animation = holder.itemView.animate()
         removeAnimations.add(holder)
@@ -387,20 +401,6 @@ class BoardListItemAnimator : SimpleItemAnimator() {
                 || movesList.isNotEmpty()
                 || additionsList.isNotEmpty()
                 || changesList.isNotEmpty()
-    }
-
-    fun isNotRunning(): Boolean {
-        return pendingAdditions.isEmpty()
-                && pendingChanges.isEmpty()
-                && pendingMoves.isEmpty()
-                && pendingRemovals.isEmpty()
-                && moveAnimations.isEmpty()
-                && removeAnimations.isEmpty()
-                && addAnimations.isEmpty()
-                && changeAnimations.isEmpty()
-                && movesList.isEmpty()
-                && additionsList.isEmpty()
-                && changesList.isEmpty()
     }
 
     override fun endAnimations() {

@@ -260,9 +260,6 @@ class BoardViewContainer
                 ?: targetColumnVH.boardListAdapter?.lastPosition?.plus(1)
                 ?: return
         val draggingItemVHPosition = draggingItemVH.adapterPosition
-        val draggingColumnVHPosition = draggingColumnVH.adapterPosition
-        val targetColumnVHPosition = targetColumnVH.adapterPosition
-
 
         if (boardView.itemAnimator?.isRunning != true &&
                 draggingColumnVH.list?.itemAnimator?.isRunning != true &&
@@ -274,19 +271,8 @@ class BoardViewContainer
             draggingColumnVH.boardListAdapter?.notifyItemRemoved(draggingItemVHPosition)
             targetColumnVH.boardListAdapter?.notifyItemInserted(targetItemVHPosition)
             targetColumnVH.list?.prepareForDrop(draggingItemVH, targetItemVH)
-
-            // TODO: 17-Jun-20 Tell ItemAnimator we are about to make a drag insert
-            //  this means that the draggingColumn list will get a remove and
-            //  targetColumn list will get an insert which requires that the alpha is 0
-            //  and after the animation happens some code is executed
-
-            doOnceChoreographed({
-                draggingColumnVH.list?.itemAnimator?.isRunning != true &&
-                        targetColumnVH.list?.itemAnimator?.isRunning != true
-            }) {
-                draggingItem.itemViewHolder = targetColumnVH.list
-                        ?.findViewHolderForAdapterPosition(targetItemVHPosition) as? BoardItemViewHolder
-                draggingItem.itemViewHolder?.itemView?.alpha = 0F
+            targetColumnVH.list?.boardListItemAnimator?.draggingItemInserted {
+                draggingItem.itemViewHolder = it as? BoardItemViewHolder
                 draggingItem.columnViewHolder = targetColumnVH
             }
 

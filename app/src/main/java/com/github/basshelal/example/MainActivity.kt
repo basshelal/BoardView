@@ -64,6 +64,9 @@ class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAda
         val oldItemPosition = draggingItem.adapterPosition
         val newItemPosition = targetPosition
 
+        if (oldColumnPosition == NO_POSITION || newColumnPosition == NO_POSITION ||
+                oldItemPosition == NO_POSITION || newItemPosition == NO_POSITION) return false
+
         if (oldColumnPosition == newColumnPosition) {
             if (oldItemPosition == newItemPosition) return false
             else {

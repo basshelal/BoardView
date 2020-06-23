@@ -314,32 +314,6 @@ class BoardViewContainer
 
 }
 
-/** Represents a ViewHolder Swap which we can use to track if swaps are completed */
-private data class ViewHolderSwap(
-        val oldPosition: Int,
-        val newPosition: Int,
-        val oldId: Long,
-        val newId: Long) {
-
-    var hasSwapped: Boolean = false
-
-    constructor(old: RecyclerView.ViewHolder, new: RecyclerView.ViewHolder) :
-            this(old.adapterPosition, new.adapterPosition, old.itemId, new.itemId)
-
-    override fun toString(): String {
-        return "(oldPos: $oldPosition, " +
-                "newPos: $newPosition, " +
-                "oldId: $oldId, " +
-                "newId: $newId, " +
-                "hasSwapped: $hasSwapped)"
-    }
-
-    companion object {
-        fun InsertSwap(viewHolder: RecyclerView.ViewHolder) =
-                ViewHolderSwap(viewHolder.adapterPosition, -1, viewHolder.itemId, -1)
-    }
-}
-
 /** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder], can be used for anything really */
 private data class DraggingItem(
         var columnViewHolder: BoardColumnViewHolder? = null,

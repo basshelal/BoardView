@@ -210,7 +210,12 @@ open class BoardView
             }
             in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy
             in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
+            // TODO: 23-Jun-20 What about top and bottom???
+            //  this causes lag when scrolling left and right because touchPoint is not in any of
+            //  these bounds and thus is 0, hence "lag"
+            //  also make sure that this isn't an issue in BoardList too
         }
+        logE(scrollBy)
         this.scrollBy(scrollBy, 0)
     }
 

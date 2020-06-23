@@ -153,13 +153,18 @@ class BoardViewContainer
                 }
             }
 
+            /** User has released drag, stop scroll & swap and set up return animation */
+            override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                frameSynchronizer.stop()
+                draggingItem.itemViewHolder?.itemView?.also {
+                    itemDragShadow.dragBehavior.returnTo(it)
+                }
+            }
+
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
-                draggingItem.itemViewHolder?.itemView?.also {
-                    itemDragShadow.dragBehavior.returnTo(it)
-                    it.alpha = 1F
-                }
+                draggingItem.itemViewHolder?.itemView?.alpha = 1F
                 itemDragShadow.isVisible = false
                 draggingItem.itemViewHolder = null
                 draggingItem.columnViewHolder = null
@@ -189,13 +194,18 @@ class BoardViewContainer
                 }
             }
 
+            /** User has released drag, stop scroll & swap and set up return animation */
+            override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                frameSynchronizer.stop()
+                draggingItem.columnViewHolder?.itemView?.also {
+                    listDragShadow.dragBehavior.returnTo(it)
+                }
+            }
+
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
-                draggingColumnVH?.itemView?.also {
-                    listDragShadow.dragBehavior.returnTo(it)
-                    it.alpha = 1F
-                }
+                draggingColumnVH?.itemView?.alpha = 1F
                 listDragShadow.isVisible = false
                 draggingColumnVH = null
             }
@@ -246,6 +256,7 @@ class BoardViewContainer
                 columnVH.list?.itemAnimator?.isRunning != true &&
                 targetPosition.isValidAdapterPosition &&
                 adapter?.onMoveItem(draggingItemVH, targetPosition, columnVH, columnVH) == true) {
+            targetItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
             columnVH.boardListAdapter?.notifyItemMoved(draggingItemVH.adapterPosition, targetPosition)
             columnVH.list?.prepareForDrop(draggingItemVH, targetItemVH)
         }
@@ -269,6 +280,7 @@ class BoardViewContainer
                 targetItemVHPosition.isValidAdapterPosition &&
                 adapter?.onMoveItem(draggingItemVH, targetItemVHPosition, draggingColumnVH, targetColumnVH) == true) {
 
+            targetItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
             draggingColumnVH.boardListAdapter?.notifyItemRemoved(draggingItemVHPosition)
             targetColumnVH.boardListAdapter?.notifyItemInserted(targetItemVHPosition)
             targetColumnVH.list?.prepareForDrop(draggingItemVH, targetItemVH)
@@ -276,7 +288,6 @@ class BoardViewContainer
                 draggingItem.itemViewHolder = it as? BoardItemViewHolder
                 draggingItem.columnViewHolder = targetColumnVH
             }
-
         }
     }
 

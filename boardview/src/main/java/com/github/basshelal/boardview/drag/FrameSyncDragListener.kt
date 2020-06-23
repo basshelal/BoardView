@@ -7,6 +7,8 @@ import com.github.basshelal.boardview.FrameSynchronizer
 
 abstract class FrameSyncDragListener : ObservableDragBehavior.DragListener {
 
+    // TODO: 22-Jun-20 FrameSynchronizer ends when? OnRelease makes more sense sometimes
+
     protected val frameSynchronizer = FrameSynchronizer { onNextFrame(it) }
 
     @CallSuper

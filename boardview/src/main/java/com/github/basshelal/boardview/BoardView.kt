@@ -5,6 +5,7 @@ package com.github.basshelal.boardview
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.PointF
 import android.graphics.RectF
 import android.os.Parcel
@@ -24,9 +25,23 @@ import androidx.annotation.Px
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.children
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.get
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_INSIDE_LEFT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_OUTSIDE_LEFT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.INSIDE
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.INSIDE_LEFT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.OUTSIDE_LEFT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_INSIDE_LEFT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_OUTSIDE_LEFT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_OUTSIDE_RIGHT
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -96,6 +111,8 @@ open class BoardView
     private val outsideTopBounds = RectF()
     private val outsideBottomBounds = RectF()
 
+    private val bounds = BoardViewBounds(this.globalVisibleRectF)
+
     private val snapHelper = PagerSnapHelper()
 
     // This receives any notify events the caller sends so that we can properly save the layout
@@ -149,6 +166,7 @@ open class BoardView
         isHorizontalScrollBarEnabled = true
         isVerticalScrollBarEnabled = false
         this.setHasFixedSize(true)
+        doOnPreDraw { bounds.showAll(this) }
     }
 
     override fun dispatchDraw(canvas: Canvas?) {
@@ -191,11 +209,18 @@ open class BoardView
             it.top = it.bottom
             it.bottom = realScreenHeight.F
         })
+
+        bounds.set(this.globalVisibleRectF)
     }
 
     fun horizontalScroll(touchPoint: PointF) {
+        val b = bounds.computePointBounds(touchPoint)
+        logE("$b $now")
         var scrollBy = 0
         when (touchPoint) {
+            // TODO: 24-Jun-20 These recursive calls fucked us up!
+            //  in outsideTopBounds -> horizontalScroll(touchPoint.also { it.y = this .globalVisibleRectF.top + 1 })
+            //   in outsideBottomBounds -> horizontalScroll(touchPoint.also { it.y = this .globalVisibleRectF.bottom - 1 })
             in insideLeftScrollBounds -> {
                 val multiplier = interpolator[1F -
                         (touchPoint.x - insideLeftScrollBounds.left) /
@@ -215,14 +240,13 @@ open class BoardView
             //  these bounds and thus is 0, hence "lag"
             //  also make sure that this isn't an issue in BoardList too
         }
-        logE(scrollBy)
         this.scrollBy(scrollBy, 0)
     }
 
     internal fun getViewHolderUnder(point: PointF): BoardColumnViewHolder? {
         return when {
-            point in outsideTopBounds -> getViewHolderUnder(point.also { it.y = this.globalVisibleRectF.top + 1 })
-            point in outsideBottomBounds -> getViewHolderUnder(point.also { it.y = this.globalVisibleRectF.bottom - 1 })
+            //    point in outsideTopBounds -> getViewHolderUnder(point.also { it.y = this .globalVisibleRectF.top + 1 })
+            //    point in outsideBottomBounds -> getViewHolderUnder(point.also { it.y = this .globalVisibleRectF.bottom - 1 })
             (point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ||
                     (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ->
                 layoutManager?.findFirstVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder }
@@ -628,4 +652,157 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
 
         override fun newArray(size: Int): Array<BoardViewSavedState?> = arrayOfNulls(size)
     }
+}
+
+private class BoardViewBounds(globalRectF: RectF) {
+
+    var horizontalScrollBoundsInsideWidth = globalRectF.width() / 5F
+    val leftBounds = RectF()
+    val rightBounds = RectF()
+    var middleX = globalRectF.centerX()
+
+    // temporary, delete later
+    var outsideLeftBounds = RectF()
+    var outsideRightBounds = RectF()
+
+    var outsideTopLeft = RectF()
+    var insideTopLeft = RectF()
+    var outsideBottomLeft = RectF()
+    var insideBottomLeft = RectF()
+
+    var outsideTopRight = RectF()
+    var insideTopRight = RectF()
+    var outsideBottomRight = RectF()
+    var insideBottomRight = RectF()
+
+    init {
+        set(globalRectF)
+    }
+
+    inline fun set(globalRectF: RectF) {
+        horizontalScrollBoundsInsideWidth = globalRectF.width() / 5F
+        middleX = globalRectF.centerX()
+        leftBounds.set(globalRectF.copy {
+            it.right = it.left + horizontalScrollBoundsInsideWidth
+        })
+        rightBounds.set(globalRectF.copy {
+            it.left = it.right - horizontalScrollBoundsInsideWidth
+        })
+
+        // delete later
+
+        outsideLeftBounds.set(globalRectF.copy {
+            it.left = 0F
+            it.right = leftBounds.left
+        })
+        outsideRightBounds.set(globalRectF.copy {
+            it.right = Float.MAX_VALUE
+            it.left = rightBounds.right
+        })
+
+        outsideTopLeft.set(outsideLeftBounds.copy {
+            it.bottom = it.top
+            it.top = 0F
+            it.left = 0F
+        })
+
+        insideTopLeft.set(leftBounds.copy {
+            it.bottom = it.top
+            it.top = 0F
+        })
+    }
+
+    inline fun computePointBounds(pointF: PointF): BoundsType {
+        return when {
+            pointF in leftBounds -> INSIDE_LEFT
+            pointF in rightBounds -> INSIDE_RIGHT
+            pointF.x < middleX -> when (leftBounds.pointBounds(pointF)) {
+                com.github.basshelal.boardview.BoundsType.TOP_LEFT -> TOP_OUTSIDE_LEFT
+                com.github.basshelal.boardview.BoundsType.TOP -> TOP_INSIDE_LEFT
+                com.github.basshelal.boardview.BoundsType.LEFT -> OUTSIDE_LEFT
+                com.github.basshelal.boardview.BoundsType.BOTTOM_LEFT -> BOTTOM_OUTSIDE_LEFT
+                com.github.basshelal.boardview.BoundsType.BOTTOM -> BOTTOM_INSIDE_LEFT
+                else -> BoundsType.ERROR_1
+            }
+            pointF.x > middleX -> when (rightBounds.pointBounds(pointF)) {
+                com.github.basshelal.boardview.BoundsType.TOP_RIGHT -> TOP_OUTSIDE_RIGHT
+                com.github.basshelal.boardview.BoundsType.TOP -> TOP_INSIDE_RIGHT
+                com.github.basshelal.boardview.BoundsType.RIGHT -> OUTSIDE_RIGHT
+                com.github.basshelal.boardview.BoundsType.BOTTOM_RIGHT -> BOTTOM_OUTSIDE_RIGHT
+                com.github.basshelal.boardview.BoundsType.BOTTOM -> BOTTOM_INSIDE_RIGHT
+                else -> BoundsType.ERROR_2
+            }
+            else -> INSIDE
+        }
+    }
+
+
+    inline fun showAll(view: View) {
+        leftBounds.show(view, Color.RED)
+        rightBounds.show(view, Color.BLUE)
+        outsideLeftBounds.show(view, Color.MAGENTA)
+        outsideRightBounds.show(view, Color.CYAN)
+        outsideTopLeft.show(view)
+        insideTopLeft.show(view)
+    }
+
+    enum class BoundsType {
+        INSIDE_LEFT, INSIDE_RIGHT,
+        OUTSIDE_LEFT, OUTSIDE_RIGHT,
+        TOP_INSIDE_LEFT, TOP_INSIDE_RIGHT,
+        BOTTOM_INSIDE_LEFT, BOTTOM_INSIDE_RIGHT,
+        TOP_OUTSIDE_LEFT, TOP_OUTSIDE_RIGHT,
+        BOTTOM_OUTSIDE_LEFT, BOTTOM_OUTSIDE_RIGHT,
+        INSIDE, ERROR_1, ERROR_2
+    }
+}
+
+enum class BoundsType {
+    INSIDE,
+    TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT,
+    BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT
+}
+
+inline fun RectF.copy(block: (RectF) -> Unit) = RectF(this).also(block)
+
+inline infix fun RectF.horizontallyContains(point: PointF) = point.x >= left && point.x < right
+
+inline infix fun RectF.verticallyContains(point: PointF) = point.y >= top && point.y < bottom
+
+inline infix fun PointF.horizontallyIn(rectF: RectF) = rectF horizontallyContains this
+
+inline infix fun PointF.verticallyIn(rectF: RectF) = rectF verticallyContains this
+
+inline fun RectF.pointBounds(point: PointF): BoundsType {
+    logE(point in this)
+    return when {
+        point in this -> BoundsType.INSIDE
+        point horizontallyIn this -> when {
+            point.y < top -> BoundsType.TOP
+            else -> BoundsType.BOTTOM
+        }
+        point verticallyIn this -> when {
+            point.x < left -> BoundsType.LEFT
+            else -> BoundsType.RIGHT
+        }
+        else -> when {
+            point.x < left && point.y < top -> BoundsType.TOP_LEFT
+            point.x >= right && point.y < top -> BoundsType.TOP_RIGHT
+            point.x < left && point.y >= bottom -> BoundsType.BOTTOM_LEFT
+            point.x >= right && point.y >= bottom -> BoundsType.BOTTOM_RIGHT
+            else -> throw  IllegalStateException()
+        }
+    }
+}
+
+inline fun RectF.show(view: View, color: Int = randomColor) {
+    view.rootViewGroup?.addView(
+            View(view.context).also {
+                it.x = this.left
+                it.y = this.top
+                it.layoutParams = ViewGroup.LayoutParams(this.width().I, this.height().I)
+                it.setBackgroundColor(color)
+                it.requestLayout()
+            }
+    )
 }

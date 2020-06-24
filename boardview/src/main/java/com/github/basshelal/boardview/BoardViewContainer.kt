@@ -242,7 +242,6 @@ class BoardViewContainer
             if (draggingItemVHPosition == targetItemVHPosition) return
             else swapItemVHsSameList(draggingItemVH, targetItemVH, draggingColumnVH)
         } else swapItemVHsDiffList(draggingItemVH, targetItemVH, draggingColumnVH, targetColumnVH)
-        targetItemVH?.itemView?.also { itemDragShadow.dragBehavior.returnTo(it) }
     }
 
     @CalledOnce

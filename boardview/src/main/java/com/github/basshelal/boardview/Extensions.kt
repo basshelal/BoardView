@@ -318,6 +318,12 @@ inline val RecyclerView.firstVisibleViewHolder: RecyclerView.ViewHolder?
             ?.takeIf { it.isValidAdapterPosition }
             ?.let { this.findViewHolderForAdapterPosition(it) }
 
+inline val RecyclerView.lastVisibleViewHolder: RecyclerView.ViewHolder?
+    get() = (this.layoutManager as? LinearLayoutManager)
+            ?.findLastVisibleItemPosition()
+            ?.takeIf { it.isValidAdapterPosition }
+            ?.let { this.findViewHolderForAdapterPosition(it) }
+
 inline val RecyclerView.ViewHolder.isAdapterPositionValid: Boolean
     get() = adapterPosition != NO_POSITION
 

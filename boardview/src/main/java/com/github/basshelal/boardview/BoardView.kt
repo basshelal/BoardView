@@ -29,15 +29,18 @@ import androidx.core.view.doOnPreDraw
 import androidx.core.view.get
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_INSIDE_LEFT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_INSIDE_RIGHT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_OUTSIDE_LEFT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.BOTTOM_OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.ERROR
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.INSIDE
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.INSIDE_LEFT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.INSIDE_RIGHT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.OUTSIDE_LEFT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_INSIDE_LEFT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_INSIDE_RIGHT
 import com.github.basshelal.boardview.BoardViewBounds.BoundsType.TOP_OUTSIDE_LEFT
@@ -102,16 +105,16 @@ open class BoardView
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)
     private val horizontalMaxScrollBy = (updateRatePerMilli * 2F).roundToInt()
-    private var horizontalScrollBoundsInsideWidth = 0F
+    private val bounds = BoardViewBounds(this.globalVisibleRectF)
 
+    // TODO: 25-Jun-20 Delete below when bounds is correct
+    private var horizontalScrollBoundsInsideWidth = 0F
     private val outsideLeftScrollBounds = RectF()
     private val insideLeftScrollBounds = RectF()
     private val outsideRightScrollBounds = RectF()
     private val insideRightScrollBounds = RectF()
     private val outsideTopBounds = RectF()
     private val outsideBottomBounds = RectF()
-
-    private val bounds = BoardViewBounds(this.globalVisibleRectF)
 
     private val snapHelper = PagerSnapHelper()
 
@@ -186,6 +189,8 @@ open class BoardView
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
 
+        bounds.set(this.globalVisibleRectF)
+
         horizontalScrollBoundsInsideWidth = this.globalVisibleRectF.width() / 5F
         outsideLeftScrollBounds.set(this.globalVisibleRectF.also {
             it.right = it.left
@@ -209,50 +214,54 @@ open class BoardView
             it.top = it.bottom
             it.bottom = realScreenHeight.F
         })
-
-        bounds.set(this.globalVisibleRectF)
     }
 
     fun horizontalScroll(touchPoint: PointF) {
+        val scrollBy: Int
         val b = bounds.computePointBounds(touchPoint)
         logE("$b $now")
-        var scrollBy = 0
-        when (touchPoint) {
-            // TODO: 24-Jun-20 These recursive calls fucked us up!
-            //  in outsideTopBounds -> horizontalScroll(touchPoint.also { it.y = this .globalVisibleRectF.top + 1 })
-            //   in outsideBottomBounds -> horizontalScroll(touchPoint.also { it.y = this .globalVisibleRectF.bottom - 1 })
-            in insideLeftScrollBounds -> {
-                val multiplier = interpolator[1F -
-                        (touchPoint.x - insideLeftScrollBounds.left) /
-                        (insideLeftScrollBounds.right - insideLeftScrollBounds.left)]
-                scrollBy = -(horizontalMaxScrollBy * multiplier).roundToInt()
-            }
-            in insideRightScrollBounds -> {
-                val multiplier = interpolator[
-                        (touchPoint.x - insideRightScrollBounds.left) /
-                                (insideRightScrollBounds.right - insideRightScrollBounds.left)]
-                scrollBy = (horizontalMaxScrollBy * multiplier).roundToInt()
-            }
-            in outsideLeftScrollBounds -> scrollBy = -horizontalMaxScrollBy
-            in outsideRightScrollBounds -> scrollBy = horizontalMaxScrollBy
-            // TODO: 23-Jun-20 What about top and bottom???
-            //  this causes lag when scrolling left and right because touchPoint is not in any of
-            //  these bounds and thus is 0, hence "lag"
-            //  also make sure that this isn't an issue in BoardList too
-        }
-        this.scrollBy(scrollBy, 0)
+        /*    when (bounds.computePointBounds(touchPoint)) {
+                INSIDE_LEFT, TOP_INSIDE_LEFT, BOTTOM_INSIDE_LEFT -> {
+                    val multiplier = interpolator[1F -
+                            (touchPoint.x - insideLeftScrollBounds.left) /
+                            (insideLeftScrollBounds.right - insideLeftScrollBounds.left)]
+                    scrollBy = -(horizontalMaxScrollBy * multiplier).roundToInt()
+                }
+                INSIDE_RIGHT, TOP_INSIDE_RIGHT, BOTTOM_INSIDE_RIGHT -> {
+                    val multiplier = interpolator[
+                            (touchPoint.x - insideRightScrollBounds.left) /
+                                    (insideRightScrollBounds.right - insideRightScrollBounds.left)]
+                    scrollBy = (horizontalMaxScrollBy * multiplier).roundToInt()
+                }
+                OUTSIDE_LEFT, TOP_OUTSIDE_LEFT, BOTTOM_OUTSIDE_LEFT -> {
+                    scrollBy = -horizontalMaxScrollBy
+                }
+                OUTSIDE_RIGHT, TOP_OUTSIDE_RIGHT, BOTTOM_OUTSIDE_RIGHT -> {
+                    scrollBy = horizontalMaxScrollBy
+                }
+                else -> return
+            }*/
+        //   this.scrollBy(scrollBy, 0)
     }
 
     internal fun getViewHolderUnder(point: PointF): BoardColumnViewHolder? {
-        return when {
-            //    point in outsideTopBounds -> getViewHolderUnder(point.also { it.y = this .globalVisibleRectF.top + 1 })
-            //    point in outsideBottomBounds -> getViewHolderUnder(point.also { it.y = this .globalVisibleRectF.bottom - 1 })
-            (point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ||
-                    (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ->
-                layoutManager?.findFirstVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder }
-            (point in outsideLeftScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_RTL) ||
-                    (point in outsideRightScrollBounds && boardLayoutDirection == LAYOUT_DIRECTION_LTR) ->
-                layoutManager?.findLastVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardColumnViewHolder }
+        return when (bounds.computePointBounds(point)) {
+            OUTSIDE_LEFT, TOP_OUTSIDE_LEFT, BOTTOM_OUTSIDE_LEFT -> when (boardLayoutDirection) {
+                LAYOUT_DIRECTION_LTR -> firstVisibleViewHolder as? BoardColumnViewHolder
+                LAYOUT_DIRECTION_RTL -> lastVisibleViewHolder as? BoardColumnViewHolder
+                else -> null
+            }
+            OUTSIDE_RIGHT, TOP_OUTSIDE_RIGHT, BOTTOM_OUTSIDE_RIGHT -> when (boardLayoutDirection) {
+                LAYOUT_DIRECTION_LTR -> lastVisibleViewHolder as? BoardColumnViewHolder
+                LAYOUT_DIRECTION_RTL -> firstVisibleViewHolder as? BoardColumnViewHolder
+                else -> null
+            }
+            TOP_INSIDE_LEFT -> {
+                // go down by some amount
+                findChildViewUnderRaw(point.also { it.y = this.globalVisibleRectF.top + 1 })?.let {
+                    getChildViewHolder(it) as? BoardColumnViewHolder
+                }
+            }
             else -> findChildViewUnderRaw(point)?.let {
                 getChildViewHolder(it) as? BoardColumnViewHolder
             }
@@ -657,23 +666,16 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
 private class BoardViewBounds(globalRectF: RectF) {
 
     var horizontalScrollBoundsInsideWidth = globalRectF.width() / 5F
-    val leftBounds = RectF()
-    val rightBounds = RectF()
     var middleX = globalRectF.centerX()
 
-    // temporary, delete later
-    var outsideLeftBounds = RectF()
-    var outsideRightBounds = RectF()
-
-    var outsideTopLeft = RectF()
-    var insideTopLeft = RectF()
-    var outsideBottomLeft = RectF()
-    var insideBottomLeft = RectF()
-
-    var outsideTopRight = RectF()
-    var insideTopRight = RectF()
-    var outsideBottomRight = RectF()
-    var insideBottomRight = RectF()
+    // Rects
+    var inside = globalRectF
+    val scrollLeft = RectF()
+    val scrollRight = RectF()
+    val top = RectF()
+    val bottom = RectF()
+    val left = RectF()
+    val right = RectF()
 
     init {
         set(globalRectF)
@@ -682,68 +684,79 @@ private class BoardViewBounds(globalRectF: RectF) {
     inline fun set(globalRectF: RectF) {
         horizontalScrollBoundsInsideWidth = globalRectF.width() / 5F
         middleX = globalRectF.centerX()
-        leftBounds.set(globalRectF.copy {
+        inside.set(globalRectF)
+        scrollLeft.set(globalRectF.copy {
             it.right = it.left + horizontalScrollBoundsInsideWidth
+            it.top = 0F
+            it.bottom = Float.MAX_VALUE
         })
-        rightBounds.set(globalRectF.copy {
+        scrollRight.set(globalRectF.copy {
             it.left = it.right - horizontalScrollBoundsInsideWidth
+            it.top = 0F
+            it.bottom = Float.MAX_VALUE
         })
-
-        // delete later
-
-        outsideLeftBounds.set(globalRectF.copy {
+        top.set(globalRectF.copy {
+            it.bottom = it.top
+            it.top = 0F
             it.left = 0F
-            it.right = leftBounds.left
-        })
-        outsideRightBounds.set(globalRectF.copy {
             it.right = Float.MAX_VALUE
-            it.left = rightBounds.right
         })
-
-        outsideTopLeft.set(outsideLeftBounds.copy {
-            it.bottom = it.top
-            it.top = 0F
+        bottom.set(globalRectF.copy {
+            it.top = it.bottom
+            it.bottom = Float.MAX_VALUE
             it.left = 0F
+            it.right = Float.MAX_VALUE
         })
-
-        insideTopLeft.set(leftBounds.copy {
-            it.bottom = it.top
+        left.set(globalRectF.copy {
+            it.right = it.left
+            it.left = 0F
             it.top = 0F
+            it.bottom = Float.MAX_VALUE
         })
+        right.set(globalRectF.copy {
+            it.left = it.right
+            it.right = Float.MAX_VALUE
+            it.top = 0F
+            it.bottom = Float.MAX_VALUE
+        })
+    }
+
+    inline fun showAll(view: View) {
+        scrollLeft.show(view, Color.RED)
+        scrollRight.show(view, Color.BLUE)
+        inside.show(view, Color.BLACK)
+        top.show(view, Color.GREEN)
+        bottom.show(view, Color.YELLOW)
+        left.show(view, Color.CYAN)
+        right.show(view, Color.MAGENTA)
     }
 
     inline fun computePointBounds(pointF: PointF): BoundsType {
         return when {
-            pointF in leftBounds -> INSIDE_LEFT
-            pointF in rightBounds -> INSIDE_RIGHT
-            pointF.x < middleX -> when (leftBounds.pointBounds(pointF)) {
+            pointF in scrollLeft -> INSIDE_LEFT
+            pointF in scrollRight -> INSIDE_RIGHT
+            pointF.x < middleX -> when (scrollLeft.pointBounds(pointF)) {
                 com.github.basshelal.boardview.BoundsType.TOP_LEFT -> TOP_OUTSIDE_LEFT
                 com.github.basshelal.boardview.BoundsType.TOP -> TOP_INSIDE_LEFT
                 com.github.basshelal.boardview.BoundsType.LEFT -> OUTSIDE_LEFT
                 com.github.basshelal.boardview.BoundsType.BOTTOM_LEFT -> BOTTOM_OUTSIDE_LEFT
                 com.github.basshelal.boardview.BoundsType.BOTTOM -> BOTTOM_INSIDE_LEFT
-                else -> BoundsType.ERROR_1
+                com.github.basshelal.boardview.BoundsType.TOP_RIGHT -> TOP
+                com.github.basshelal.boardview.BoundsType.BOTTOM_RIGHT -> BOTTOM
+                else -> INSIDE
             }
-            pointF.x > middleX -> when (rightBounds.pointBounds(pointF)) {
+            pointF.x > middleX -> when (scrollRight.pointBounds(pointF)) {
                 com.github.basshelal.boardview.BoundsType.TOP_RIGHT -> TOP_OUTSIDE_RIGHT
                 com.github.basshelal.boardview.BoundsType.TOP -> TOP_INSIDE_RIGHT
                 com.github.basshelal.boardview.BoundsType.RIGHT -> OUTSIDE_RIGHT
                 com.github.basshelal.boardview.BoundsType.BOTTOM_RIGHT -> BOTTOM_OUTSIDE_RIGHT
                 com.github.basshelal.boardview.BoundsType.BOTTOM -> BOTTOM_INSIDE_RIGHT
-                else -> BoundsType.ERROR_2
+                com.github.basshelal.boardview.BoundsType.TOP_LEFT -> TOP
+                com.github.basshelal.boardview.BoundsType.BOTTOM_LEFT -> BOTTOM
+                else -> INSIDE
             }
-            else -> INSIDE
+            else -> ERROR
         }
-    }
-
-
-    inline fun showAll(view: View) {
-        leftBounds.show(view, Color.RED)
-        rightBounds.show(view, Color.BLUE)
-        outsideLeftBounds.show(view, Color.MAGENTA)
-        outsideRightBounds.show(view, Color.CYAN)
-        outsideTopLeft.show(view)
-        insideTopLeft.show(view)
     }
 
     enum class BoundsType {
@@ -753,14 +766,16 @@ private class BoardViewBounds(globalRectF: RectF) {
         BOTTOM_INSIDE_LEFT, BOTTOM_INSIDE_RIGHT,
         TOP_OUTSIDE_LEFT, TOP_OUTSIDE_RIGHT,
         BOTTOM_OUTSIDE_LEFT, BOTTOM_OUTSIDE_RIGHT,
-        INSIDE, ERROR_1, ERROR_2
+        TOP, BOTTOM,
+        INSIDE, ERROR
     }
 }
 
 enum class BoundsType {
     INSIDE,
     TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT,
-    BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT
+    BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT,
+    ERROR
 }
 
 inline fun RectF.copy(block: (RectF) -> Unit) = RectF(this).also(block)
@@ -774,7 +789,6 @@ inline infix fun PointF.horizontallyIn(rectF: RectF) = rectF horizontallyContain
 inline infix fun PointF.verticallyIn(rectF: RectF) = rectF verticallyContains this
 
 inline fun RectF.pointBounds(point: PointF): BoundsType {
-    logE(point in this)
     return when {
         point in this -> BoundsType.INSIDE
         point horizontallyIn this -> when {
@@ -790,7 +804,7 @@ inline fun RectF.pointBounds(point: PointF): BoundsType {
             point.x >= right && point.y < top -> BoundsType.TOP_RIGHT
             point.x < left && point.y >= bottom -> BoundsType.BOTTOM_LEFT
             point.x >= right && point.y >= bottom -> BoundsType.BOTTOM_RIGHT
-            else -> throw  IllegalStateException()
+            else -> BoundsType.ERROR
         }
     }
 }
@@ -802,6 +816,7 @@ inline fun RectF.show(view: View, color: Int = randomColor) {
                 it.y = this.top
                 it.layoutParams = ViewGroup.LayoutParams(this.width().I, this.height().I)
                 it.setBackgroundColor(color)
+                it.alpha = 0.5F
                 it.requestLayout()
             }
     )

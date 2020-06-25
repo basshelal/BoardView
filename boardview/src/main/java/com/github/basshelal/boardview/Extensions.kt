@@ -400,6 +400,10 @@ inline fun RectF.horizontalPercentInverted(pointF: PointF): Float {
     return (((pointF.y - max) / (min - max)) * 100F)
 }
 
+inline fun RectF.copy(block: (RectF) -> Unit) = RectF(this).also(block)
+
+inline fun PointF.copy(block: (PointF) -> Unit) = PointF(this.x, this.y).also(block)
+
 inline fun <T> List<T>.reversedForEach(action: (T) -> Unit) {
     this.asReversed().forEach(action)
 }

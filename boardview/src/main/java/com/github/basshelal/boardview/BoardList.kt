@@ -57,10 +57,10 @@ class BoardList
         }
         isHorizontalScrollBarEnabled = false
         isVerticalScrollBarEnabled = true
-        this.setHasFixedSize(true)
+        this.setHasFixedSize(false)
         viewTreeObserver.addOnScrollChangedListener { bounds.set(this.globalVisibleRectF) }
         itemAnimator = BoardListItemAnimator()
-        boardListItemAnimator?.duration = 60
+        boardListItemAnimator?.duration = 100
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {

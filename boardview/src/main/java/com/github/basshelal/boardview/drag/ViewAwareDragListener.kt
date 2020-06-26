@@ -8,10 +8,6 @@ import com.github.basshelal.boardview.forEachReversed
 import com.github.basshelal.boardview.globalVisibleRectF
 import com.github.basshelal.boardview.parentViewGroup
 
-// TODO: 20-Jun-20 Would be nice if we had one like this but that emitted events only when
-//  entering a new View, and/or when user has given us an accepted View (they consumed the event
-//  and want none more).
-//  Basically an interface for users to have onEnteredNewView (or something like that)
 abstract class ViewAwareDragListener : FrameSyncDragListener() {
 
     protected var dragView: View? = null

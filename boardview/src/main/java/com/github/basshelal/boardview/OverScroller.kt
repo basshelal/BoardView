@@ -10,9 +10,6 @@ import me.everything.android.ui.overscroll.adapters.RecyclerViewOverScrollDecorA
 
 const val overScrollMultiplier = 35.0
 
-// TODO: 28-Mar-20 We should convert this into an independent component or library
-//  and remove the dependency on the other old library
-
 interface OverScroller {
     var isEnabled: Boolean
     val isOverScrolling: Boolean

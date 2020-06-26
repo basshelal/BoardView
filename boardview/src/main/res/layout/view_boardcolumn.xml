@@ -8,7 +8,6 @@
     android:background="@android:color/transparent"
     tools:layout_width="match_parent">
 
-    <!-- LIST -->
     <com.github.basshelal.boardview.BoardList
         android:id="@+id/boardListView"
         android:layout_width="match_parent"
@@ -17,7 +16,6 @@
         app:layout_constraintBottom_toTopOf="@id/footer_frameLayout"
         app:layout_constraintTop_toBottomOf="@id/header_frameLayout" />
 
-    <!-- HEADER -->
     <FrameLayout
         android:id="@+id/header_frameLayout"
         android:layout_width="wrap_content"
@@ -28,7 +26,6 @@
         tools:layout_height="70dp"
         tools:layout_width="match_parent" />
 
-    <!-- FOOTER -->
     <FrameLayout
         android:id="@+id/footer_frameLayout"
         android:layout_width="wrap_content"

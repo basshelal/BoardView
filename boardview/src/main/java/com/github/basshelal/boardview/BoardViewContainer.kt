@@ -18,8 +18,8 @@ import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
- * functionality of [BoardList]s and ItemViews, this is how we do dragging, if the caller only
- * wants a Board with no drag they use [BoardView]
+ * functionality of [BoardList]s and ItemViews, this is how we do dragging, if you only
+ * wants a Board with no dragging functionality use [BoardView]
  */
 class BoardViewContainer
 @JvmOverloads constructor(

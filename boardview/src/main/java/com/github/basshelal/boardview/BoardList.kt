@@ -105,11 +105,18 @@ class BoardList
         return findChildViewUnderRaw(pointF)?.let { getChildViewHolder(it) as? BoardItemViewHolder }
     }
 
-    // TODO: 26-Jun-20 Doesn't account for reverse order yet
     internal fun getViewHolderUnder(point: PointF): BoardItemViewHolder? {
         return when (bounds.findSectorForPoint(point)) {
-            TOP, TOP_LEFT, TOP_RIGHT -> firstVisibleViewHolder as? BoardItemViewHolder
-            BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT -> lastVisibleViewHolder as? BoardItemViewHolder
+            TOP, TOP_LEFT, TOP_RIGHT -> when (layoutManager?.reverseLayout) {
+                false -> firstVisibleViewHolder as? BoardItemViewHolder
+                true -> lastVisibleViewHolder as? BoardItemViewHolder
+                else -> null
+            }
+            BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT -> when (layoutManager?.reverseLayout) {
+                false -> lastVisibleViewHolder as? BoardItemViewHolder
+                true -> firstVisibleViewHolder as? BoardItemViewHolder
+                else -> null
+            }
             LEFT, UP_INSIDE_LEFT, DOWN_INSIDE_LEFT ->
                 viewHolderUnderRaw(point.copy { x = this@BoardList.globalVisibleRectF.left + 1 })
             RIGHT, UP_INSIDE_RIGHT, DOWN_INSIDE_RIGHT ->

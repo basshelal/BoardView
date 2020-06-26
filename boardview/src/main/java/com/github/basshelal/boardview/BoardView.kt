@@ -28,22 +28,22 @@ import androidx.core.view.children
 import androidx.core.view.get
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.github.basshelal.boardview.BoardViewBounds.Sector.BOTTOM
-import com.github.basshelal.boardview.BoardViewBounds.Sector.BOTTOM_INSIDE_LEFT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.BOTTOM_INSIDE_RIGHT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.BOTTOM_OUTSIDE_LEFT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.BOTTOM_OUTSIDE_RIGHT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.ERROR
-import com.github.basshelal.boardview.BoardViewBounds.Sector.INSIDE
-import com.github.basshelal.boardview.BoardViewBounds.Sector.INSIDE_LEFT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.INSIDE_RIGHT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.OUTSIDE_LEFT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.OUTSIDE_RIGHT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.TOP
-import com.github.basshelal.boardview.BoardViewBounds.Sector.TOP_INSIDE_LEFT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.TOP_INSIDE_RIGHT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.TOP_OUTSIDE_LEFT
-import com.github.basshelal.boardview.BoardViewBounds.Sector.TOP_OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM_INSIDE_LEFT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM_INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM_OUTSIDE_LEFT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM_OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.ERROR
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.INSIDE
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.INSIDE_LEFT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.OUTSIDE_LEFT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.OUTSIDE_RIGHT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.TOP
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.TOP_INSIDE_LEFT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.TOP_INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.TOP_OUTSIDE_LEFT
+import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.TOP_OUTSIDE_RIGHT
 import kotlinx.android.synthetic.main.view_boardcolumn.view.*
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -222,9 +222,9 @@ open class BoardView
                 else -> null
             }
             TOP, TOP_INSIDE_LEFT, TOP_INSIDE_RIGHT ->
-                viewHolderUnderRaw(point.copy { it.y = this.globalVisibleRectF.top + 1 })
+                viewHolderUnderRaw(point.copy { y = this@BoardView.globalVisibleRectF.top + 1 })
             BOTTOM, BOTTOM_INSIDE_LEFT, BOTTOM_INSIDE_RIGHT ->
-                viewHolderUnderRaw(point.copy { it.y = this.globalVisibleRectF.bottom - 1 })
+                viewHolderUnderRaw(point.copy { y = this@BoardView.globalVisibleRectF.bottom - 1 })
             else -> viewHolderUnderRaw(point)
         }
     }
@@ -467,6 +467,109 @@ open class BoardView
         if (state is BoardViewSavedState) restoreFromState(state)
         else super.onRestoreInstanceState(state)
     }
+
+    private class BoardViewBounds(globalRectF: RectF) {
+
+        var horizontalScrollBoundsWidth = globalRectF.width() / 5F
+
+        // Rectangles
+        var inside = globalRectF
+        val scrollLeft = RectF()
+        val scrollRight = RectF()
+        val top = RectF()
+        val bottom = RectF()
+        val left = RectF()
+        val right = RectF()
+
+        init {
+            set(globalRectF)
+        }
+
+        inline fun set(globalRectF: RectF) {
+            horizontalScrollBoundsWidth = globalRectF.width() / 5F
+            inside.set(globalRectF)
+            scrollLeft.set(globalRectF.copy {
+                right = left + horizontalScrollBoundsWidth
+                top = 0F
+                bottom = Float.MAX_VALUE
+            })
+            scrollRight.set(globalRectF.copy {
+                left = right - horizontalScrollBoundsWidth
+                top = 0F
+                bottom = Float.MAX_VALUE
+            })
+            top.set(globalRectF.copy {
+                bottom = top
+                top = 0F
+                left = 0F
+                right = Float.MAX_VALUE
+            })
+            bottom.set(globalRectF.copy {
+                top = bottom
+                bottom = Float.MAX_VALUE
+                left = 0F
+                right = Float.MAX_VALUE
+            })
+            left.set(globalRectF.copy {
+                right = left
+                left = 0F
+                top = 0F
+                bottom = Float.MAX_VALUE
+            })
+            right.set(globalRectF.copy {
+                left = right
+                right = Float.MAX_VALUE
+                top = 0F
+                bottom = Float.MAX_VALUE
+            })
+        }
+
+        inline fun showAll(view: View) {
+            scrollLeft.show(view, Color.RED)
+            scrollRight.show(view, Color.BLUE)
+            inside.show(view, Color.BLACK)
+            top.show(view, Color.GREEN)
+            bottom.show(view, Color.YELLOW)
+            left.show(view, Color.CYAN)
+            right.show(view, Color.MAGENTA)
+        }
+
+        inline fun findSectorForPoint(point: PointF): Sector {
+            return when (point) {
+                in left -> when (point) {
+                    in top -> TOP_OUTSIDE_LEFT
+                    in bottom -> BOTTOM_OUTSIDE_LEFT
+                    else -> OUTSIDE_LEFT
+                }
+                in scrollLeft -> when (point) {
+                    in top -> TOP_INSIDE_LEFT
+                    in bottom -> BOTTOM_INSIDE_LEFT
+                    else -> INSIDE_LEFT
+                }
+                in scrollRight -> when (point) {
+                    in top -> TOP_INSIDE_RIGHT
+                    in bottom -> BOTTOM_INSIDE_RIGHT
+                    else -> INSIDE_RIGHT
+                }
+                in right -> when (point) {
+                    in top -> TOP_OUTSIDE_RIGHT
+                    in bottom -> BOTTOM_OUTSIDE_RIGHT
+                    else -> OUTSIDE_RIGHT
+                }
+                in top -> TOP
+                in bottom -> BOTTOM
+                in inside -> INSIDE
+                else -> ERROR
+            }
+        }
+
+        enum class Sector {
+            TOP_OUTSIDE_LEFT, TOP_INSIDE_LEFT, TOP, TOP_INSIDE_RIGHT, TOP_OUTSIDE_RIGHT,
+            OUTSIDE_LEFT, INSIDE_LEFT, INSIDE, INSIDE_RIGHT, OUTSIDE_RIGHT,
+            BOTTOM_OUTSIDE_LEFT, BOTTOM_INSIDE_LEFT, BOTTOM, BOTTOM_INSIDE_RIGHT, BOTTOM_OUTSIDE_RIGHT,
+            ERROR
+        }
+    }
 }
 
 abstract class BoardAdapter(
@@ -622,122 +725,4 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
 
         override fun newArray(size: Int): Array<BoardViewSavedState?> = arrayOfNulls(size)
     }
-}
-
-private class BoardViewBounds(globalRectF: RectF) {
-
-    var horizontalScrollBoundsInsideWidth = globalRectF.width() / 5F
-    var middleX = globalRectF.centerX()
-
-    // Rects
-    var inside = globalRectF
-    val scrollLeft = RectF()
-    val scrollRight = RectF()
-    val top = RectF()
-    val bottom = RectF()
-    val left = RectF()
-    val right = RectF()
-
-    init {
-        set(globalRectF)
-    }
-
-    inline fun set(globalRectF: RectF) {
-        horizontalScrollBoundsInsideWidth = globalRectF.width() / 5F
-        middleX = globalRectF.centerX()
-        inside.set(globalRectF)
-        scrollLeft.set(globalRectF.copy {
-            it.right = it.left + horizontalScrollBoundsInsideWidth
-            it.top = 0F
-            it.bottom = Float.MAX_VALUE
-        })
-        scrollRight.set(globalRectF.copy {
-            it.left = it.right - horizontalScrollBoundsInsideWidth
-            it.top = 0F
-            it.bottom = Float.MAX_VALUE
-        })
-        top.set(globalRectF.copy {
-            it.bottom = it.top
-            it.top = 0F
-            it.left = 0F
-            it.right = Float.MAX_VALUE
-        })
-        bottom.set(globalRectF.copy {
-            it.top = it.bottom
-            it.bottom = Float.MAX_VALUE
-            it.left = 0F
-            it.right = Float.MAX_VALUE
-        })
-        left.set(globalRectF.copy {
-            it.right = it.left
-            it.left = 0F
-            it.top = 0F
-            it.bottom = Float.MAX_VALUE
-        })
-        right.set(globalRectF.copy {
-            it.left = it.right
-            it.right = Float.MAX_VALUE
-            it.top = 0F
-            it.bottom = Float.MAX_VALUE
-        })
-    }
-
-    inline fun showAll(view: View) {
-        scrollLeft.show(view, Color.RED)
-        scrollRight.show(view, Color.BLUE)
-        inside.show(view, Color.BLACK)
-        top.show(view, Color.GREEN)
-        bottom.show(view, Color.YELLOW)
-        left.show(view, Color.CYAN)
-        right.show(view, Color.MAGENTA)
-    }
-
-    inline fun findSectorForPoint(point: PointF): Sector {
-        return when (point) {
-            in left -> when (point) {
-                in top -> TOP_OUTSIDE_LEFT
-                in bottom -> BOTTOM_OUTSIDE_LEFT
-                else -> OUTSIDE_LEFT
-            }
-            in scrollLeft -> when (point) {
-                in top -> TOP_INSIDE_LEFT
-                in bottom -> BOTTOM_INSIDE_LEFT
-                else -> INSIDE_LEFT
-            }
-            in scrollRight -> when (point) {
-                in top -> TOP_INSIDE_RIGHT
-                in bottom -> BOTTOM_INSIDE_RIGHT
-                else -> INSIDE_RIGHT
-            }
-            in right -> when (point) {
-                in top -> TOP_OUTSIDE_RIGHT
-                in bottom -> BOTTOM_OUTSIDE_RIGHT
-                else -> OUTSIDE_RIGHT
-            }
-            in top -> TOP
-            in bottom -> BOTTOM
-            in inside -> INSIDE
-            else -> ERROR
-        }
-    }
-
-    enum class Sector {
-        TOP_OUTSIDE_LEFT, TOP_INSIDE_LEFT, TOP, TOP_INSIDE_RIGHT, TOP_OUTSIDE_RIGHT,
-        OUTSIDE_LEFT, INSIDE_LEFT, INSIDE, INSIDE_RIGHT, OUTSIDE_RIGHT,
-        BOTTOM_OUTSIDE_LEFT, BOTTOM_INSIDE_LEFT, BOTTOM, BOTTOM_INSIDE_RIGHT, BOTTOM_OUTSIDE_RIGHT,
-        ERROR
-    }
-}
-
-inline fun RectF.show(view: View, color: Int = randomColor) {
-    view.rootViewGroup?.addView(
-            View(view.context).also {
-                it.x = this.left
-                it.y = this.top
-                it.layoutParams = ViewGroup.LayoutParams(this.width().I, this.height().I)
-                it.setBackgroundColor(color)
-                it.alpha = 0.5F
-                it.requestLayout()
-            }
-    )
 }

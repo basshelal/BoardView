@@ -400,9 +400,22 @@ inline fun RectF.horizontalPercentInverted(pointF: PointF): Float {
     return (((pointF.y - max) / (min - max)) * 100F)
 }
 
-inline fun RectF.copy(block: (RectF) -> Unit) = RectF(this).also(block)
+inline fun RectF.copy(block: RectF.() -> Unit) = RectF(this).apply(block)
 
-inline fun PointF.copy(block: (PointF) -> Unit) = PointF(this.x, this.y).also(block)
+inline fun RectF.show(view: View, color: Int = randomColor) {
+    view.rootViewGroup?.addView(
+            View(view.context).also {
+                it.x = this.left
+                it.y = this.top
+                it.layoutParams = ViewGroup.LayoutParams(this.width().I, this.height().I)
+                it.setBackgroundColor(color)
+                it.alpha = 0.5F
+                it.requestLayout()
+            }
+    )
+}
+
+inline fun PointF.copy(block: PointF.() -> Unit) = PointF(this.x, this.y).apply(block)
 
 inline fun <T> List<T>.reversedForEach(action: (T) -> Unit) {
     this.asReversed().forEach(action)

@@ -3,6 +3,7 @@
 package com.github.basshelal.boardview
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -10,6 +11,22 @@ import android.view.View
 import androidx.core.graphics.contains
 import androidx.core.view.get
 import androidx.recyclerview.widget.RecyclerView
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.BOTTOM
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.BOTTOM_LEFT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.BOTTOM_RIGHT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.DOWN_INSIDE
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.DOWN_INSIDE_LEFT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.DOWN_INSIDE_RIGHT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.ERROR
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.INSIDE
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.LEFT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.RIGHT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.TOP
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.TOP_LEFT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.TOP_RIGHT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE_LEFT
+import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE_RIGHT
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -25,15 +42,11 @@ class BoardList
     inline val boardListItemAnimator: BoardListItemAnimator?
         get() = this.itemAnimator as? BoardListItemAnimator
 
-    // Vertical Scrolling info
+    // Vertical Scrolling info, transient shit
     private val interpolator = LogarithmicInterpolator()
     private val updateRatePerMilli = floor(millisPerFrame)
     private val maxScrollBy = (updateRatePerMilli * 1.5F).roundToInt()
-    private var verticalScrollBoundWidth = 0F
-    private val outsideTopScrollBounds = RectF()
-    private val topScrollBounds = RectF()
-    private val outsideBottomScrollBounds = RectF()
-    private val bottomScrollBounds = RectF()
+    private val bounds = BoardListBounds(globalVisibleRectF)
 
     init {
         setRecycledViewPool(BoardViewContainer.ITEM_VH_POOL)
@@ -45,32 +58,14 @@ class BoardList
         isHorizontalScrollBarEnabled = false
         isVerticalScrollBarEnabled = true
         this.setHasFixedSize(true)
-        viewTreeObserver.addOnScrollChangedListener { updateScrollBounds() }
+        viewTreeObserver.addOnScrollChangedListener { bounds.set(this.globalVisibleRectF) }
         itemAnimator = BoardListItemAnimator()
         boardListItemAnimator?.duration = 60
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
-        updateScrollBounds()
-    }
-
-    fun updateScrollBounds() {
-        verticalScrollBoundWidth = this.globalVisibleRectF.height() / 10F
-        outsideTopScrollBounds.set(this.globalVisibleRectF.also {
-            it.bottom = it.top
-            it.top = 0F
-        })
-        topScrollBounds.set(this.globalVisibleRectF.also {
-            it.bottom = it.top + verticalScrollBoundWidth
-        })
-        outsideBottomScrollBounds.set(this.globalVisibleRectF.also {
-            it.top = it.bottom
-            it.bottom = realScreenHeight.F
-        })
-        bottomScrollBounds.set(this.globalVisibleRectF.also {
-            it.top = it.bottom - verticalScrollBoundWidth
-        })
+        bounds.set(this.globalVisibleRectF)
     }
 
     /**
@@ -84,33 +79,43 @@ class BoardList
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
 
-    internal fun getViewHolderUnder(point: PointF): BoardItemViewHolder? {
-        return when (point) {
-            in outsideTopScrollBounds ->
-                layoutManager?.findFirstVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardItemViewHolder }
-            in outsideBottomScrollBounds ->
-                layoutManager?.findLastVisibleItemPosition()?.let { findViewHolderForAdapterPosition(it) as? BoardItemViewHolder }
-            else -> findChildViewUnderRaw(point)?.let { view -> getChildViewHolder(view) as? BoardItemViewHolder }
-        }
-    }
-
     fun verticalScroll(touchPoint: PointF) {
-        var scrollBy = 0
-        when (touchPoint) {
-            in topScrollBounds -> {
+        val scrollBy: Int
+        when (bounds.findSectorForPoint(touchPoint)) {
+            UP_INSIDE, UP_INSIDE_LEFT, UP_INSIDE_RIGHT -> {
                 val multiplier = interpolator[
-                        1F - (touchPoint.y - topScrollBounds.top) / (topScrollBounds.bottom - topScrollBounds.top)]
+                        1F - (touchPoint.y - bounds.scrollUp.top) /
+                                (bounds.scrollUp.bottom - bounds.scrollUp.top)]
                 scrollBy = -(maxScrollBy * multiplier).roundToInt()
             }
-            in bottomScrollBounds -> {
+            DOWN_INSIDE, DOWN_INSIDE_LEFT, DOWN_INSIDE_RIGHT -> {
                 val multiplier = interpolator[
-                        (touchPoint.y - bottomScrollBounds.top) / (bottomScrollBounds.bottom - bottomScrollBounds.top)]
+                        (touchPoint.y - bounds.scrollDown.top) /
+                                (bounds.scrollDown.bottom - bounds.scrollDown.top)]
                 scrollBy = (maxScrollBy * multiplier).roundToInt()
             }
-            in outsideTopScrollBounds -> scrollBy = -maxScrollBy
-            in outsideBottomScrollBounds -> scrollBy = maxScrollBy
+            TOP, TOP_LEFT, TOP_RIGHT -> scrollBy = -maxScrollBy
+            BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT -> scrollBy = maxScrollBy
+            else -> return
         }
         this.scrollBy(0, scrollBy)
+    }
+
+    private inline fun viewHolderUnderRaw(pointF: PointF): BoardItemViewHolder? {
+        return findChildViewUnderRaw(pointF)?.let { getChildViewHolder(it) as? BoardItemViewHolder }
+    }
+
+    // TODO: 26-Jun-20 Doesn't account for reverse order yet
+    internal fun getViewHolderUnder(point: PointF): BoardItemViewHolder? {
+        return when (bounds.findSectorForPoint(point)) {
+            TOP, TOP_LEFT, TOP_RIGHT -> firstVisibleViewHolder as? BoardItemViewHolder
+            BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT -> lastVisibleViewHolder as? BoardItemViewHolder
+            LEFT, UP_INSIDE_LEFT, DOWN_INSIDE_LEFT ->
+                viewHolderUnderRaw(point.copy { x = this@BoardList.globalVisibleRectF.left + 1 })
+            RIGHT, UP_INSIDE_RIGHT, DOWN_INSIDE_RIGHT ->
+                viewHolderUnderRaw(point.copy { x = this@BoardList.globalVisibleRectF.right - 1 })
+            else -> viewHolderUnderRaw(point)
+        }
     }
 
     /* Weird shit happens whenever we do a swap with an item at layout position 0,
@@ -127,6 +132,111 @@ class BoardList
                         this[0] == draggingVH.itemView || this[0] == targetVH.itemView)) {
             boardListItemAnimator?.prepareForDrop()
             layoutManager?.prepareForDrop(draggingVH.itemView, targetVH.itemView, 0, 0)
+        }
+    }
+
+    private class BoardListBounds(globalRectF: RectF) {
+
+        var verticalScrollBoundsHeight = globalRectF.height() / 10F
+
+        // Rectangles
+        var inside = globalRectF
+        val scrollUp = RectF()
+        val scrollDown = RectF()
+        val top = RectF()
+        val bottom = RectF()
+        val left = RectF()
+        val right = RectF()
+
+        init {
+            set(globalRectF)
+        }
+
+        inline fun set(globalRectF: RectF) {
+            verticalScrollBoundsHeight = globalRectF.height() / 10F
+            inside.set(globalRectF)
+            scrollUp.set(globalRectF.copy {
+                bottom = top + verticalScrollBoundsHeight
+                left = 0F
+                right = Float.MAX_VALUE
+            })
+            scrollDown.set(globalRectF.copy {
+                top = bottom - verticalScrollBoundsHeight
+                left = 0F
+                right = Float.MAX_VALUE
+            })
+            top.set(globalRectF.copy {
+                bottom = top
+                top = 0F
+                left = 0F
+                right = Float.MAX_VALUE
+            })
+            bottom.set(globalRectF.copy {
+                top = bottom
+                bottom = Float.MAX_VALUE
+                left = 0F
+                right = Float.MAX_VALUE
+            })
+            left.set(globalRectF.copy {
+                right = left
+                left = 0F
+                top = 0F
+                bottom = Float.MAX_VALUE
+            })
+            right.set(globalRectF.copy {
+                left = right
+                right = Float.MAX_VALUE
+                top = 0F
+                bottom = Float.MAX_VALUE
+            })
+        }
+
+        inline fun showAll(view: View) {
+            inside.show(view, Color.BLACK)
+            scrollUp.show(view, Color.BLUE)
+            scrollDown.show(view, Color.RED)
+            left.show(view, Color.CYAN)
+            right.show(view, Color.MAGENTA)
+            top.show(view, Color.GREEN)
+            bottom.show(view, Color.YELLOW)
+        }
+
+        inline fun findSectorForPoint(point: PointF): Sector {
+            return when (point) {
+                in top -> when (point) {
+                    in left -> TOP_LEFT
+                    in right -> TOP_RIGHT
+                    else -> TOP
+                }
+                in scrollUp -> when (point) {
+                    in left -> UP_INSIDE_LEFT
+                    in right -> UP_INSIDE_RIGHT
+                    else -> UP_INSIDE
+                }
+                in scrollDown -> when (point) {
+                    in left -> DOWN_INSIDE_LEFT
+                    in right -> DOWN_INSIDE_RIGHT
+                    else -> DOWN_INSIDE
+                }
+                in bottom -> when (point) {
+                    in left -> BOTTOM_LEFT
+                    in right -> BOTTOM_RIGHT
+                    else -> BOTTOM
+                }
+                in left -> LEFT
+                in right -> RIGHT
+                in inside -> INSIDE
+                else -> ERROR
+            }
+        }
+
+        enum class Sector {
+            TOP_LEFT, TOP, TOP_RIGHT,
+            UP_INSIDE_LEFT, UP_INSIDE, UP_INSIDE_RIGHT,
+            LEFT, INSIDE, RIGHT,
+            DOWN_INSIDE_LEFT, DOWN_INSIDE, DOWN_INSIDE_RIGHT,
+            BOTTOM_LEFT, BOTTOM, BOTTOM_RIGHT,
+            ERROR
         }
     }
 }

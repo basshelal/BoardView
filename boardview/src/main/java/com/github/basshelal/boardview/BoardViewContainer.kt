@@ -1,4 +1,4 @@
-@file:Suppress("NOTHING_TO_INLINE", "RedundantVisibilityModifier")
+@file:Suppress("RedundantVisibilityModifier", "NOTHING_TO_INLINE")
 
 package com.github.basshelal.boardview
 
@@ -315,21 +315,20 @@ class BoardViewContainer
         }
     }
 
-}
+    /** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder], can be used for anything really */
+    private data class DraggingItem(
+            var columnViewHolder: BoardColumnViewHolder? = null,
+            var itemViewHolder: BoardItemViewHolder? = null) {
 
-/** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder], can be used for anything really */
-private data class DraggingItem(
-        var columnViewHolder: BoardColumnViewHolder? = null,
-        var itemViewHolder: BoardItemViewHolder? = null) {
-
-    /** Executes [block] only if both [columnViewHolder] and [itemViewHolder] are not `null` */
-    inline fun also(block: (columnViewHolder: BoardColumnViewHolder,
-                            itemViewHolder: BoardItemViewHolder) -> Unit): DraggingItem {
-        columnViewHolder?.also { columnViewHolder ->
-            itemViewHolder?.also { itemViewHolder ->
-                block(columnViewHolder, itemViewHolder)
+        /** Executes [block] only if both [columnViewHolder] and [itemViewHolder] are not `null` */
+        inline fun also(block: (columnViewHolder: BoardColumnViewHolder,
+                                itemViewHolder: BoardItemViewHolder) -> Unit): DraggingItem {
+            columnViewHolder?.also { columnViewHolder ->
+                itemViewHolder?.also { itemViewHolder ->
+                    block(columnViewHolder, itemViewHolder)
+                }
             }
+            return this
         }
-        return this
     }
 }

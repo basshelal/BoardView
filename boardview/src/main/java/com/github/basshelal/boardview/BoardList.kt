@@ -1,4 +1,4 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("RedundantVisibilityModifier", "NOTHING_TO_INLINE")
 
 package com.github.basshelal.boardview
 
@@ -64,6 +64,7 @@ class BoardList
     private val bounds = BoardListBounds(globalVisibleRectF)
 
     init {
+        this.setHasFixedSize(true)
         setRecycledViewPool(BoardViewContainer.ITEM_VH_POOL)
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = VERTICAL
@@ -72,10 +73,8 @@ class BoardList
         }
         isHorizontalScrollBarEnabled = false
         isVerticalScrollBarEnabled = true
-        this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener { bounds.set(this.globalVisibleRectF) }
-        itemAnimator = BoardListItemAnimator()
-        boardListItemAnimator?.duration = 100
+        itemAnimator = BoardListItemAnimator().also { it.duration = 100 }
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
@@ -213,6 +212,7 @@ class BoardList
             })
         }
 
+        // For debugging to see the bounds
         inline fun showAll(view: View) {
             inside.show(view, Color.BLACK)
             scrollUp.show(view, Color.BLUE)

@@ -4,9 +4,9 @@ package com.github.basshelal.boardview
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.view.View
-import androidx.core.view.ViewCompat
 import androidx.core.view.postOnAnimationDelayed
+import androidx.recyclerview.widget.DefaultItemAnimator
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.github.basshelal.boardview.utils.LogarithmicInterpolator
@@ -16,6 +16,17 @@ import org.jetbrains.anko.collections.forEachReversedWithIndex
 import java.util.ArrayList
 import kotlin.math.max
 
+/**
+ * A [RecyclerView.ItemAnimator] for [BoardList] that behaves correctly when dragging items,
+ * into, out of, and within the list.
+ *
+ * This is essentially identical to [DefaultItemAnimator], but converted to Kotlin and using some
+ * minor (but crucial) modifications to make it compatible with the dragging functionality of
+ * [BoardViewContainer].
+ *
+ * Simply using [DefaultItemAnimator] causes jarring animations in almost all dragging scenarios,
+ * hence the few crucial modifications made.
+ */
 class BoardListItemAnimator : SimpleItemAnimator() {
 
     protected val interpolator = LogarithmicInterpolator()
@@ -35,11 +46,12 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     private val changeAnimations = ArrayList<ViewHolder>()
 
     // New stuff for dragging aware functionality
-    private val onRunPendingAnimations = ArrayList<Action>()
+    private val onRunPendingAnimations = ArrayList<() -> Unit>()
     private var nextAddIsDraggingItem = false
     private var onAdd: (ViewHolder) -> Unit = {}
     private var draggingItemVH: ViewHolder? = null
 
+    /** Quick and easy way to change all animation durations at once */
     inline var duration: Long
         set(value) {
             this.addDuration = value
@@ -53,7 +65,7 @@ class BoardListItemAnimator : SimpleItemAnimator() {
     // when calling LinearLayoutManager.prepareForDrop() the scrolling it does for us will create
     // unnecessary animations for some odd reasons, we thus must ignore them somehow
     // make sure that whenever that method is called, this one is too
-    fun prepareForDrop() {
+    internal fun prepareForDrop() {
         // instead of ignoring the incorrect removals, we simply "animate" them
         // this prevents issues with lingering views and animations that were meant to happen etc
         onRunPendingAnimations.add {
@@ -61,10 +73,29 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         }
     }
 
-    fun draggingItemInserted(onAdded: (ViewHolder) -> Unit) {
+    internal fun draggingItemInserted(onAdded: (ViewHolder) -> Unit) {
         // Tell animateAdd() that the next add is the draggingItem
         nextAddIsDraggingItem = true
         onAdd = onAdded
+    }
+
+    // Useless invisible "animation" used in prepareForDrop
+    private inline fun startBasicRemoveAnimation(holder: ViewHolder) {
+        val animation = holder.itemView.animate()
+        removeAnimations.add(holder)
+        animation.setDuration(0)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationStart(animator: Animator) {
+                        dispatchRemoveStarting(holder)
+                    }
+
+                    override fun onAnimationEnd(animator: Animator) {
+                        animation.setListener(null)
+                        dispatchRemoveFinished(holder)
+                        removeAnimations.remove(holder)
+                        if (!isRunning) dispatchAnimationsFinished()
+                    }
+                }).start()
     }
 
     override fun runPendingAnimations() {
@@ -295,25 +326,6 @@ class BoardListItemAnimator : SimpleItemAnimator() {
                 }).start()
     }
 
-    // Useless invisible "animation" used in prepareForDrop
-    private inline fun startBasicRemoveAnimation(holder: ViewHolder) {
-        val animation = holder.itemView.animate()
-        removeAnimations.add(holder)
-        animation.setDuration(0)
-                .setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationStart(animator: Animator) {
-                        dispatchRemoveStarting(holder)
-                    }
-
-                    override fun onAnimationEnd(animator: Animator) {
-                        animation.setListener(null)
-                        dispatchRemoveFinished(holder)
-                        removeAnimations.remove(holder)
-                        if (!isRunning) dispatchAnimationsFinished()
-                    }
-                }).start()
-    }
-
     private fun startRemoveAnimation(holder: ViewHolder) {
         val view = holder.itemView
         val animation = view.animate()
@@ -462,8 +474,6 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         dispatchAnimationsFinished()
     }
 
-    override fun obtainHolderInfo() = BoardItemHolderInfo()
-
     private fun endChangeAnimation(infoList: MutableList<ChangeInfo>, item: ViewHolder) {
         infoList.forEachReversedByIndex { changeInfo ->
             if (endChangeAnimationIfNecessary(changeInfo, item))
@@ -505,24 +515,6 @@ class BoardListItemAnimator : SimpleItemAnimator() {
         viewHolders.forEachReversedByIndex { it?.itemView?.animate()?.cancel() }
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun View.clear() {
-        alpha = 1F
-        scaleY = 1F
-        scaleX = 1F
-        translationY = 0F
-        translationX = 0F
-        rotation = 0F
-        rotationY = 0F
-        rotationX = 0F
-        pivotY = measuredHeight / 2F
-        pivotX = measuredWidth / 2F
-        ViewCompat.animate(this).also {
-            it.interpolator = null
-            it.startDelay = 0
-        }
-    }
-
     data class MoveInfo(var holder: ViewHolder,
                         var fromX: Int,
                         var fromY: Int,
@@ -536,8 +528,4 @@ class BoardListItemAnimator : SimpleItemAnimator() {
                           var toX: Int,
                           var toY: Int)
 
-    // struct we can use to contain additional information about a VH that may be useful for animations
-    class BoardItemHolderInfo : ItemHolderInfo()
 }
-
-private typealias Action = () -> Unit

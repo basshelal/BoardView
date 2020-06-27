@@ -88,7 +88,7 @@ open class BoardView
     public inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
 
     /**
-     * The width of every column in pixels.
+     * The width of each column in pixels.
      * [WRAP_CONTENT] is not allowed.
      * [MATCH_PARENT] is allowed and will be resolved to the value returned by [getWidth].
      */
@@ -177,6 +177,7 @@ open class BoardView
     }
 
     init {
+        this.setHasFixedSize(true)
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
             it.orientation = HORIZONTAL
             it.isItemPrefetchEnabled = true
@@ -184,7 +185,6 @@ open class BoardView
         }
         isHorizontalScrollBarEnabled = true
         isVerticalScrollBarEnabled = false
-        this.setHasFixedSize(true)
     }
 
     override fun dispatchDraw(canvas: Canvas?) {
@@ -197,7 +197,6 @@ open class BoardView
         try {
             super.dispatchDraw(canvas)
         } catch (e: NullPointerException) {
-
         }
     }
 
@@ -392,7 +391,7 @@ open class BoardView
     }
 
     // A child has appeared! Animate its collapse
-    private fun animateNewlyAppearedChild(view: View, newColumnWidth: Int, duration: Long) {
+    private inline fun animateNewlyAppearedChild(view: View, newColumnWidth: Int, duration: Long) {
         if (duration <= 0) return
         val initialWidth = view.width
         val widthDifference = newColumnWidth.F - initialWidth.F

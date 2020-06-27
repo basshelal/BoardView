@@ -4,8 +4,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 
-// TODO: 26-Jun-20 Finish Documentation
-
 /**
  * This is the entry point for the BoardView library.
  *

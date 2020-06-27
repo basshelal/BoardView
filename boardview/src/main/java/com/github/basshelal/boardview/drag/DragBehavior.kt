@@ -7,9 +7,9 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
-import com.github.basshelal.boardview.F
-import com.github.basshelal.boardview.globalVisibleRect
-import com.github.basshelal.boardview.parentViewGroup
+import com.github.basshelal.boardview.utils.F
+import com.github.basshelal.boardview.utils.globalVisibleRect
+import com.github.basshelal.boardview.utils.parentViewGroup
 import org.jetbrains.anko.childrenRecursiveSequence
 
 open class DragBehavior(val view: View) {

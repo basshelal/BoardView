@@ -4,9 +4,9 @@ import android.graphics.PointF
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
-import com.github.basshelal.boardview.forEachReversed
-import com.github.basshelal.boardview.globalVisibleRectF
-import com.github.basshelal.boardview.parentViewGroup
+import com.github.basshelal.boardview.utils.forEachReversed
+import com.github.basshelal.boardview.utils.globalVisibleRectF
+import com.github.basshelal.boardview.utils.parentViewGroup
 
 abstract class ViewAwareDragListener : FrameSyncDragListener() {
 

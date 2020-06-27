@@ -3,7 +3,7 @@ package com.github.basshelal.boardview.drag
 import android.graphics.PointF
 import android.view.View
 import androidx.annotation.CallSuper
-import com.github.basshelal.boardview.FrameSynchronizer
+import com.github.basshelal.boardview.utils.FrameSynchronizer
 
 abstract class FrameSyncDragListener : ObservableDragBehavior.DragListener {
 

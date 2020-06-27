@@ -11,7 +11,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import com.github.basshelal.R
-import com.github.basshelal.boardview.convertDpToPx
+import com.github.basshelal.boardview.utils.convertDpToPx
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel

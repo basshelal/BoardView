@@ -14,6 +14,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.basshelal.boardview.drag.DragShadow
 import com.github.basshelal.boardview.drag.FrameSyncDragListener
 import com.github.basshelal.boardview.drag.ObservableDragBehavior.DragState.DRAGGING
+import com.github.basshelal.boardview.utils.CalledOnce
+import com.github.basshelal.boardview.utils.isAdapterPositionValid
+import com.github.basshelal.boardview.utils.isValidAdapterPosition
+import com.github.basshelal.boardview.utils.lastPosition
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
 
 /**

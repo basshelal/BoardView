@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package com.github.basshelal.boardview
+package com.github.basshelal.boardview.utils
 
 import androidx.recyclerview.widget.RecyclerView
 import me.everything.android.ui.overscroll.HorizontalOverScrollBounceEffectDecorator

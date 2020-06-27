@@ -3,7 +3,7 @@ package com.github.basshelal.boardview.drag
 import android.graphics.PointF
 import android.view.View
 import androidx.annotation.CallSuper
-import com.github.basshelal.boardview.L
+import com.github.basshelal.boardview.utils.L
 import java.util.Timer
 import kotlin.concurrent.timer
 

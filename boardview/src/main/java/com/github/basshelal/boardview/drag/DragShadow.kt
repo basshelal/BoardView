@@ -17,11 +17,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.drawToBitmap
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
-import com.github.basshelal.boardview.I
-import com.github.basshelal.boardview.changeParent
-import com.github.basshelal.boardview.globalVisibleRectF
-import com.github.basshelal.boardview.parentViewGroup
-import com.github.basshelal.boardview.rootViewGroup
+import com.github.basshelal.boardview.utils.I
+import com.github.basshelal.boardview.utils.changeParent
+import com.github.basshelal.boardview.utils.globalVisibleRectF
+import com.github.basshelal.boardview.utils.parentViewGroup
+import com.github.basshelal.boardview.utils.rootViewGroup
 
 /**
  * An [ImageView] used to represent the draggable "shadow" of any [View].

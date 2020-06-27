@@ -1,4 +1,4 @@
-package com.github.basshelal.boardview
+package com.github.basshelal.boardview.utils
 
 import android.view.Choreographer
 import androidx.annotation.UiThread

@@ -2,7 +2,6 @@ package com.github.basshelal.boardview
 
 import android.view.View
 import android.view.ViewGroup
-import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 
 // TODO: 26-Jun-20 Finish Documentation
@@ -12,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView.NO_POSITION
  *
  * Extend this class with your own implementations to the various variables and callbacks that
  * will change the way a [BoardViewContainer] behaves, then in your [BoardViewContainer] set its
- * [BoardViewContainer.adapter] to be your custom adapter.
+ * [BoardViewContainer.adapter] to be your new custom adapter.
  */
 abstract class BoardContainerAdapter {
 
@@ -34,25 +33,24 @@ abstract class BoardContainerAdapter {
      * If true, means that the last item of the list will always be visible and not overlap with
      * the footer.
      *
-     * Defaults to `false`, meaning the footer ***will*** overlap with the list.
+     * Defaults to `true`, meaning the footer does not overlap with the list.
      */
-    var isFooterPadded: Boolean = false
+    var isFooterPadded: Boolean = true
 
     /**
-     * The [RecyclerView.Adapter] that will be used by [boardViewContainer]'s [BoardView],
+     * The [BoardAdapter] instance that [boardViewContainer]'s [BoardView] will use as its adapter,
      * there will only exist a single instance of this for any single [BoardViewContainer].
      *
-     * This will only be called once so it is safe to return a new [BoardAdapter] in the `get()`
-     * implementation
+     * This will only ever be called once so it is safe to return a new
+     * [BoardAdapter] in the `get()` implementation
      */
     abstract val boardViewAdapter: BoardAdapter
 
     /**
-     * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList] which
-     * contains [BoardItemViewHolder]s and is responsible for displaying the items in each column.
+     * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList].
      *
-     * @param position TODO
-     * @return TODO
+     * @param position the position of the [BoardList] that needs a new [BoardListAdapter]
+     * @return a new [BoardListAdapter] for the [BoardList] at [position]
      */
     abstract fun onCreateListAdapter(position: Int): BoardListAdapter<*>
 

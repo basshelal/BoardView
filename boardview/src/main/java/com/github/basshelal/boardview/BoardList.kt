@@ -27,6 +27,21 @@ import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.TOP_RIGHT
 import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE
 import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE_LEFT
 import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE_RIGHT
+import com.github.basshelal.boardview.utils.BaseAdapter
+import com.github.basshelal.boardview.utils.BaseRecyclerView
+import com.github.basshelal.boardview.utils.BaseViewHolder
+import com.github.basshelal.boardview.utils.LogarithmicInterpolator
+import com.github.basshelal.boardview.utils.SaveRestoreLinearLayoutManager
+import com.github.basshelal.boardview.utils.canScrollVertically
+import com.github.basshelal.boardview.utils.copy
+import com.github.basshelal.boardview.utils.findChildViewUnderRaw
+import com.github.basshelal.boardview.utils.firstVisibleViewHolder
+import com.github.basshelal.boardview.utils.get
+import com.github.basshelal.boardview.utils.globalVisibleRectF
+import com.github.basshelal.boardview.utils.lastVisibleViewHolder
+import com.github.basshelal.boardview.utils.logE
+import com.github.basshelal.boardview.utils.millisPerFrame
+import com.github.basshelal.boardview.utils.show
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -57,7 +72,7 @@ class BoardList
         }
         isHorizontalScrollBarEnabled = false
         isVerticalScrollBarEnabled = true
-        this.setHasFixedSize(false)
+        this.setHasFixedSize(true)
         viewTreeObserver.addOnScrollChangedListener { bounds.set(this.globalVisibleRectF) }
         itemAnimator = BoardListItemAnimator()
         boardListItemAnimator?.duration = 100

@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package com.github.basshelal.boardview
+package com.github.basshelal.boardview.utils
 
 import android.content.Context
 import android.util.AttributeSet

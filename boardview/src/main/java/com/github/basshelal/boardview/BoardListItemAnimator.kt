@@ -9,6 +9,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.postOnAnimationDelayed
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.github.basshelal.boardview.utils.LogarithmicInterpolator
+import com.github.basshelal.boardview.utils.reversedForEachIndexed
 import org.jetbrains.anko.collections.forEachReversedByIndex
 import org.jetbrains.anko.collections.forEachReversedWithIndex
 import java.util.ArrayList

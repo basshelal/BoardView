@@ -56,8 +56,8 @@ import com.github.basshelal.boardview.utils.SaveRestoreLinearLayoutManager
 import com.github.basshelal.boardview.utils.animation
 import com.github.basshelal.boardview.utils.animationListener
 import com.github.basshelal.boardview.utils.canScrollHorizontally
-import com.github.basshelal.boardview.utils.convertDpToPx
 import com.github.basshelal.boardview.utils.copy
+import com.github.basshelal.boardview.utils.dpToPx
 import com.github.basshelal.boardview.utils.findChildViewUnderRaw
 import com.github.basshelal.boardview.utils.firstVisibleViewHolder
 import com.github.basshelal.boardview.utils.get
@@ -93,7 +93,7 @@ open class BoardView
      * [MATCH_PARENT] is allowed and will be resolved to the value returned by [getWidth].
      */
     @Px
-    public var columnWidth = context.convertDpToPx(150).I
+    public var columnWidth = context.dpToPx(150).I
         set(value) {
             if (value < 0 && value != MATCH_PARENT)
                 throw IllegalArgumentException("Column width must be " +

@@ -8,10 +8,13 @@ import android.view.View
 import androidx.core.view.children
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import me.everything.android.ui.overscroll.OverScrollBounceEffectDecoratorBase
 
 /**
  * Base class for all [RecyclerView]s in this library for shared functionality
+ *
+ * All [RecyclerView]s in this library use a [SaveRestoreLinearLayoutManager] for their
+ * LayoutManager as well coming with over-scrolling functionality out of the box which can be
+ * enables or disabled using [isOverScrollingEnabled]
  */
 abstract class BaseRecyclerView
 @JvmOverloads constructor(
@@ -29,31 +32,35 @@ abstract class BaseRecyclerView
     inline val allVisibleViewHolders: Sequence<ViewHolder>
         get() = children.map { getChildViewHolder(it) }
 
+    /** Shorthand for [SaveRestoreLinearLayoutManager.isScrollEnabled] */
     inline var isScrollEnabled: Boolean
         set(value) {
             layoutManager?.isScrollEnabled = value
         }
         get() = layoutManager?.isScrollEnabled ?: true
 
-    internal var overScroller: OverScroller? = null
-    var isOverScrollingEnabled: Boolean = true
+    /**
+     * Used to change the over-scrolling behavior of this [RecyclerView].
+     *
+     * Over-scrolling happens when the user scrolls past the bounds either on purpose or if
+     * scrolling too quickly and reached the end of scroll bounds. Stock Android behavior in both
+     * cases is  a glowing effect, but using an over-scroller allows the appearance to be more
+     * realistic and resemble iOS scrolling behavior.
+     */
+    inline var isOverScrollingEnabled: Boolean
+        get() = overScroller?.isAttached ?: false
         set(value) {
-            field = value
-            overScroller?.isEnabled = value
+            if (value) overScroller?.attachToRecyclerView(this)
+            else overScroller?.detachFromRecyclerView(this)
         }
 
-    var overScrollStateChangeListener: (oldState: Int, newState: Int) -> Unit = { oldState, newState -> }
-        set(value) {
-            field = value
-            (overScroller as? OverScrollBounceEffectDecoratorBase)
-                    ?.setOverScrollStateListener { decor, oldState, newState ->
-                        overScrollStateChangeListener(oldState, newState)
-                    }
-        }
+    @PublishedApi
+    internal var overScroller: OverScroller? = null
 
     /**
-     * You are not supposed to set the [LayoutManager] of BoardView's [RecyclerView]s, this is
+     * You are not supposed to set the [LayoutManager]s of this library's [RecyclerView]s, this is
      * managed internally!
+     *
      * You can however, change properties of the [LayoutManager] by calling [getLayoutManager].
      */
     override fun setLayoutManager(lm: LayoutManager?) {
@@ -84,7 +91,7 @@ abstract class BaseRecyclerView
         overScroller = if (layoutManager?.orientation == LinearLayoutManager.VERTICAL)
             VerticalOverScroller(this) else HorizontalOverScroller(this)
 
-        overScroller?.attachToRecyclerView(this)
+        isOverScrollingEnabled = true
 
         isScrollbarFadingEnabled = true
         scrollBarFadeDuration = 500
@@ -92,7 +99,9 @@ abstract class BaseRecyclerView
 }
 
 /**
- * Base class for all [RecyclerView.Adapter]s in this library for shared functionality
+ * Base class for all [RecyclerView.Adapter]s in this library for shared functionality.
+ *
+ * All adapters must use stable ids by correctly overriding [getItemId]
  */
 abstract class BaseAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<VH>() {
 
@@ -100,6 +109,7 @@ abstract class BaseAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.Adapter<
         this.setHasStableIds(true)
     }
 
+    /* inheritDoc */
     abstract override fun getItemId(position: Int): Long
 }
 
@@ -111,28 +121,68 @@ abstract class BaseViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView
 typealias LinearState = LinearLayoutManager.SavedState
 
 /**
- * [LinearLayoutManager] that can save and restore state correctly
+ * A [LinearLayoutManager] that can save and restore state correctly as well as easily enable and
+ * disable scrolling through [isScrollEnabled].
+ *
+ * There is no reason that you should ever need to extend this class as it changes very little
+ * anyway from [LinearLayoutManager], however it is still left open for convenience.
  */
 open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManager(context) {
 
-    var savedState: LinearState? = null
-        internal set
+    /**
+     * The internally managed [LinearLayoutManager.SavedState] of this [LinearLayoutManager].
+     *
+     * This is saved in [saveState] and is the default state used in [restoreState]
+     */
+    protected var savedState: LinearState? = null
 
+    /**
+     * Used to easily enable or disable scrolling
+     *
+     * @see canScrollVertically
+     * @see canScrollHorizontally
+     */
     var isScrollEnabled: Boolean = true
 
+    /**
+     * Used to easily enable or disable predictive item animations
+     *
+     * @see supportsPredictiveItemAnimations
+     */
+    var supportsPredictiveItemAnimations: Boolean = true
+
+    /**
+     * Used to save the state of this [LinearLayoutManager] which can then be restored in
+     * [restoreState].
+     *
+     * @return the [LinearLayoutManager.SavedState] of this [LinearLayoutManager], ideally you
+     * will not need this as it kept internally and can be restored in [restoreState], however
+     * there are scenarios where that may be useful but use caution
+     */
     open fun saveState(): LinearState? {
         savedState = onSaveInstanceState() as? LinearState
         return savedState
     }
 
+    /**
+     * Used to restore the state of this [LinearLayoutManager] which can be saved in [saveState].
+     *
+     * @param state the [LinearLayoutManager.SavedState] to restore this [LinearLayoutManager]
+     * to, ideally you will not need to provide this as it is kept internally by calling
+     * [saveState], however there are scenarios where providing your own state may be useful,
+     * however use caution
+     */
     open fun restoreState(state: LinearState? = savedState): LinearState? {
         onRestoreInstanceState(state)
         return state
     }
 
+    /* inheritDoc */
     override fun canScrollVertically(): Boolean = super.canScrollVertically() && isScrollEnabled
 
+    /* inheritDoc */
     override fun canScrollHorizontally(): Boolean = super.canScrollHorizontally() && isScrollEnabled
 
-    override fun supportsPredictiveItemAnimations(): Boolean = true
+    /* inheritDoc */
+    override fun supportsPredictiveItemAnimations(): Boolean = supportsPredictiveItemAnimations
 }

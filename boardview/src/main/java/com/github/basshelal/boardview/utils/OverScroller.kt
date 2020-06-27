@@ -8,47 +8,51 @@ import me.everything.android.ui.overscroll.IOverScrollState
 import me.everything.android.ui.overscroll.VerticalOverScrollBounceEffectDecorator
 import me.everything.android.ui.overscroll.adapters.RecyclerViewOverScrollDecorAdapter
 
-const val overScrollMultiplier = 35.0
+// TODO: 27-Jun-20 Everything here is in need of cleanup and organization!
+//  For now it works well (which makes me think why fix it anyway lol), so we'll keep it
 
-interface OverScroller {
-    var isEnabled: Boolean
+internal const val overScrollMultiplier = 35.0
+
+@Beta
+@PublishedApi
+internal interface OverScroller {
+    var isAttached: Boolean
     val isOverScrolling: Boolean
     fun overScroll(amount: Number)
     fun attachToRecyclerView(recyclerView: RecyclerView) {
-        isEnabled = true
         recyclerView.addOnScrollListener(OnScrollListener(this))
+        isAttached = true
     }
 
     fun detachFromRecyclerView(recyclerView: RecyclerView) {
-        isEnabled = false
         recyclerView.removeOnScrollListener(OnScrollListener(this))
+        isAttached = false
     }
 }
 
-class VerticalOverScroller(val recyclerView: RecyclerView) :
+@Beta
+internal class VerticalOverScroller(val recyclerView: RecyclerView) :
         VerticalOverScrollBounceEffectDecorator(
                 RecyclerViewOverScrollDecorAdapter(recyclerView)), OverScroller {
 
-    private var isAttached: Boolean = true
-
-    override fun attachToRecyclerView(recyclerView: RecyclerView) {
-        super.attachToRecyclerView(recyclerView)
-        this.isEnabled = true
-    }
-
-    override var isEnabled: Boolean
-        get() = this.isAttached
+    override var isAttached: Boolean = true
         set(value) {
-            isAttached = value
-            if (value) {
-                this.attach()
-            } else if (!isOverScrolling) {
-                this.detach()
-            }
+            field = value
         }
+        get() = field
 
     override val isOverScrolling: Boolean
         get() = currentState != IOverScrollState.STATE_IDLE
+
+    override fun attachToRecyclerView(recyclerView: RecyclerView) {
+        super.attachToRecyclerView(recyclerView)
+        this.attach()
+    }
+
+    override fun detachFromRecyclerView(recyclerView: RecyclerView) {
+        super.detachFromRecyclerView(recyclerView)
+        this.detach()
+    }
 
     override fun overScroll(amount: Number) {
         // bound the input so that extreme numbers are limited
@@ -62,21 +66,29 @@ class VerticalOverScroller(val recyclerView: RecyclerView) :
     }
 }
 
-class HorizontalOverScroller(val recyclerView: RecyclerView) :
+@Beta
+internal class HorizontalOverScroller(val recyclerView: RecyclerView) :
         HorizontalOverScrollBounceEffectDecorator(
                 RecyclerViewOverScrollDecorAdapter(recyclerView)), OverScroller {
 
-    var isAttached: Boolean = true
-
-    override var isEnabled: Boolean
-        get() = this.isAttached
+    override var isAttached: Boolean = true
         set(value) {
-            isAttached = value
-            if (value) this.attach() else this.detach()
+            field = value
         }
+        get() = field
 
     override val isOverScrolling: Boolean
         get() = currentState != IOverScrollState.STATE_IDLE
+
+    override fun attachToRecyclerView(recyclerView: RecyclerView) {
+        super.attachToRecyclerView(recyclerView)
+        this.attach()
+    }
+
+    override fun detachFromRecyclerView(recyclerView: RecyclerView) {
+        super.detachFromRecyclerView(recyclerView)
+        this.detach()
+    }
 
     override fun overScroll(amount: Number) {
         // bound the input so that extreme numbers are limited
@@ -126,5 +138,5 @@ private class OnScrollListener(val overScroller: OverScroller) : RecyclerView.On
 
     override fun equals(other: Any?): Boolean = other is OnScrollListener
 
-    override fun hashCode(): Int = 69420
+    override fun hashCode(): Int = 69420 // nice...
 }

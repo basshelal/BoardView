@@ -6,12 +6,12 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Build
 import android.util.AttributeSet
+import android.util.DisplayMetrics
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import com.github.basshelal.R
-import com.github.basshelal.boardview.utils.convertDpToPx
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
@@ -45,8 +45,8 @@ class AppBar
 
         materialShapeDrawable.apply {
             shapeAppearanceModel = ShapeAppearanceModel.Builder()
-                    .setBottomLeftCorner(CornerFamily.ROUNDED, context.convertDpToPx(CORNER_RADIUS))
-                    .setBottomRightCorner(CornerFamily.ROUNDED, context.convertDpToPx(CORNER_RADIUS))
+                    .setBottomLeftCorner(CornerFamily.ROUNDED, context dpToPx CORNER_RADIUS)
+                    .setBottomRightCorner(CornerFamily.ROUNDED, context dpToPx CORNER_RADIUS)
                     .build()
         }
     }
@@ -69,3 +69,7 @@ fun Context.getColorCompat(@ColorRes intId: Int): Int {
         resources.getColor(R.color.colorPrimary)
     }
 }
+
+inline infix fun Context.dpToPx(dp: Number): Float =
+        (dp.toFloat() * (this.resources.displayMetrics.densityDpi.toFloat()
+                / DisplayMetrics.DENSITY_DEFAULT))

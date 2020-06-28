@@ -276,7 +276,8 @@ abstract class BoardListAdapter<VH : BoardItemViewHolder>(
 
     /**
      * Override to inform [BoardAdapter] how to bind this adapter to the given [position] and
-     * [holder]. This is called in [BoardAdapter]'s [onBindViewHolder].
+     * [holder]. This is called in [BoardAdapter]'s [onBindViewHolder]. If an adapter doesn't
+     * exist in the [position] then [BoardContainerAdapter.onCreateListAdapter] is called.
      *
      * Typically, callers will rebind or re-set their data sets here in order to ensure that this
      * [BoardListAdapter] can be used correctly by the passed in [holder]'s

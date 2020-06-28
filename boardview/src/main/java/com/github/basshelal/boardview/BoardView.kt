@@ -648,7 +648,7 @@ abstract class BoardAdapter(
         adapter?.onCreateFooter(view)?.also {
             viewHolder.footer = it
             view.footer_frameLayout.addView(it)
-            viewHolder.list?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+            view.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 if (adapter?.isFooterPadded == true) {
                     bottomToBottom = ConstraintLayout.LayoutParams.UNSET
                     bottomToTop = view.footer_frameLayout.id

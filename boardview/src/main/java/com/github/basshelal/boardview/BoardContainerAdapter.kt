@@ -3,6 +3,7 @@ package com.github.basshelal.boardview
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
+import com.github.basshelal.boardview.utils.Beta
 
 /**
  * This is the entry point for the BoardView library.
@@ -19,13 +20,17 @@ abstract class BoardContainerAdapter {
     lateinit var boardViewContainer: BoardViewContainer
         internal set
 
+    // TODO: 28-Jun-20 Use and Document!
+    @Beta
+    open val isListWrapContent: Boolean = false
+
     /**
      * If true, means that the first item of the list will always be visible and not overlap with
      * the header.
      *
      * Defaults to `true`, meaning the header does not overlap with the list.
      */
-    var isHeaderPadded: Boolean = true
+    open val isHeaderPadded: Boolean = true
 
     /**
      * If true, means that the last item of the list will always be visible and not overlap with
@@ -33,7 +38,7 @@ abstract class BoardContainerAdapter {
      *
      * Defaults to `true`, meaning the footer does not overlap with the list.
      */
-    var isFooterPadded: Boolean = true
+    open val isFooterPadded: Boolean = true
 
     /**
      * The [BoardAdapter] instance that [boardViewContainer]'s [BoardView] will use as its adapter,

@@ -5,6 +5,8 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
 
+// TODO: 27-Jun-20 Unused delete!
+
 /**
  * The [View] that [BoardView] will be displaying, this contains a header, a [BoardList] and
  * a footer
@@ -15,8 +17,6 @@ open class BoardColumn
 ) : ConstraintLayout(context, attrs, defStyleAttr) {
 
     init {
-        // Header and Footer should be made of empty containers (or merges?)
-
         View.inflate(context, R.layout.view_boardcolumn, this)
     }
 }

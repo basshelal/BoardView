@@ -233,7 +233,10 @@ open class BoardView
     }
 
     private inline fun viewHolderUnderRaw(pointF: PointF): BoardColumnViewHolder? {
-        return findChildViewUnderRaw(pointF)?.let { getChildViewHolder(it) as? BoardColumnViewHolder }
+        val view = findChildViewUnderRaw(pointF)
+                ?: findChildViewUnderRaw(pointF.copy { y = this@BoardView.globalVisibleRectF.top + 1 })
+                ?: findChildViewUnderRaw(pointF.copy { y = this@BoardView.globalVisibleRectF.bottom - 1 })
+        return view?.let { getChildViewHolder(it) as? BoardColumnViewHolder }
     }
 
     internal fun getViewHolderUnder(point: PointF): BoardColumnViewHolder? {

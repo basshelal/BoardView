@@ -47,6 +47,7 @@ import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.TOP_OUTSI
 import com.github.basshelal.boardview.utils.BaseAdapter
 import com.github.basshelal.boardview.utils.BaseRecyclerView
 import com.github.basshelal.boardview.utils.BaseViewHolder
+import com.github.basshelal.boardview.utils.Beta
 import com.github.basshelal.boardview.utils.F
 import com.github.basshelal.boardview.utils.I
 import com.github.basshelal.boardview.utils.L
@@ -255,6 +256,7 @@ open class BoardView
         }
     }
 
+    @Beta
     public inline fun switchToSingleColumnModeAt(adapterPosition: Int,
                                                  crossinline onStartAnimation: (Animation) -> Unit = {},
                                                  crossinline onRepeatAnimation: (Animation) -> Unit = {},
@@ -273,6 +275,7 @@ open class BoardView
      * otherwise nothing will happen
      */
     // TODO: 07-Apr-20 Animations are sluggish!
+    @Beta
     public fun switchToSingleColumnModeAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
         // Caller didn't check their position was valid :/
         if (boardAdapter?.isAdapterPositionNotValid(adapterPosition) == true) return
@@ -320,6 +323,7 @@ open class BoardView
         }
     }
 
+    @Beta
     public inline fun switchToMultiColumnMode(newColumnWidth: Int,
                                               crossinline onStartAnimation: (Animation) -> Unit = {},
                                               crossinline onRepeatAnimation: (Animation) -> Unit = {},
@@ -328,6 +332,7 @@ open class BoardView
                     animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
 
     // TODO: 07-Apr-20 Animations are sluggish!
+    @Beta
     public fun switchToMultiColumnMode(newColumnWidth: Int, animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
             // Initial count of children, should be 1 since we're in Single Column Mode
@@ -624,39 +629,49 @@ abstract class BoardAdapter(
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardColumnViewHolder {
-        val view = LayoutInflater.from(parent.context)
+        val column = LayoutInflater.from(parent.context)
                 .inflate(R.layout.view_boardcolumn, parent, false) as ConstraintLayout
-        val viewHolder = BoardColumnViewHolder(view)
-        view.updateLayoutParamsSafe { width = columnWidth }
-        viewHolder.list = view.boardListView
-        // Header
-        adapter?.onCreateListHeader(view)?.also {
+        val viewHolder = BoardColumnViewHolder(column)
+        val isListWrapContent = adapter?.isListWrapContent ?: false
+        column.updateLayoutParamsSafe {
+            width = columnWidth
+            height = if (isListWrapContent) WRAP_CONTENT else MATCH_PARENT
+        }
+        viewHolder.list = column.boardListView
+        adapter?.onCreateListHeader(column)?.also {
             viewHolder.header = it
-            view.header_frameLayout.addView(it)
-            view.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+            column.header_frameLayout.addView(it)
+            column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 if (adapter?.isHeaderPadded == true) {
                     topToTop = ConstraintLayout.LayoutParams.UNSET
-                    topToBottom = view.header_frameLayout.id
+                    topToBottom = column.header_frameLayout.id
                 } else {
                     topToBottom = ConstraintLayout.LayoutParams.UNSET
                     topToTop = ConstraintLayout.LayoutParams.PARENT_ID
                 }
-                height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
             }
         }
-        // Footer
-        adapter?.onCreateFooter(view)?.also {
+        adapter?.onCreateFooter(column)?.also {
             viewHolder.footer = it
-            view.footer_frameLayout.addView(it)
-            view.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+            column.footer_frameLayout.addView(it)
+            column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 if (adapter?.isFooterPadded == true) {
                     bottomToBottom = ConstraintLayout.LayoutParams.UNSET
-                    bottomToTop = view.footer_frameLayout.id
+                    bottomToTop = column.footer_frameLayout.id
                 } else {
                     bottomToTop = ConstraintLayout.LayoutParams.UNSET
                     bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
                 }
+            }
+        }
+        column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+            constrainedHeight = true
+            if (isListWrapContent) {
+                height = ConstraintLayout.LayoutParams.WRAP_CONTENT
+                column.boardListView?.setHasFixedSize(false)
+            } else {
                 height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                column.boardListView?.setHasFixedSize(true)
             }
         }
         onViewHolderCreated(viewHolder)
@@ -706,9 +721,6 @@ abstract class BoardAdapter(
     }
 }
 
-/**
- * ViewHolder for the [BoardColumn], these are used in [BoardView] and its adapter [BoardAdapter]
- */
 open class BoardColumnViewHolder(itemView: View) : BaseViewHolder(itemView) {
     var header: View? = null
         internal set

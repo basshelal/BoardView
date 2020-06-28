@@ -20,7 +20,10 @@ abstract class BoardContainerAdapter {
     lateinit var boardViewContainer: BoardViewContainer
         internal set
 
-    // TODO: 28-Jun-20 Use and Document!
+    // TODO: 28-Jun-20 Remove animations are not nice see a solution idea here
+    //  https://stackoverflow.com/questions/38243398
+    //  the main idea is that we animate the list going up while the items are animating removal
+    // TODO: 28-Jun-20 Document!
     @Beta
     open val isListWrapContent: Boolean = false
 

@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE", "OVERRIDE_BY_INLINE")
 
-package com.github.waqti.frontend.customview
+package com.github.basshelal.example
 
 import android.content.Context
 import android.graphics.Color

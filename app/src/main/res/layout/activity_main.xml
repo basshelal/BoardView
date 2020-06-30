@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".example.MainActivity">
 
-    <com.github.waqti.frontend.customview.AppBar
+    <com.github.basshelal.example.AppBar
         android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

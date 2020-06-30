@@ -12,16 +12,8 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/boardBackground_imageView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:src="@color/boardBackground"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/appBar" />
-
-    <com.github.basshelal.boardview.BoardViewContainer
-        android:id="@+id/boardViewContainer"
+    <FrameLayout
+        android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"

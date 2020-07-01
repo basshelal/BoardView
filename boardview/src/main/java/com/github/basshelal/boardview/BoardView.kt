@@ -26,7 +26,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
 import androidx.core.view.children
 import androidx.core.view.get
-import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM
 import com.github.basshelal.boardview.BoardView.BoardViewBounds.Sector.BOTTOM_INSIDE_LEFT
@@ -105,12 +104,6 @@ open class BoardView
             allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = valid } }
         }
 
-    public var isSnappingToItems: Boolean = false
-        set(value) {
-            field = value
-            snapHelper.attachToRecyclerView(if (value) this else null)
-        }
-
     /**
      * This takes into account if the LayoutManager is using reverse layout, this is important
      * for [BoardView] because it is horizontal
@@ -133,7 +126,6 @@ open class BoardView
     private val updateRatePerMilli = floor(millisPerFrame)
     private val horizontalMaxScrollBy = (updateRatePerMilli * 2F).roundToInt()
     private val bounds = BoardViewBounds(this.globalVisibleRectF)
-    private val snapHelper = PagerSnapHelper()
 
     // This receives any notify events the caller sends so that we can properly save the layout
     // states when the adapter's contents change
@@ -316,7 +308,6 @@ open class BoardView
                                             scrollToPosition(adapterPosition)
                                             viewHolders.filter { it != adapterPosition }
                                                     .forEach { boardAdapter?.notifyItemChanged(it) }
-                                            isSnappingToItems = true
                                             isOverScrollingEnabled = overScrolling
                                         }
                                 )
@@ -352,7 +343,6 @@ open class BoardView
             val initialWidth = columnVH.itemView.width
             val widthDifference = newColumnWidth.F - initialWidth.F
             val animationDuration = 500
-            isSnappingToItems = false
 
             columnVH.itemView.startAnimation(
                     animation { interpolatedTime: Float, _ ->
@@ -466,7 +456,6 @@ open class BoardView
             }
             savedState.layoutStates = boardAdapter.layoutStates.toList()
             savedState.columnWidth = this.columnWidth
-            savedState.isSnappingToItems = this.isSnappingToItems
         }
         return savedState
     }
@@ -491,7 +480,6 @@ open class BoardView
             }
         }
         this.columnWidth = state.columnWidth
-        this.isSnappingToItems = state.isSnappingToItems
     }
 
     @SuppressLint("MissingSuperCall") // we called super in saveState()
@@ -610,18 +598,16 @@ abstract class BoardAdapter(
         var adapter: BoardContainerAdapter? = null
 ) : BaseAdapter<BoardColumnViewHolder>() {
 
-    // Ideally we wouldn't want this but we don't want to not keep a reference of the BoardView!
+    /** A mirror of [BoardView.columnWidth] because we don't want to keep a reference to BoardView */
     internal var columnWidth: Int = 0
 
-    /**
-     * The layout states of each [BoardColumnViewHolder]
-     */
+    /** The [LinearState] of each [BoardColumnViewHolder.list] */
     internal val layoutStates = ArrayList<LinearState?>()
 
     @CallSuper
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
         if (recyclerView is BoardView) {
-            super.onAttachedToRecyclerView(recyclerView)
             this.columnWidth = recyclerView.columnWidth
             layoutStates.clear()
             layoutStates.addAll(List(itemCount) { null })
@@ -647,12 +633,6 @@ abstract class BoardAdapter(
             inflater.inflate(headerLayoutRes, column, false)?.also { header ->
                 viewHolder.header = header
                 column.addView(header)
-                // TODO: 01-Jul-20 Move this in the list's updateLayoutParams
-                header.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
-                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    bottomToTop = viewHolder.list?.id ?: -1
-                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                }
             }
         }
         // Footer inflation
@@ -662,19 +642,38 @@ abstract class BoardAdapter(
                 column.addView(footer)
             }
         }
-        column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
-            // Header constraints
-            if (adapter?.isHeaderPadded == true && viewHolder.header != null) {
+        // Set constraints
+        viewHolder.list?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+            val header = viewHolder.header
+            val list = viewHolder.list
+            val footer = viewHolder.footer
+
+            header?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                bottomToTop = if (adapter?.isHeaderPadded == true && list != null) list.id
+                else ConstraintLayout.LayoutParams.UNSET
+            }
+            footer?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                topToBottom = if (adapter?.isFooterPadded == true && list != null) list.id
+                else ConstraintLayout.LayoutParams.UNSET
+            }
+            // List constraints wrt Header
+            if (adapter?.isHeaderPadded == true && header != null) {
                 topToTop = ConstraintLayout.LayoutParams.UNSET
-                topToBottom = viewHolder.header?.id ?: ConstraintLayout.LayoutParams.UNSET
+                topToBottom = header.id
             } else {
                 topToBottom = ConstraintLayout.LayoutParams.UNSET
                 topToTop = ConstraintLayout.LayoutParams.PARENT_ID
             }
-            // Footer constraints
-            if (adapter?.isFooterPadded == true && viewHolder.footer != null) {
+            // List constraints wrt to Footer
+            if (adapter?.isFooterPadded == true && footer != null) {
                 bottomToBottom = ConstraintLayout.LayoutParams.UNSET
-                bottomToTop = viewHolder.footer?.id ?: ConstraintLayout.LayoutParams.UNSET
+                bottomToTop = footer.id
             } else {
                 bottomToTop = ConstraintLayout.LayoutParams.UNSET
                 bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
@@ -751,8 +750,7 @@ internal typealias RecyclerViewState = RecyclerView.SavedState
 open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
 
     var layoutStates: List<LinearState?>? = null
-    var columnWidth: Int = WRAP_CONTENT
-    var isSnappingToItems: Boolean = false
+    var columnWidth: Int = MATCH_PARENT
 
     @CallSuper
     override fun writeToParcel(dest: Parcel?, flags: Int) {
@@ -760,7 +758,6 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
         dest?.also {
             it.writeTypedList(layoutStates)
             it.writeInt(columnWidth)
-            it.writeInt(if (isSnappingToItems) 1 else 0)
         }
     }
 
@@ -773,7 +770,6 @@ open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedSta
                     parcel.readTypedList(list, LinearState.CREATOR)
                     it.layoutStates = list
                     it.columnWidth = parcel.readInt()
-                    it.isSnappingToItems = parcel.readInt() == 1
                 }
 
         override fun newArray(size: Int): Array<BoardViewSavedState?> = arrayOfNulls(size)

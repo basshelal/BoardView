@@ -1,7 +1,5 @@
 package com.github.basshelal.boardview
 
-import android.view.View
-import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.github.basshelal.boardview.utils.Beta
 
@@ -52,6 +50,11 @@ abstract class BoardContainerAdapter {
      */
     abstract val boardViewAdapter: BoardAdapter
 
+    // TODO: 01-Jul-20 Document!
+    abstract val listHeaderLayoutRes: Int?
+
+    abstract val listFooterLayoutRes: Int?
+
     /**
      * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList].
      *
@@ -59,22 +62,6 @@ abstract class BoardContainerAdapter {
      * @return a new [BoardListAdapter] for the [BoardList] at [position]
      */
     abstract fun onCreateListAdapter(position: Int): BoardListAdapter<*>
-
-    /**
-     * Called when a new BoardView Column is created
-     *
-     * @param parentView the [ViewGroup] that contains the entire BoardView column
-     * @return the header [View] or null if you do not want a header
-     */
-    abstract fun onCreateListHeader(parentView: ViewGroup): View?
-
-    /**
-     * Called when a new BoardView Column is created
-     *
-     * @param parentView the [ViewGroup] that contains the entire BoardView column
-     * @return the footer [View] or null if you do not want a footer
-     */
-    abstract fun onCreateFooter(parentView: ViewGroup): View?
 
     /**
      * Called when the user is dragging the [draggingColumn] over the [targetPosition].

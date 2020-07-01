@@ -632,46 +632,54 @@ abstract class BoardAdapter(
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardColumnViewHolder {
-        val column = LayoutInflater.from(parent.context)
+        val inflater = LayoutInflater.from(parent.context)!! // can never be null
+        val column = inflater
                 .inflate(R.layout.view_boardcolumn, parent, false) as ConstraintLayout
         val viewHolder = BoardColumnViewHolder(column)
         val isListWrapContent = adapter?.isListWrapContent ?: false
+        viewHolder.list = column.boardListView
         column.updateLayoutParamsSafe {
             width = columnWidth
             height = if (isListWrapContent) WRAP_CONTENT else MATCH_PARENT
         }
-        viewHolder.list = column.boardListView
-        adapter?.onCreateListHeader(column)?.also {
-            viewHolder.header = it
-            column.addView(it)
-            it.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
-                width = it.layoutParams.width
-                height = it.layoutParams.height
-            }
-            column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
-                if (adapter?.isHeaderPadded == true) {
-                    topToTop = ConstraintLayout.LayoutParams.UNSET
-                    topToBottom = column.header_frameLayout.id
-                } else {
-                    topToBottom = ConstraintLayout.LayoutParams.UNSET
+        // Header inflation
+        adapter?.listHeaderLayoutRes?.also { headerLayoutRes ->
+            inflater.inflate(headerLayoutRes, column, false)?.also { header ->
+                viewHolder.header = header
+                column.addView(header)
+                // TODO: 01-Jul-20 Move this in the list's updateLayoutParams
+                header.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                     topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                    bottomToTop = viewHolder.list?.id ?: -1
+                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
                 }
             }
         }
-        adapter?.onCreateFooter(column)?.also {
-            viewHolder.footer = it
-            column.footer_frameLayout.addView(it)
-            column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
-                if (adapter?.isFooterPadded == true) {
-                    bottomToBottom = ConstraintLayout.LayoutParams.UNSET
-                    bottomToTop = column.footer_frameLayout.id
-                } else {
-                    bottomToTop = ConstraintLayout.LayoutParams.UNSET
-                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-                }
+        // Footer inflation
+        adapter?.listFooterLayoutRes?.also { footerLayoutRes ->
+            inflater.inflate(footerLayoutRes, column, false)?.also { footer ->
+                viewHolder.footer = footer
+                column.addView(footer)
             }
         }
         column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+            // Header constraints
+            if (adapter?.isHeaderPadded == true && viewHolder.header != null) {
+                topToTop = ConstraintLayout.LayoutParams.UNSET
+                topToBottom = viewHolder.header?.id ?: ConstraintLayout.LayoutParams.UNSET
+            } else {
+                topToBottom = ConstraintLayout.LayoutParams.UNSET
+                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+            }
+            // Footer constraints
+            if (adapter?.isFooterPadded == true && viewHolder.footer != null) {
+                bottomToBottom = ConstraintLayout.LayoutParams.UNSET
+                bottomToTop = viewHolder.footer?.id ?: ConstraintLayout.LayoutParams.UNSET
+            } else {
+                bottomToTop = ConstraintLayout.LayoutParams.UNSET
+                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+            }
+            // List height
             constrainedHeight = true
             if (isListWrapContent) {
                 height = ConstraintLayout.LayoutParams.WRAP_CONTENT

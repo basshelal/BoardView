@@ -49,15 +49,9 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
         return ExampleBoardListAdapter(this, position)
     }
 
-    override fun onCreateListHeader(parentView: ViewGroup): View? {
-        return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_header_default, parentView, false)
-    }
+    override val listHeaderLayoutRes: Int? = R.layout.view_header_default
 
-    override fun onCreateFooter(parentView: ViewGroup): View? {
-        return LayoutInflater.from(parentView.context)
-                .inflate(R.layout.view_footer_default, parentView, false)
-    }
+    override val listFooterLayoutRes: Int? = R.layout.view_footer_default
 
     override fun onMoveColumn(draggingColumn: BoardColumnViewHolder,
                               targetPosition: Int): Boolean {

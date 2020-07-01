@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/boardColumn_rootView"
     android:layout_width="wrap_content"
@@ -11,29 +10,7 @@
     <com.github.basshelal.boardview.BoardList
         android:id="@+id/boardListView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:scrollbars="vertical"
-        app:layout_constraintBottom_toTopOf="@id/footer_frameLayout"
-        app:layout_constraintTop_toBottomOf="@id/header_frameLayout" />
-
-    <FrameLayout
-        android:id="@+id/header_frameLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:layout_height="70dp"
-        tools:layout_width="match_parent" />
-
-    <FrameLayout
-        android:id="@+id/footer_frameLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:layout_height="70dp"
-        tools:layout_width="match_parent" />
+        android:layout_height="match_parent"
+        android:scrollbars="vertical" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

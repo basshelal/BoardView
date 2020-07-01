@@ -594,9 +594,7 @@ open class BoardView
     }
 }
 
-abstract class BoardAdapter(
-        var adapter: BoardContainerAdapter? = null
-) : BaseAdapter<BoardColumnViewHolder>() {
+abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<BoardColumnViewHolder>() {
 
     /** A mirror of [BoardView.columnWidth] because we don't want to keep a reference to BoardView */
     internal var columnWidth: Int = 0
@@ -622,21 +620,21 @@ abstract class BoardAdapter(
         val column = inflater
                 .inflate(R.layout.view_boardcolumn, parent, false) as ConstraintLayout
         val viewHolder = BoardColumnViewHolder(column)
-        val isListWrapContent = adapter?.isListWrapContent ?: false
+        val isListWrapContent = adapter.isListWrapContent
         viewHolder.list = column.boardListView
         column.updateLayoutParamsSafe {
             width = columnWidth
             height = if (isListWrapContent) WRAP_CONTENT else MATCH_PARENT
         }
         // Header inflation
-        adapter?.listHeaderLayoutRes?.also { headerLayoutRes ->
+        adapter.headerLayoutRes?.also { headerLayoutRes ->
             inflater.inflate(headerLayoutRes, column, false)?.also { header ->
                 viewHolder.header = header
                 column.addView(header)
             }
         }
         // Footer inflation
-        adapter?.listFooterLayoutRes?.also { footerLayoutRes ->
+        adapter.footerLayoutRes?.also { footerLayoutRes ->
             inflater.inflate(footerLayoutRes, column, false)?.also { footer ->
                 viewHolder.footer = footer
                 column.addView(footer)
@@ -652,18 +650,18 @@ abstract class BoardAdapter(
                 topToTop = ConstraintLayout.LayoutParams.PARENT_ID
                 startToStart = ConstraintLayout.LayoutParams.PARENT_ID
                 endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToTop = if (adapter?.isHeaderPadded == true && list != null) list.id
+                bottomToTop = if (adapter.isHeaderPadded && list != null) list.id
                 else ConstraintLayout.LayoutParams.UNSET
             }
             footer?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
                 startToStart = ConstraintLayout.LayoutParams.PARENT_ID
                 endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                topToBottom = if (adapter?.isFooterPadded == true && list != null) list.id
+                topToBottom = if (adapter.isFooterPadded && list != null) list.id
                 else ConstraintLayout.LayoutParams.UNSET
             }
             // List constraints wrt Header
-            if (adapter?.isHeaderPadded == true && header != null) {
+            if (adapter.isHeaderPadded && header != null) {
                 topToTop = ConstraintLayout.LayoutParams.UNSET
                 topToBottom = header.id
             } else {
@@ -671,7 +669,7 @@ abstract class BoardAdapter(
                 topToTop = ConstraintLayout.LayoutParams.PARENT_ID
             }
             // List constraints wrt to Footer
-            if (adapter?.isFooterPadded == true && footer != null) {
+            if (adapter.isFooterPadded && footer != null) {
                 bottomToBottom = ConstraintLayout.LayoutParams.UNSET
                 bottomToTop = footer.id
             } else {
@@ -700,9 +698,7 @@ abstract class BoardAdapter(
         holder.itemView.updateLayoutParamsSafe { width = columnWidth }
         holder.list?.adapter.also { current ->
             if (current == null) {
-                adapter?.onCreateListAdapter(position)?.also {
-                    holder.list?.adapter = it
-                }
+                holder.list?.adapter = adapter.onCreateListAdapter(position)
             } else {
                 holder.boardListAdapter?.bindAdapter(holder, position)
                 holder.list?.notifyAllItemsChanged()

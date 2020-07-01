@@ -32,7 +32,7 @@ data class Board<T>(
 val boardListsSize = 100
 val itemsSize = 10
 
-val exampleBoard = Board<String>(
+val EXAMPLE_BOARD = Board<String>(
         id = 69420,
         name = "My Board",
         boardLists = MutableList(boardListsSize) { listNumber ->

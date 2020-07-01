@@ -25,6 +25,12 @@ abstract class BoardContainerAdapter {
     @Beta
     open val isListWrapContent: Boolean = false
 
+    // TODO: 01-Jul-20 Document!
+    abstract val headerLayoutRes: Int?
+
+    // TODO: 01-Jul-20 Document!
+    abstract val footerLayoutRes: Int?
+
     /**
      * If true, means that the first item of the list will always be visible and not overlap with
      * the header.
@@ -49,11 +55,6 @@ abstract class BoardContainerAdapter {
      * [BoardAdapter] in the `get()` implementation
      */
     abstract val boardViewAdapter: BoardAdapter
-
-    // TODO: 01-Jul-20 Document!
-    abstract val listHeaderLayoutRes: Int?
-
-    abstract val listFooterLayoutRes: Int?
 
     /**
      * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList].

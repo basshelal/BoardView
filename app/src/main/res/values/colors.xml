@@ -5,4 +5,5 @@
     <color name="colorPrimaryLight">#666AD1</color>
     <color name="colorAccent">#D81B60</color>
     <color name="boardBackground">#ECECEC</color>
+    <color name="trelloCardBackgroundColor">#C0C0C0</color>
 </resources>

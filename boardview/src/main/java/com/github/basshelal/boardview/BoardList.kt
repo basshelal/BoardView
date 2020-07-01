@@ -271,7 +271,7 @@ class BoardList
  * override [bindAdapter] to inform [BoardView] how to properly bind an adapter to the position.
  */
 abstract class BoardListAdapter<VH : BoardItemViewHolder>(
-        var adapter: BoardContainerAdapter? = null
+        var adapter: BoardContainerAdapter? = null // TODO: 01-Jul-20 Used? If not then remove!
 ) : BaseAdapter<VH>() {
 
     /**

@@ -14,8 +14,8 @@ import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.example.Board
+import com.github.basshelal.example.EXAMPLE_BOARD
 import com.github.basshelal.example.StringListItem
-import com.github.basshelal.example.exampleBoard
 import kotlinx.android.synthetic.main.fragment_default_example.*
 import kotlinx.android.synthetic.main.view_header_default.view.*
 import kotlinx.android.synthetic.main.view_itemview_default.view.*
@@ -36,7 +36,7 @@ class DefaultExampleFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        defaultBoardViewContainer.adapter = ExampleBoardContainerAdapter(exampleBoard)
+        defaultBoardViewContainer.adapter = ExampleBoardContainerAdapter(EXAMPLE_BOARD)
     }
 }
 
@@ -49,9 +49,9 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
         return ExampleBoardListAdapter(this, position)
     }
 
-    override val listHeaderLayoutRes: Int? = R.layout.view_header_default
+    override val headerLayoutRes: Int? = R.layout.view_header_default
 
-    override val listFooterLayoutRes: Int? = R.layout.view_footer_default
+    override val footerLayoutRes: Int? = R.layout.view_footer_default
 
     override fun onMoveColumn(draggingColumn: BoardColumnViewHolder,
                               targetPosition: Int): Boolean {

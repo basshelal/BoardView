@@ -16,7 +16,8 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:text="HEADER!"
+        android:text="HEADER"
+        android:textAlignment="center"
         android:textColor="@android:color/black"
         android:textSize="22sp" />
 

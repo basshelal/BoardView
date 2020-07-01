@@ -643,7 +643,11 @@ abstract class BoardAdapter(
         viewHolder.list = column.boardListView
         adapter?.onCreateListHeader(column)?.also {
             viewHolder.header = it
-            column.header_frameLayout.addView(it)
+            column.addView(it)
+            it.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
+                width = it.layoutParams.width
+                height = it.layoutParams.height
+            }
             column.boardListView?.updateLayoutParamsSafe<ConstraintLayout.LayoutParams> {
                 if (adapter?.isHeaderPadded == true) {
                     topToTop = ConstraintLayout.LayoutParams.UNSET

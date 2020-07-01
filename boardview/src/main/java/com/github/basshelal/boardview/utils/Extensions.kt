@@ -165,6 +165,10 @@ internal inline val ViewGroup.allChildren: List<View>
 internal inline val View.marginedWidth: Int
     get() = width + marginLeft + marginRight
 
+internal inline fun View.assignID() {
+    if (this.id == View.NO_ID) this.id = View.generateViewId()
+}
+
 internal inline fun ViewGroup.childUnder(x: Float, y: Float): View? {
     // Copied from RecyclerView.findChildViewUnder()
     children.toList().asReversed().forEach {

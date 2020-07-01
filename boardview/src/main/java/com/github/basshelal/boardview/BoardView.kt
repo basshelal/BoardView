@@ -55,6 +55,7 @@ import com.github.basshelal.boardview.utils.LogarithmicInterpolator
 import com.github.basshelal.boardview.utils.SaveRestoreLinearLayoutManager
 import com.github.basshelal.boardview.utils.animation
 import com.github.basshelal.boardview.utils.animationListener
+import com.github.basshelal.boardview.utils.assignID
 import com.github.basshelal.boardview.utils.canScrollHorizontally
 import com.github.basshelal.boardview.utils.copy
 import com.github.basshelal.boardview.utils.dpToPx
@@ -631,6 +632,7 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
             inflater.inflate(headerLayoutRes, column, false)?.also { header ->
                 viewHolder.header = header
                 column.addView(header)
+                header.assignID()
             }
         }
         // Footer inflation
@@ -638,6 +640,7 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
             inflater.inflate(footerLayoutRes, column, false)?.also { footer ->
                 viewHolder.footer = footer
                 column.addView(footer)
+                footer.assignID()
             }
         }
         // Set constraints

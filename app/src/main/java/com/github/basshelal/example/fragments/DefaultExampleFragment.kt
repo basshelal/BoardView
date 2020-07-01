@@ -43,10 +43,10 @@ class DefaultExampleFragment : Fragment() {
 private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
 
     override val boardViewAdapter: BoardAdapter
-        get() = ExampleBoardAdapter(this)
+        get() = ExampleBoardAdapter()
 
     override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
-        return ExampleBoardListAdapter(this, position)
+        return ExampleBoardListAdapter(position)
     }
 
     override val headerLayoutRes: Int? = R.layout.view_header_default
@@ -92,53 +92,52 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
             return true
         }
     }
-}
 
-private class ExampleBoardAdapter(
-        val exampleAdapter: ExampleBoardContainerAdapter) : BoardAdapter(exampleAdapter) {
+    private inner class ExampleBoardAdapter : BoardAdapter(this) {
 
-    private var boardMode: BoardMode = BoardMode.MULTI
+        private var boardMode: BoardMode = BoardMode.MULTI
 
-    override fun onViewHolderCreated(holder: BoardColumnViewHolder) {
-        holder.header?.also {
-            it.setOnClickListener {
-                when (boardMode) {
-                    BoardMode.MULTI -> exampleAdapter.boardViewContainer.boardView.switchToSingleColumnModeAt(holder.adapterPosition)
-                    BoardMode.SINGLE -> exampleAdapter.boardViewContainer.boardView.switchToMultiColumnMode(500)
+        override fun onViewHolderCreated(holder: BoardColumnViewHolder) {
+            holder.header?.also {
+                it.setOnClickListener {
+                    when (boardMode) {
+                        BoardMode.MULTI -> boardViewContainer.boardView.switchToSingleColumnModeAt(holder.adapterPosition)
+                        BoardMode.SINGLE -> boardViewContainer.boardView.switchToMultiColumnMode(500)
+                    }
+                    boardMode = boardMode.toggle()
                 }
-                boardMode = boardMode.toggle()
+                it.setOnLongClickListener {
+                    boardViewContainer.startDraggingColumn(holder)
+                    true
+                }
             }
-            it.setOnLongClickListener {
-                exampleAdapter.boardViewContainer.startDraggingColumn(holder)
-                true
+            holder.footer?.also {
+                it.setOnClickListener {
+                    val list = board[holder.adapterPosition]
+                    val new = if (list.items.isNotEmpty()) {
+                        val last = list.items.last()
+                        StringListItem(last.id + 1, "Item #${last.id + 1}")
+                    } else StringListItem(0, "Item #0")
+                    list.items.add(new)
+                    holder.boardListAdapter?.notifyItemInserted(list.items.lastIndex)
+                    holder.list?.smoothScrollToPosition(list.items.lastIndex)
+                }
             }
         }
-        holder.footer?.also {
-            it.setOnClickListener {
-                val list = exampleAdapter.board[holder.adapterPosition]
-                val new = if (list.items.isNotEmpty()) {
-                    val last = list.items.last()
-                    StringListItem(last.id + 1, "Item #${last.id + 1}")
-                } else StringListItem(0, "Item #0")
-                list.items.add(new)
-                holder.boardListAdapter?.notifyItemInserted(list.items.lastIndex)
-                holder.list?.smoothScrollToPosition(list.items.lastIndex)
-            }
+
+        override fun getItemId(position: Int): Long {
+            return board[position].id
         }
-    }
 
-    override fun getItemId(position: Int): Long {
-        return exampleAdapter.board[position].id
-    }
+        override fun getItemCount(): Int {
+            return board.boardLists.size
+        }
 
-    override fun getItemCount(): Int {
-        return exampleAdapter.board.boardLists.size
-    }
-
-    override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
-        super.onBindViewHolder(holder, position)
-        val boardList = exampleAdapter.board[position]
-        holder.itemView.header_textView.text = boardList.name
+        override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
+            super.onBindViewHolder(holder, position)
+            val boardList = board[position]
+            holder.itemView.header_textView.text = boardList.name
+        }
     }
 
     private enum class BoardMode {
@@ -148,43 +147,41 @@ private class ExampleBoardAdapter(
             return if (this == SINGLE) MULTI else SINGLE
         }
     }
-}
 
-private class ExampleBoardListAdapter(
-        val exampleAdapter: ExampleBoardContainerAdapter,
-        val position: Int) : BoardListAdapter<ItemVH>(exampleAdapter) {
+    private inner class ExampleBoardListAdapter(position: Int) : BoardListAdapter<ItemVH>(this) {
 
-    var boardList = exampleAdapter.board[position]
+        var boardList = board[position]
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
-        return ItemVH(parent).also { itemVH ->
-            itemVH.itemView.setOnLongClickListener {
-                exampleAdapter.boardViewContainer.startDraggingItem(itemVH)
-                true
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemVH {
+            return ItemVH(parent).also { itemVH ->
+                itemVH.itemView.setOnLongClickListener {
+                    boardViewContainer.startDraggingItem(itemVH)
+                    true
+                }
             }
         }
-    }
 
-    override fun getItemId(position: Int): Long = boardList[position].id
+        override fun getItemId(position: Int): Long = boardList[position].id
 
-    override fun getItemCount(): Int = boardList.items.size
+        override fun getItemCount(): Int = boardList.items.size
 
-    override fun onBindViewHolder(holder: ItemVH, position: Int) {
-        val listItem = boardList[position]
-        holder.textView.text = listItem.value
-        holder.itemView.setOnClickListener {
-            val pos = holder.adapterPosition
-            if (pos != NO_POSITION && boardList.items.isNotEmpty()) {
-                boardList.items.removeAt(pos)
-                notifyItemRemoved(pos)
+        override fun onBindViewHolder(holder: ItemVH, position: Int) {
+            val listItem = boardList[position]
+            holder.textView.text = listItem.value
+            holder.itemView.setOnClickListener {
+                val pos = holder.adapterPosition
+                if (pos != NO_POSITION && boardList.items.isNotEmpty()) {
+                    boardList.items.removeAt(pos)
+                    notifyItemRemoved(pos)
+                }
             }
         }
-    }
 
-    override fun bindAdapter(holder: BoardColumnViewHolder, position: Int) {
-        boardList = exampleAdapter.board[position]
-    }
+        override fun bindAdapter(holder: BoardColumnViewHolder, position: Int) {
+            boardList = board[position]
+        }
 
+    }
 }
 
 private class ItemVH(itemView: View) : BoardItemViewHolder(itemView) {

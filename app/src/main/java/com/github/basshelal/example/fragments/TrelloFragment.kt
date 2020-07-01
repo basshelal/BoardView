@@ -45,6 +45,8 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 
     override val footerLayoutRes: Int? = R.layout.view_footer_trello
 
+    override val isListWrapContent: Boolean = true
+
     override val boardViewAdapter: BoardAdapter
         get() = TrelloBoardAdapter()
 

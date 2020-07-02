@@ -1,6 +1,8 @@
 package com.github.basshelal.example.fragments
 
+import android.graphics.PointF
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,12 +10,14 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.PagerSnapHelper
 import com.github.basshelal.R
 import com.github.basshelal.boardview.BoardAdapter
 import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
+import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.example.Board
 import com.github.basshelal.example.EXAMPLE_BOARD
 import com.github.basshelal.example.dpToPx
@@ -22,18 +26,14 @@ import kotlinx.android.synthetic.main.fragment_trello.*
 import kotlinx.android.synthetic.main.view_header_trello.view.*
 import kotlinx.android.synthetic.main.view_itemview_trello.view.*
 
+private var isZoomedOut = false
+
 class TrelloFragment : Fragment() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
+    lateinit var pagerSnapHelper: PagerSnapHelper
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_trello, container, false)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -49,7 +49,45 @@ class TrelloFragment : Fragment() {
             trelloBoardViewContainer.boardView.columnWidth = (ctx dpToPx 280).toInt()
         }
 
+        pagerSnapHelper = PagerSnapHelper().also {
+            it.attachToRecyclerView(trelloBoardViewContainer.boardView)
+        }
+
+        trelloBoardViewContainer.itemDragShadow.rotation = 2F
+        trelloBoardViewContainer.itemDragShadow.alpha = 0.7F
+
         trelloBoardViewContainer.itemDragShadow.dragBehavior
+                .addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
+                    override fun onStartDrag(dragView: View) {
+                        pagerSnapHelper.attachToRecyclerView(null)
+                    }
+
+                    override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                        pagerSnapHelper.attachToRecyclerView(trelloBoardViewContainer.boardView)
+                    }
+                })
+
+        trelloBoardViewContainer.listDragShadow.rotation = 2F
+        trelloBoardViewContainer.listDragShadow.alpha = 0.7F
+        trelloBoardViewContainer.listDragShadow.also {
+            it.pivotX = 0F
+            it.pivotY = 0F
+            it.scaleX = 0.5F
+            it.scaleY = 0.5F
+        }
+
+        trelloBoardViewContainer.listDragShadow.dragBehavior
+                .addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
+                    override fun onStartDrag(dragView: View) {
+                        isZoomedOut = true
+                    }
+
+                    override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                        isZoomedOut = false
+                        (trelloBoardViewContainer.boardView.adapter as?
+                                TrelloBoardContainerAdapter.TrelloBoardAdapter)?.notifyAllChanged()
+                    }
+                })
     }
 }
 
@@ -68,7 +106,18 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
         return TrelloListAdapter(position)
     }
 
-    private inner class TrelloBoardAdapter : BoardAdapter<TrelloColumnViewHolder>(this) {
+    override fun onMoveColumn(draggingColumn: BoardColumnViewHolder, targetPosition: Int): Boolean {
+        Log.e("Trello", "onMoveColumn: $targetPosition")
+        return false
+    }
+
+    override fun onMoveItem(draggingItem: BoardItemViewHolder, targetPosition: Int,
+                            draggingColumn: BoardColumnViewHolder, targetColumn: BoardColumnViewHolder): Boolean {
+        Log.e("Trello", "onMoveItem: ${targetColumn.adapterPosition} $targetPosition")
+        return false
+    }
+
+    inner class TrelloBoardAdapter : BoardAdapter<TrelloColumnViewHolder>(this) {
 
         override fun getItemId(position: Int): Long = board.boardLists[position].id
 
@@ -89,15 +138,31 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
                 marginStart = (ctx dpToPx 10).toInt()
                 marginEnd = (ctx dpToPx 10).toInt()
             }
+            holder.header?.setOnLongClickListener {
+                isZoomedOut = true
+                notifyAllChanged()
+                boardViewContainer.startDraggingColumn(holder)
+                true
+            }
         }
 
         override fun onBindViewHolder(holder: TrelloColumnViewHolder, position: Int) {
             super.onBindViewHolder(holder, position)
             holder.headerTextView?.text = board[position].name
+            holder.itemView.also {
+                it.pivotX = 0F
+                it.pivotY = 0F
+                it.scaleX = if (isZoomedOut) 0.5F else 1F
+                it.scaleY = if (isZoomedOut) 0.5F else 1F
+            }
+        }
+
+        fun notifyAllChanged() {
+            (0 until itemCount).forEach { notifyItemChanged(it) }
         }
     }
 
-    private inner class TrelloListAdapter(position: Int) : BoardListAdapter<TrelloItemViewHolder>() {
+    inner class TrelloListAdapter(position: Int) : BoardListAdapter<TrelloItemViewHolder>() {
 
         var list = board[position]
 
@@ -110,7 +175,12 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrelloItemViewHolder {
-            return TrelloItemViewHolder(parent)
+            return TrelloItemViewHolder(parent).also { vh ->
+                vh.itemView.setOnLongClickListener {
+                    boardViewContainer.startDraggingItem(vh)
+                    true
+                }
+            }
         }
 
         override fun onBindViewHolder(holder: TrelloItemViewHolder, position: Int) {

@@ -8,4 +8,5 @@
     <color name="trelloBoardBackground">#0079BF</color>
     <color name="trelloCardColor">#FFFFFF</color>
     <color name="trelloListColor">#F4F5F7</color>
+    <color name="trelloAddCardColor">#61BD4F</color>
 </resources>

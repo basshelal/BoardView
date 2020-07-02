@@ -128,6 +128,11 @@ class BoardViewContainer
         }
     }
 
+    // TODO: 02-Jul-20 If caller gives us a false when requesting a swap we should stop asking
+    //  them for it somehow, current implementation keeps requesting them
+
+    // TODO: 02-Jul-20 Caller should be able to customize scrolling behavior including speed
+
     //region Private functions
 
     @CalledOnce

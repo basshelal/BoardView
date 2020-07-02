@@ -6,6 +6,9 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.ScaleAnimation
+import android.view.animation.Transformation
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.view.updateLayoutParams
@@ -82,12 +85,22 @@ class TrelloFragment : Fragment() {
                         isZoomedOut = true
                     }
 
-                    override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
+                    override fun onEndDrag(dragView: View) {
                         isZoomedOut = false
                         (trelloBoardViewContainer.boardView.adapter as?
                                 TrelloBoardContainerAdapter.TrelloBoardAdapter)?.notifyAllChanged()
                     }
                 })
+
+        zoom_fab.setOnClickListener { zoom() }
+    }
+
+    private fun zoom() {
+        isZoomedOut = !isZoomedOut
+        (trelloBoardViewContainer.boardView.adapter as?
+                TrelloBoardContainerAdapter.TrelloBoardAdapter)?.notifyAllChanged()
+        zoom_fab.setImageResource(if (isZoomedOut) R.drawable.zoom_in_icon else R.drawable.zoom_out_icon)
+        pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else trelloBoardViewContainer.boardView)
     }
 }
 
@@ -149,6 +162,7 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
         override fun onBindViewHolder(holder: TrelloColumnViewHolder, position: Int) {
             super.onBindViewHolder(holder, position)
             holder.headerTextView?.text = board[position].name
+            // holder.scaleDown() // TODO: 02-Jul-20 Resume here
             holder.itemView.also {
                 it.pivotX = 0F
                 it.pivotY = 0F
@@ -192,6 +206,33 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 
 private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(itemView) {
     val headerTextView: TextView? get() = header?.trello_header_textView
+
+    fun scaleDown() {
+        val initWidth = itemView.width
+        val targetWidth = initWidth / 2
+        val anim = object : ScaleAnimation(
+                1f,
+                0.5f,
+                1f,
+                0.5f,
+                Animation.RELATIVE_TO_SELF, 0f,
+                Animation.RELATIVE_TO_SELF, 0f) {
+            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
+                super.applyTransformation(interpolatedTime, t)
+                itemView.updateLayoutParams {
+                    width = width - 1
+                }
+            }
+        }.also {
+            it.duration = 500
+            it.fillAfter = true
+        }
+        itemView.startAnimation(anim)
+    }
+
+    fun scaleUp() {
+
+    }
 }
 
 private class TrelloItemViewHolder(itemView: View) : BoardItemViewHolder(itemView) {

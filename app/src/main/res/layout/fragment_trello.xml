@@ -7,7 +7,7 @@
         android:id="@+id/trelloBoardBackground_imageView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@color/boardBackground" />
+        android:src="@color/trelloBoardBackground" />
 
     <com.github.basshelal.boardview.BoardViewContainer
         android:id="@+id/trelloBoardViewContainer"

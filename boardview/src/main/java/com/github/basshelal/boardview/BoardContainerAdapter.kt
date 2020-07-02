@@ -54,7 +54,7 @@ abstract class BoardContainerAdapter {
      * This will only ever be called once so it is safe to return a new
      * [BoardAdapter] in the `get()` implementation
      */
-    abstract val boardViewAdapter: BoardAdapter
+    abstract val boardViewAdapter: BoardAdapter<*>
 
     /**
      * Called when [BoardView] needs to create a new [BoardListAdapter] for a [BoardList].

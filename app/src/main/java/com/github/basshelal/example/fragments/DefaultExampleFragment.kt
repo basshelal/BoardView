@@ -42,7 +42,7 @@ class DefaultExampleFragment : Fragment() {
 
 private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
 
-    override val boardViewAdapter: BoardAdapter
+    override val boardViewAdapter: BoardAdapter<ExampleColumnVH>
         get() = ExampleBoardAdapter()
 
     override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
@@ -93,11 +93,15 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
         }
     }
 
-    private inner class ExampleBoardAdapter : BoardAdapter(this) {
+    private inner class ExampleBoardAdapter : BoardAdapter<ExampleColumnVH>(this) {
 
         private var boardMode: BoardMode = BoardMode.MULTI
 
-        override fun onViewHolderCreated(holder: BoardColumnViewHolder) {
+        override fun createViewHolder(itemView: View): ExampleColumnVH {
+            return ExampleColumnVH(itemView)
+        }
+
+        override fun onViewHolderCreated(holder: ExampleColumnVH) {
             holder.header?.also {
                 it.setOnClickListener {
                     when (boardMode) {
@@ -133,7 +137,7 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
             return board.boardLists.size
         }
 
-        override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: ExampleColumnVH, position: Int) {
             super.onBindViewHolder(holder, position)
             val boardList = board[position]
             holder.itemView.header_textView.text = boardList.name
@@ -183,6 +187,8 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
 
     }
 }
+
+private class ExampleColumnVH(itemView: View) : BoardColumnViewHolder(itemView)
 
 private class ItemVH(itemView: View) : BoardItemViewHolder(itemView) {
     val textView: TextView = itemView.cardText_textView

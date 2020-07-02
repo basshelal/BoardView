@@ -5,5 +5,7 @@
     <color name="colorPrimaryLight">#666AD1</color>
     <color name="colorAccent">#D81B60</color>
     <color name="boardBackground">#ECECEC</color>
-    <color name="trelloCardBackgroundColor">#C0C0C0</color>
+    <color name="trelloBoardBackground">#0079BF</color>
+    <color name="trelloCardColor">#FFFFFF</color>
+    <color name="trelloListColor">#F4F5F7</color>
 </resources>

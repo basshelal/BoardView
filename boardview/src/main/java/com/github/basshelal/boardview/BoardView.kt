@@ -86,7 +86,7 @@ open class BoardView
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
 
-    public inline val boardAdapter: BoardAdapter? get() = this.adapter as? BoardAdapter
+    public inline val boardAdapter: BoardAdapter<*>? get() = this.adapter as? BoardAdapter
 
     /**
      * The width of each column in pixels.
@@ -595,7 +595,9 @@ open class BoardView
     }
 }
 
-abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<BoardColumnViewHolder>() {
+// TODO: 02-Jul-20 Make it have a Type so that callers can have their own typed ViewHolders that
+//  extend BoardColumnViewHolder
+abstract class BoardAdapter<VH : BoardColumnViewHolder>(var adapter: BoardContainerAdapter) : BaseAdapter<VH>() {
 
     /** A mirror of [BoardView.columnWidth] because we don't want to keep a reference to BoardView */
     internal var columnWidth: Int = 0
@@ -613,14 +615,17 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
         }
     }
 
+    // avoid doing anything else here except creating your VH, instead use onViewHolderCreated
+    abstract fun createViewHolder(itemView: View): VH
+
     // We handle the creation because we return BoardVH that contains columns
     // We have to do this ourselves because we resolve the header, footer and list layout as well
     // as managing list adapters
-    final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BoardColumnViewHolder {
+    final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val inflater = LayoutInflater.from(parent.context)!! // can never be null
         val column = inflater
                 .inflate(R.layout.view_boardcolumn, parent, false) as ConstraintLayout
-        val viewHolder = BoardColumnViewHolder(column)
+        val viewHolder = createViewHolder(column)
         val isListWrapContent = adapter.isListWrapContent
         viewHolder.list = column.boardListView
         column.updateLayoutParamsSafe {
@@ -683,10 +688,10 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
             constrainedHeight = true
             if (isListWrapContent) {
                 height = ConstraintLayout.LayoutParams.WRAP_CONTENT
-                column.boardListView?.setHasFixedSize(false)
+                viewHolder.list?.setHasFixedSize(false)
             } else {
                 height = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
-                column.boardListView?.setHasFixedSize(true)
+                viewHolder.list?.setHasFixedSize(true)
             }
         }
         onViewHolderCreated(viewHolder)
@@ -694,10 +699,13 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
     }
 
     // callback for caller to do stuff after onCreateViewHolder is called
-    open fun onViewHolderCreated(holder: BoardColumnViewHolder) {}
+    // TODO: 02-Jul-20 VH is already created this should be renamed to onVHinflated or onVHlayout
+    //  because that's actually all we did in onCreateViewHolder, we just inflated the column and
+    //  set up its layout constraints and shit
+    open fun onViewHolderCreated(holder: VH) {}
 
     @CallSuper
-    override fun onBindViewHolder(holder: BoardColumnViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: VH, position: Int) {
         holder.itemView.updateLayoutParamsSafe { width = columnWidth }
         holder.list?.adapter.also { current ->
             if (current == null) {
@@ -710,7 +718,7 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
     }
 
     @CallSuper
-    override fun onViewAttachedToWindow(holder: BoardColumnViewHolder) {
+    override fun onViewAttachedToWindow(holder: VH) {
         if (holder.adapterPosition > layoutStates.lastIndex) {
             layoutStates.add(null)
         }
@@ -727,7 +735,7 @@ abstract class BoardAdapter(var adapter: BoardContainerAdapter) : BaseAdapter<Bo
     }
 
     @CallSuper
-    override fun onViewDetachedFromWindow(holder: BoardColumnViewHolder) {
+    override fun onViewDetachedFromWindow(holder: VH) {
         holder.list?.layoutManager?.saveState()?.also {
             if (holder.isAdapterPositionValid) layoutStates[holder.adapterPosition] = it
         }

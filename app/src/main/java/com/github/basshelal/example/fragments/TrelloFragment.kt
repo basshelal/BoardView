@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.view.animation.Transformation
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.view.updateLayoutParams
@@ -28,8 +29,11 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_trello.*
 import kotlinx.android.synthetic.main.view_header_trello.view.*
 import kotlinx.android.synthetic.main.view_itemview_trello.view.*
+import kotlin.math.roundToInt
 
 private var isZoomedOut = false
+private const val COLUMN_WIDTH_FULL_DP = 280
+private const val COLUMN_WIDTH_HALF_DP = 140
 
 class TrelloFragment : Fragment() {
 
@@ -49,7 +53,7 @@ class TrelloFragment : Fragment() {
         trelloBoardViewContainer.adapter = TrelloBoardContainerAdapter(EXAMPLE_BOARD)
 
         context?.also { ctx ->
-            trelloBoardViewContainer.boardView.columnWidth = (ctx dpToPx 280).toInt()
+            trelloBoardViewContainer.boardView.columnWidth = (ctx dpToPx COLUMN_WIDTH_FULL_DP).toInt()
         }
 
         pagerSnapHelper = PagerSnapHelper().also {
@@ -97,8 +101,11 @@ class TrelloFragment : Fragment() {
 
     private fun zoom() {
         isZoomedOut = !isZoomedOut
-        (trelloBoardViewContainer.boardView.adapter as?
-                TrelloBoardContainerAdapter.TrelloBoardAdapter)?.notifyAllChanged()
+        trelloBoardViewContainer.boardView.allVisibleViewHolders
+                .map { it as? TrelloColumnViewHolder }
+                .forEach {
+                    if (isZoomedOut) it?.scaleDown() else it?.scaleUp()
+                }
         zoom_fab.setImageResource(if (isZoomedOut) R.drawable.zoom_in_icon else R.drawable.zoom_out_icon)
         pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else trelloBoardViewContainer.boardView)
     }
@@ -151,24 +158,20 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
                 marginStart = (ctx dpToPx 10).toInt()
                 marginEnd = (ctx dpToPx 10).toInt()
             }
-            holder.header?.setOnLongClickListener {
+            holder.headerTextView?.setOnLongClickListener {
                 isZoomedOut = true
                 notifyAllChanged()
                 boardViewContainer.startDraggingColumn(holder)
                 true
             }
+            holder.headerOptionsImageView?.isClickable = true
         }
 
         override fun onBindViewHolder(holder: TrelloColumnViewHolder, position: Int) {
             super.onBindViewHolder(holder, position)
             holder.headerTextView?.text = board[position].name
-            // holder.scaleDown() // TODO: 02-Jul-20 Resume here
-            holder.itemView.also {
-                it.pivotX = 0F
-                it.pivotY = 0F
-                it.scaleX = if (isZoomedOut) 0.5F else 1F
-                it.scaleY = if (isZoomedOut) 0.5F else 1F
-            }
+            Log.e("TAG", "onBindViewHolder: ${holder.itemView.scaleX}")
+            // TODO: 02-Jul-20 Bind to match layout if zoomed out or not
         }
 
         fun notifyAllChanged() {
@@ -206,32 +209,40 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 
 private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(itemView) {
     val headerTextView: TextView? get() = header?.trello_header_textView
+    val headerOptionsImageView: ImageView? get() = header?.trello_header_imageView
 
     fun scaleDown() {
-        val initWidth = itemView.width
-        val targetWidth = initWidth / 2
-        val anim = object : ScaleAnimation(
-                1f,
-                0.5f,
-                1f,
-                0.5f,
-                Animation.RELATIVE_TO_SELF, 0f,
-                Animation.RELATIVE_TO_SELF, 0f) {
+        val target = itemView.context?.let { it dpToPx COLUMN_WIDTH_HALF_DP } ?: 0F
+        itemView.startAnimation(object : ScaleAnimation(1F, 0.5F, 1F, 0.5F,
+                Animation.RELATIVE_TO_SELF, 0F,
+                Animation.RELATIVE_TO_SELF, 0F) {
             override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
                 super.applyTransformation(interpolatedTime, t)
-                itemView.updateLayoutParams {
-                    width = width - 1
+                itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    rightMargin = -(target * interpolatedTime).roundToInt()
                 }
             }
         }.also {
-            it.duration = 500
+            it.duration = 300
             it.fillAfter = true
-        }
-        itemView.startAnimation(anim)
+        })
     }
 
     fun scaleUp() {
-
+        val target = itemView.context?.let { it dpToPx 10 } ?: 0F
+        itemView.startAnimation(object : ScaleAnimation(0.5F, 1F, 0.5F, 1F,
+                Animation.RELATIVE_TO_SELF, 0F,
+                Animation.RELATIVE_TO_SELF, 0F) {
+            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
+                super.applyTransformation(interpolatedTime, t)
+                itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    rightMargin += ((target - rightMargin) * interpolatedTime).roundToInt()
+                }
+            }
+        }.also {
+            it.duration = 300
+            it.fillAfter = true
+        })
     }
 }
 

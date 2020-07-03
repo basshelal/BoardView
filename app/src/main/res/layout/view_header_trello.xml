@@ -20,7 +20,8 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="10dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="10dp"
+            android:fontFamily="sans-serif-medium"
             android:textColor="@android:color/black"
             android:textSize="16sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -31,7 +32,7 @@
 
         <ImageView
             android:id="@+id/trello_header_imageView"
-            android:layout_width="wrap_content"
+            android:layout_width="24dp"
             android:layout_height="0dp"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="4dp"

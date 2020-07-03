@@ -20,6 +20,7 @@ import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
+import com.github.basshelal.boardview.BoardViewContainer
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.example.Board
 import com.github.basshelal.example.EXAMPLE_BOARD
@@ -40,6 +41,7 @@ private const val COLUMN_WIDTH_HALF_DP = 140
 class TrelloFragment : Fragment() {
 
     lateinit var pagerSnapHelper: PagerSnapHelper
+    lateinit var boardContainer: BoardViewContainer
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_trello, container, false)
@@ -52,40 +54,42 @@ class TrelloFragment : Fragment() {
         activity?.activityRoot_constraintLayout?.setBackgroundResource(
                 R.color.trelloBoardBackground)
 
-        trelloBoardViewContainer.adapter = TrelloBoardContainerAdapter(EXAMPLE_BOARD)
+        boardContainer = trelloBoardViewContainer
+
+        boardContainer.adapter = TrelloBoardContainerAdapter(EXAMPLE_BOARD)
 
         context?.also { ctx ->
-            trelloBoardViewContainer.boardView.columnWidth = (ctx dpToPx COLUMN_WIDTH_FULL_DP).toInt()
+            boardContainer.boardView.columnWidth = (ctx dpToPx COLUMN_WIDTH_FULL_DP).toInt()
         }
 
         pagerSnapHelper = PagerSnapHelper().also {
-            it.attachToRecyclerView(trelloBoardViewContainer.boardView)
+            it.attachToRecyclerView(boardContainer.boardView)
         }
 
-        trelloBoardViewContainer.itemDragShadow.rotation = 2F
-        trelloBoardViewContainer.itemDragShadow.alpha = 0.7F
+        boardContainer.itemDragShadow.rotation = 2F
+        boardContainer.itemDragShadow.alpha = 0.7F
 
-        trelloBoardViewContainer.itemDragShadow.dragBehavior
+        boardContainer.itemDragShadow.dragBehavior
                 .addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
                     override fun onStartDrag(dragView: View) {
                         pagerSnapHelper.attachToRecyclerView(null)
                     }
 
                     override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                        pagerSnapHelper.attachToRecyclerView(trelloBoardViewContainer.boardView)
+                        pagerSnapHelper.attachToRecyclerView(boardContainer.boardView)
                     }
                 })
 
-        trelloBoardViewContainer.listDragShadow.rotation = 2F
-        trelloBoardViewContainer.listDragShadow.alpha = 0.7F
-        trelloBoardViewContainer.listDragShadow.also {
+        boardContainer.listDragShadow.rotation = 2F
+        boardContainer.listDragShadow.alpha = 0.7F
+        boardContainer.listDragShadow.also {
             it.pivotX = 0F
             it.pivotY = 0F
             it.scaleX = 0.5F
             it.scaleY = 0.5F
         }
 
-        trelloBoardViewContainer.listDragShadow.dragBehavior
+        boardContainer.listDragShadow.dragBehavior
                 .addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
                     override fun onStartDrag(dragView: View) {
                         isZoomedOut = true
@@ -93,10 +97,17 @@ class TrelloFragment : Fragment() {
 
                     override fun onEndDrag(dragView: View) {
                         isZoomedOut = false
-                        (trelloBoardViewContainer.boardView.adapter as?
+                        (boardContainer.boardView.adapter as?
                                 TrelloBoardContainerAdapter.TrelloBoardAdapter)?.notifyAllChanged()
                     }
                 })
+
+        val padding = (context?.dpToPx(8) ?: 0F).toInt()
+
+        boardContainer.boardView.setPadding(padding, 0, padding, 0)
+        boardContainer.boardView.clipToPadding = false
+
+        boardContainer.boardView.isOverScrollingEnabled = false
 
         zoom_fab.setOnClickListener { zoom() }
     }
@@ -105,9 +116,9 @@ class TrelloFragment : Fragment() {
         isZoomedOut = !isZoomedOut
         zoom_fab.setImageResource(if (isZoomedOut) R.drawable.zoom_in_icon else R.drawable.zoom_out_icon)
         val onAnimationEnded: (Animation) -> Unit = {
-            pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else trelloBoardViewContainer.boardView)
+            pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else boardContainer.boardView)
         }
-        trelloBoardViewContainer.boardView.allVisibleViewHolders
+        boardContainer.boardView.allVisibleViewHolders
                 .map { it as? TrelloColumnViewHolder }
                 .filter { it?.isAnimating == false }
                 .forEach {
@@ -159,8 +170,8 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
             val ctx = holder.itemView.context
             holder.list?.setBackgroundResource(R.color.trelloListColor)
             holder.itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = (ctx dpToPx 16).toInt()
-                bottomMargin = (ctx dpToPx 16).toInt()
+                topMargin = (ctx dpToPx 10).toInt()
+                bottomMargin = (ctx dpToPx 10).toInt()
                 marginStart = (ctx dpToPx 10).toInt()
                 marginEnd = (ctx dpToPx 10).toInt()
             }
@@ -212,6 +223,11 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrelloItemViewHolder {
             return TrelloItemViewHolder(parent).also { vh ->
+                val ctx = vh.itemView.context
+                vh.itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    marginStart = (ctx dpToPx 8).toInt()
+                    marginEnd = (ctx dpToPx 8).toInt()
+                }
                 vh.itemView.setOnLongClickListener {
                     boardViewContainer.startDraggingItem(vh)
                     true

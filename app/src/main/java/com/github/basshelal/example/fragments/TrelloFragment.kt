@@ -24,7 +24,9 @@ import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.example.Board
 import com.github.basshelal.example.EXAMPLE_BOARD
+import com.github.basshelal.example.animationListener
 import com.github.basshelal.example.dpToPx
+import com.github.basshelal.example.now
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_trello.*
 import kotlinx.android.synthetic.main.view_header_trello.view.*
@@ -101,13 +103,16 @@ class TrelloFragment : Fragment() {
 
     private fun zoom() {
         isZoomedOut = !isZoomedOut
+        zoom_fab.setImageResource(if (isZoomedOut) R.drawable.zoom_in_icon else R.drawable.zoom_out_icon)
+        val onAnimationEnded: (Animation) -> Unit = {
+            pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else trelloBoardViewContainer.boardView)
+        }
         trelloBoardViewContainer.boardView.allVisibleViewHolders
                 .map { it as? TrelloColumnViewHolder }
                 .forEach {
-                    if (isZoomedOut) it?.scaleDown() else it?.scaleUp()
+                    if (isZoomedOut) it?.scaleDown(onAnimationEnded)
+                    else it?.scaleUp(onAnimationEnded)
                 }
-        zoom_fab.setImageResource(if (isZoomedOut) R.drawable.zoom_in_icon else R.drawable.zoom_out_icon)
-        pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else trelloBoardViewContainer.boardView)
     }
 }
 
@@ -165,13 +170,26 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
                 true
             }
             holder.headerOptionsImageView?.isClickable = true
+            holder.itemView.also {
+                it.pivotX = 0F
+                it.pivotY = 0F
+            }
         }
 
         override fun onBindViewHolder(holder: TrelloColumnViewHolder, position: Int) {
             super.onBindViewHolder(holder, position)
             holder.headerTextView?.text = board[position].name
-            Log.e("TAG", "onBindViewHolder: ${holder.itemView.scaleX}")
-            // TODO: 02-Jul-20 Bind to match layout if zoomed out or not
+            val scale = if (isZoomedOut) 0.5F else 1F
+            val halfMargin = (holder.itemView.context?.let { it dpToPx -COLUMN_WIDTH_HALF_DP }
+                    ?: 0F).toInt()
+            val fullMargin = (holder.itemView.context?.let { it dpToPx 10 } ?: 0F).toInt()
+            holder.itemView.also {
+                it.scaleX = scale
+                it.scaleY = scale
+                it.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    rightMargin = if (scale == 1F) fullMargin else halfMargin
+                }
+            }
         }
 
         fun notifyAllChanged() {
@@ -211,24 +229,29 @@ private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(ite
     val headerTextView: TextView? get() = header?.trello_header_textView
     val headerOptionsImageView: ImageView? get() = header?.trello_header_imageView
 
-    fun scaleDown() {
-        val target = itemView.context?.let { it dpToPx COLUMN_WIDTH_HALF_DP } ?: 0F
+    inline fun scaleDown(crossinline onAnimationEnded: (Animation) -> Unit = {}) {
+        val target = itemView.context?.let { it dpToPx -COLUMN_WIDTH_HALF_DP } ?: 0F
         itemView.startAnimation(object : ScaleAnimation(1F, 0.5F, 1F, 0.5F,
                 Animation.RELATIVE_TO_SELF, 0F,
                 Animation.RELATIVE_TO_SELF, 0F) {
             override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
                 super.applyTransformation(interpolatedTime, t)
                 itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    rightMargin = -(target * interpolatedTime).roundToInt()
+                    rightMargin = (target * interpolatedTime).roundToInt()
                 }
             }
         }.also {
             it.duration = 300
+            it.fillBefore = true
             it.fillAfter = true
+            it.setAnimationListener(animationListener(onEnd = {
+                itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> { rightMargin = target.toInt() }
+                onAnimationEnded(it)
+            }))
         })
     }
 
-    fun scaleUp() {
+    inline fun scaleUp(crossinline onAnimationEnded: (Animation) -> Unit = {}) {
         val target = itemView.context?.let { it dpToPx 10 } ?: 0F
         itemView.startAnimation(object : ScaleAnimation(0.5F, 1F, 0.5F, 1F,
                 Animation.RELATIVE_TO_SELF, 0F,
@@ -236,12 +259,18 @@ private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(ite
             override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
                 super.applyTransformation(interpolatedTime, t)
                 itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    rightMargin += ((target - rightMargin) * interpolatedTime).roundToInt()
+                    // TODO: 03-Jul-20 Calculations are wrong I think
+                    rightMargin += ((target - rightMargin) * interpolatedTime).toInt()
+                    Log.e("TAG", "applyTransformation: $rightMargin $now")
                 }
             }
         }.also {
             it.duration = 300
+            it.fillBefore = true
             it.fillAfter = true
+            it.setAnimationListener(animationListener(onEnd = {
+                onAnimationEnded(it)
+            }))
         })
     }
 }

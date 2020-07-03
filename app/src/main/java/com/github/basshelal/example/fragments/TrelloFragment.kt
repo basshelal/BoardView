@@ -7,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
-import android.view.animation.ScaleAnimation
 import android.view.animation.Transformation
 import android.widget.ImageView
 import android.widget.TextView
@@ -24,6 +23,7 @@ import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.example.Board
 import com.github.basshelal.example.EXAMPLE_BOARD
+import com.github.basshelal.example.ScaleAnimation
 import com.github.basshelal.example.animationListener
 import com.github.basshelal.example.dpToPx
 import com.github.basshelal.example.now
@@ -109,9 +109,10 @@ class TrelloFragment : Fragment() {
         }
         trelloBoardViewContainer.boardView.allVisibleViewHolders
                 .map { it as? TrelloColumnViewHolder }
+                .filter { it?.isAnimating == false }
                 .forEach {
-                    if (isZoomedOut) it?.scaleDown(onAnimationEnded)
-                    else it?.scaleUp(onAnimationEnded)
+                    if (isZoomedOut) it?.scaleDown(onEnd = onAnimationEnded)
+                    else it?.scaleUp(onEnd = onAnimationEnded)
                 }
     }
 }
@@ -132,13 +133,13 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
     }
 
     override fun onMoveColumn(draggingColumn: BoardColumnViewHolder, targetPosition: Int): Boolean {
-        Log.e("Trello", "onMoveColumn: $targetPosition")
+        Log.e("Trello", "onMoveColumn: $targetPosition $now")
         return false
     }
 
     override fun onMoveItem(draggingItem: BoardItemViewHolder, targetPosition: Int,
                             draggingColumn: BoardColumnViewHolder, targetColumn: BoardColumnViewHolder): Boolean {
-        Log.e("Trello", "onMoveItem: ${targetColumn.adapterPosition} $targetPosition")
+        Log.e("Trello", "onMoveItem: ${targetColumn.adapterPosition} $targetPosition $now")
         return false
     }
 
@@ -226,50 +227,54 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 }
 
 private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(itemView) {
+
     val headerTextView: TextView? get() = header?.trello_header_textView
     val headerOptionsImageView: ImageView? get() = header?.trello_header_imageView
+    var isAnimating = false
 
-    inline fun scaleDown(crossinline onAnimationEnded: (Animation) -> Unit = {}) {
+    inline fun scaleDown(crossinline onStart: (Animation) -> Unit = {},
+                         crossinline onRepeat: (Animation) -> Unit = {},
+                         crossinline onEnd: (Animation) -> Unit = {}) {
+        isAnimating = true
         val target = itemView.context?.let { it dpToPx -COLUMN_WIDTH_HALF_DP } ?: 0F
-        itemView.startAnimation(object : ScaleAnimation(1F, 0.5F, 1F, 0.5F,
+        itemView.startAnimation(ScaleAnimation(1F, 0.5F, 1F, 0.5F,
                 Animation.RELATIVE_TO_SELF, 0F,
-                Animation.RELATIVE_TO_SELF, 0F) {
-            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
-                super.applyTransformation(interpolatedTime, t)
-                itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    rightMargin = (target * interpolatedTime).roundToInt()
-                }
+                Animation.RELATIVE_TO_SELF, 0F) { interpolatedTime: Float, transformation: Transformation ->
+            itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                rightMargin = (target * interpolatedTime).roundToInt()
             }
         }.also {
             it.duration = 300
             it.fillBefore = true
             it.fillAfter = true
-            it.setAnimationListener(animationListener(onEnd = {
+            it.setAnimationListener(animationListener(onStart, onRepeat, onEnd = {
                 itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> { rightMargin = target.toInt() }
-                onAnimationEnded(it)
+                onEnd(it)
+                isAnimating = false
             }))
         })
     }
 
-    inline fun scaleUp(crossinline onAnimationEnded: (Animation) -> Unit = {}) {
+    inline fun scaleUp(crossinline onStart: (Animation) -> Unit = {},
+                       crossinline onRepeat: (Animation) -> Unit = {},
+                       crossinline onEnd: (Animation) -> Unit = {}) {
+        isAnimating = true
         val target = itemView.context?.let { it dpToPx 10 } ?: 0F
-        itemView.startAnimation(object : ScaleAnimation(0.5F, 1F, 0.5F, 1F,
+        itemView.startAnimation(ScaleAnimation(0.5F, 1F, 0.5F, 1F,
                 Animation.RELATIVE_TO_SELF, 0F,
-                Animation.RELATIVE_TO_SELF, 0F) {
-            override fun applyTransformation(interpolatedTime: Float, t: Transformation?) {
-                super.applyTransformation(interpolatedTime, t)
-                itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    // TODO: 03-Jul-20 Calculations are wrong I think
-                    rightMargin += ((target - rightMargin) * interpolatedTime).toInt()
-                    Log.e("TAG", "applyTransformation: $rightMargin $now")
-                }
+                Animation.RELATIVE_TO_SELF, 0F) { interpolatedTime: Float, transformation: Transformation ->
+            itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                // TODO: 03-Jul-20 Calculations are wrong I think
+                rightMargin += ((target - rightMargin) * interpolatedTime).toInt()
+                //  Log.e("TAG", "applyTransformation: $rightMargin $now")
             }
         }.also {
             it.duration = 300
             it.fillBefore = true
             it.fillAfter = true
-            it.setAnimationListener(animationListener(onEnd = {
-                onAnimationEnded(it)
+            it.setAnimationListener(animationListener(onStart, onRepeat, onEnd = {
+                onEnd(it)
+                isAnimating = false
             }))
         })
     }

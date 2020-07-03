@@ -73,11 +73,21 @@ class BoardViewContainer
     /** The current touch point, updated in [onTouchEvent] */
     private var touchPoint = PointF()
 
+    // TODO: 03-Jul-20 Have a public API for these 2 below, there is some serious use for this
+    //  only ensure that user cannot set anything
+
     /** The current [DraggingItem] when dragging [itemDragShadow] */
     private val draggingItem = DraggingItem()
 
     /** The current [BoardColumnViewHolder] when dragging [listDragShadow] */
     private var draggingColumnVH: BoardColumnViewHolder? = null
+
+    // TODO: 02-Jul-20 If caller gives us a false when requesting a swap we should stop asking
+    //  them for it somehow, current implementation keeps requesting them
+
+    private var requestedColumnSwap: ColumnSwap? = null
+
+    private var requestedItemSwap: ItemSwap? = null
 
     //endregion Private variables
 
@@ -127,9 +137,6 @@ class BoardViewContainer
             else -> boardView.dispatchTouchEvent(event)
         }
     }
-
-    // TODO: 02-Jul-20 If caller gives us a false when requesting a swap we should stop asking
-    //  them for it somehow, current implementation keeps requesting them
 
     // TODO: 02-Jul-20 Caller should be able to customize scrolling behavior including speed
 
@@ -336,4 +343,9 @@ class BoardViewContainer
             return this
         }
     }
+
+    private data class ColumnSwap(val draggingColumn: BoardColumnViewHolder, val targetPosition: Int)
+
+    private data class ItemSwap(val draggingItem: BoardItemViewHolder, val targetPosition: Int,
+                                val draggingColumn: BoardColumnViewHolder, val targetColumn: BoardColumnViewHolder)
 }

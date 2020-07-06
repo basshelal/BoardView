@@ -19,6 +19,7 @@ import com.github.basshelal.boardview.utils.isAdapterPositionValid
 import com.github.basshelal.boardview.utils.isValidAdapterPosition
 import com.github.basshelal.boardview.utils.lastPosition
 import kotlinx.android.synthetic.main.container_boardviewcontainer.view.*
+import java.util.Objects
 
 /**
  * The container that will contain a [BoardView] as well as the [DragShadow]s for dragging
@@ -68,19 +69,17 @@ class BoardViewContainer
      */
     public inline val listDragShadow: DragShadow get() = this.list_dragShadow
 
+    /** The current [DraggingItem] when dragging [itemDragShadow] */
+    public val draggingItem = DraggingItem()
+
+    /** The current [BoardColumnViewHolder] when dragging [listDragShadow] */
+    public var draggingColumn: BoardColumnViewHolder? = null
+        private set
+
     //region Private variables
 
     /** The current touch point, updated in [onTouchEvent] */
     private var touchPoint = PointF()
-
-    // TODO: 03-Jul-20 Have a public API for these 2 below, there is some serious use for this
-    //  only ensure that user cannot set anything
-
-    /** The current [DraggingItem] when dragging [itemDragShadow] */
-    private val draggingItem = DraggingItem()
-
-    /** The current [BoardColumnViewHolder] when dragging [listDragShadow] */
-    private var draggingColumnVH: BoardColumnViewHolder? = null
 
     /**
      * The last requested [ColumnSwap]
@@ -143,8 +142,6 @@ class BoardViewContainer
         }
     }
 
-    // TODO: 02-Jul-20 Caller should be able to customize scrolling behavior including speed
-
     //region Private functions
 
     @CalledOnce
@@ -202,16 +199,16 @@ class BoardViewContainer
             /** User has started drag, initialize everything */
             override fun onStartDrag(dragView: View) {
                 super.onStartDrag(dragView)
-                draggingColumnVH = boardView.getViewHolderUnder(touchPoint)
+                draggingColumn = boardView.getViewHolderUnder(touchPoint)
                 listDragShadow.isVisible = true
-                draggingColumnVH?.itemView?.alpha = 0F
+                draggingColumn?.itemView?.alpha = 0F
                 requestedColumnSwap = null
             }
 
             /** Next frame has executed, scroll and swap */
             override fun onNextFrame(frameTimeNanos: Long) {
                 boardView.horizontalScroll(touchPoint)
-                draggingColumnVH?.also { draggingColumnVH ->
+                draggingColumn?.also { draggingColumnVH ->
                     boardView.getViewHolderUnder(touchPoint)?.also { newVH ->
                         swapColumnViewHolders(draggingColumnVH, newVH)
                     }
@@ -229,9 +226,9 @@ class BoardViewContainer
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
-                draggingColumnVH?.itemView?.alpha = 1F
+                draggingColumn?.itemView?.alpha = 1F
                 listDragShadow.isVisible = false
-                draggingColumnVH = null
+                draggingColumn = null
                 requestedColumnSwap = null
             }
         })
@@ -346,10 +343,14 @@ class BoardViewContainer
         }
     }
 
-    /** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder], can be used for anything really */
-    private data class DraggingItem(
-            var columnViewHolder: BoardColumnViewHolder? = null,
-            var itemViewHolder: BoardItemViewHolder? = null) {
+    /** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder] used in [draggingItem] */
+    class DraggingItem(columnViewHolder: BoardColumnViewHolder? = null,
+                       itemViewHolder: BoardItemViewHolder? = null) {
+
+        var columnViewHolder: BoardColumnViewHolder? = columnViewHolder
+            internal set
+        var itemViewHolder: BoardItemViewHolder? = itemViewHolder
+            internal set
 
         /** Executes [block] only if both [columnViewHolder] and [itemViewHolder] are not `null` */
         inline fun also(block: (columnViewHolder: BoardColumnViewHolder,
@@ -361,6 +362,18 @@ class BoardViewContainer
             }
             return this
         }
+
+        inline operator fun component1(): BoardColumnViewHolder? = columnViewHolder
+        inline operator fun component2(): BoardItemViewHolder? = itemViewHolder
+        override fun hashCode(): Int = Objects.hash(columnViewHolder, itemViewHolder)
+
+        override fun equals(other: Any?): Boolean = other is DraggingItem &&
+                other.columnViewHolder == this.columnViewHolder &&
+                other.itemViewHolder == this.itemViewHolder
+
+        override fun toString(): String = "DraggingItem(" +
+                "columnViewHolder= $columnViewHolder, " +
+                "itemViewHolder= $itemViewHolder)"
     }
 
     private data class ColumnSwap(val draggingColumn: BoardColumnViewHolder, val targetPosition: Int)

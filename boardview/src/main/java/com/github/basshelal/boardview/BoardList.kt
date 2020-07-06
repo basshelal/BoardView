@@ -270,9 +270,7 @@ class BoardList
  * [BoardView] recycles the [BoardListAdapter]s it uses for performance reasons, hence, you must
  * override [bindAdapter] to inform [BoardView] how to properly bind an adapter to the position.
  */
-abstract class BoardListAdapter<VH : BoardItemViewHolder>(
-        var adapter: BoardContainerAdapter? = null // TODO: 01-Jul-20 Used? If not then remove!
-) : BaseAdapter<VH>() {
+abstract class BoardListAdapter<VH : BoardItemViewHolder> : BaseAdapter<VH>() {
 
     /**
      * Override to inform [BoardAdapter] how to bind this adapter to the given [position] and

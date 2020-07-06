@@ -145,7 +145,7 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
         }
     }
 
-    private inner class ExampleBoardListAdapter(position: Int) : BoardListAdapter<ItemVH>(this) {
+    private inner class ExampleBoardListAdapter(position: Int) : BoardListAdapter<ItemVH>() {
 
         var boardList = board[position]
 

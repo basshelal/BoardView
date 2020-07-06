@@ -26,7 +26,7 @@ import java.util.Objects
  * functionality of [BoardList]s and ItemViews, this is how we do dragging, if you only
  * wants a Board with no dragging functionality use [BoardView]
  */
-class BoardViewContainer
+public class BoardViewContainer
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr) {
@@ -344,13 +344,25 @@ class BoardViewContainer
     }
 
     /** Pair of [BoardColumnViewHolder] and [BoardItemViewHolder] used in [draggingItem] */
-    class DraggingItem(columnViewHolder: BoardColumnViewHolder? = null,
-                       itemViewHolder: BoardItemViewHolder? = null) {
+    public class DraggingItem(columnViewHolder: BoardColumnViewHolder? = null,
+                              itemViewHolder: BoardItemViewHolder? = null) {
+
+        /** Callback that callers can use to be notified when the value of [columnViewHolder] has changed */
+        var onChangedColumnViewHolder: (oldValue: BoardColumnViewHolder?, newValue: BoardColumnViewHolder?) -> Unit = { _, _ -> }
+
+        /** Callback that callers can use to be notified when the value of [itemViewHolder] has changed */
+        var onChangedItemViewHolder: (oldValue: BoardItemViewHolder?, newValue: BoardItemViewHolder?) -> Unit = { _, _ -> }
 
         var columnViewHolder: BoardColumnViewHolder? = columnViewHolder
-            internal set
+            internal set(value) {
+                onChangedColumnViewHolder(field, value)
+                field = value
+            }
         var itemViewHolder: BoardItemViewHolder? = itemViewHolder
-            internal set
+            internal set(value) {
+                onChangedItemViewHolder(field, value)
+                field = value
+            }
 
         /** Executes [block] only if both [columnViewHolder] and [itemViewHolder] are not `null` */
         inline fun also(block: (columnViewHolder: BoardColumnViewHolder,

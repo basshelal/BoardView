@@ -242,6 +242,12 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
     }
 }
 
+// TODO: 06-Jul-20 For the zoom animation we can only scale up and down each column
+//  this affects the visible width so the column will take the same space but will only fill it
+//  by half, we can fix this by 2 ways, current way is using negative margins which has weird
+//  side effects and is generally a bad dirty idea, another possible way is by translating each
+//  column by x amount it was descaled, that makes more sense but we need special cases for the
+//  first and maybe last column
 private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(itemView) {
 
     val headerTextView: TextView? get() = header?.trello_header_textView

@@ -14,7 +14,7 @@ import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.example.Board
-import com.github.basshelal.example.EXAMPLE_BOARD
+import com.github.basshelal.example.DEFAULT_EXAMPLE_BOARD
 import com.github.basshelal.example.StringListItem
 import kotlinx.android.synthetic.main.fragment_default_example.*
 import kotlinx.android.synthetic.main.view_header_default.view.*
@@ -29,18 +29,15 @@ class DefaultExampleFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        defaultBoardViewContainer.adapter = ExampleBoardContainerAdapter(EXAMPLE_BOARD)
+        defaultBoardViewContainer.adapter = ExampleBoardContainerAdapter(DEFAULT_EXAMPLE_BOARD)
     }
 }
 
 private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
 
-    override val boardViewAdapter: BoardAdapter<ExampleColumnVH>
-        get() = ExampleBoardAdapter()
+    override val boardViewAdapter get() = ExampleBoardAdapter()
 
-    override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
-        return ExampleBoardListAdapter(position)
-    }
+    override fun onCreateListAdapter(position: Int) = ExampleBoardListAdapter(position)
 
     override val headerLayoutRes: Int? = R.layout.view_header_default
 
@@ -59,29 +56,29 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
 
     override fun onMoveItem(draggingItem: BoardItemViewHolder, targetPosition: Int,
                             draggingColumn: BoardColumnViewHolder, targetColumn: BoardColumnViewHolder): Boolean {
-        val oldColumnPosition = draggingColumn.adapterPosition
-        val newColumnPosition = targetColumn.adapterPosition
-        val oldItemPosition = draggingItem.adapterPosition
-        val newItemPosition = targetPosition
+        val draggingColumnPos = draggingColumn.adapterPosition
+        val targetColumnPos = targetColumn.adapterPosition
+        val draggingItemPos = draggingItem.adapterPosition
+        val targetItemPos = targetPosition
 
-        if (oldColumnPosition == NO_POSITION || newColumnPosition == NO_POSITION ||
-                oldItemPosition == NO_POSITION || newItemPosition == NO_POSITION) return false
+        if (draggingColumnPos == NO_POSITION || targetColumnPos == NO_POSITION ||
+                draggingItemPos == NO_POSITION || targetItemPos == NO_POSITION) return false
 
-        if (oldColumnPosition == newColumnPosition) {
-            if (oldItemPosition == newItemPosition) return false
+        if (draggingColumnPos == targetColumnPos) {
+            if (draggingItemPos == targetItemPos) return false
             else {
-                val boardList = board.boardLists[oldColumnPosition]
-                val value = boardList[oldItemPosition]
-                boardList.items.removeAt(oldItemPosition)
-                boardList.items.add(newItemPosition, value)
+                val boardList = board.boardLists[draggingColumnPos]
+                val value = boardList[draggingItemPos]
+                boardList.items.removeAt(draggingItemPos)
+                boardList.items.add(targetItemPos, value)
                 return true
             }
         } else {
-            val fromBoardList = board.boardLists[oldColumnPosition]
-            val toBoardList = board.boardLists[newColumnPosition]
-            val value = fromBoardList[oldItemPosition]
-            fromBoardList.items.removeAt(oldItemPosition)
-            toBoardList.items.add(newItemPosition, value)
+            val fromBoardList = board.boardLists[draggingColumnPos]
+            val toBoardList = board.boardLists[targetColumnPos]
+            val value = fromBoardList[draggingItemPos]
+            fromBoardList.items.removeAt(draggingItemPos)
+            toBoardList.items.add(targetItemPos, value)
             return true
         }
     }

@@ -95,8 +95,8 @@ abstract class BoardContainerAdapter {
      * Return `true` to allow the move to happen, a `false` return value will effectively
      * disallow the move to be made.
      *
-     * Do not call any `notify...()` methods here,
-     * these are handled internally in [BoardViewContainer]
+     * **DO NOT call any `notify...()` methods here,
+     * these are handled internally in [BoardViewContainer]**
      *
      * @param draggingItem the [BoardItemViewHolder] that the user is dragging
      * @param targetPosition the position the [draggingItem] is over in the [draggingColumn] and

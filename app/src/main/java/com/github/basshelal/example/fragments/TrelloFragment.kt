@@ -23,8 +23,8 @@ import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.boardview.BoardViewContainer
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.example.Board
-import com.github.basshelal.example.EXAMPLE_BOARD
 import com.github.basshelal.example.ScaleAnimation
+import com.github.basshelal.example.TRELLO_BOARD
 import com.github.basshelal.example.animationListener
 import com.github.basshelal.example.dpToPx
 import com.github.basshelal.example.now
@@ -55,7 +55,7 @@ class TrelloFragment : Fragment() {
 
         boardContainer = trelloBoardViewContainer
 
-        boardContainer.adapter = TrelloBoardContainerAdapter(EXAMPLE_BOARD)
+        boardContainer.adapter = TrelloBoardContainerAdapter(TRELLO_BOARD)
 
         context?.also { ctx ->
             boardContainer.boardView.columnWidth = (ctx dpToPx COLUMN_WIDTH_FULL_DP).toInt()
@@ -64,6 +64,15 @@ class TrelloFragment : Fragment() {
         pagerSnapHelper = PagerSnapHelper().also {
             it.attachToRecyclerView(boardContainer.boardView)
         }
+
+        val padding = (context?.dpToPx(8) ?: 0F).toInt()
+
+        boardContainer.boardView.setPadding(padding, 0, padding, 0)
+        boardContainer.boardView.clipToPadding = false
+
+        boardContainer.boardView.isOverScrollingEnabled = false
+
+        zoom_fab.setOnClickListener { zoom() }
 
         boardContainer.itemDragShadow.rotation = 2F
         boardContainer.itemDragShadow.alpha = 0.7F
@@ -95,15 +104,6 @@ class TrelloFragment : Fragment() {
                                 TrelloBoardContainerAdapter.TrelloBoardAdapter)?.notifyAllChanged()
                     }
                 })
-
-        val padding = (context?.dpToPx(8) ?: 0F).toInt()
-
-        boardContainer.boardView.setPadding(padding, 0, padding, 0)
-        boardContainer.boardView.clipToPadding = false
-
-        boardContainer.boardView.isOverScrollingEnabled = false
-
-        zoom_fab.setOnClickListener { zoom() }
     }
 
     private fun zoom() {
@@ -158,20 +158,18 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 
         override fun getItemCount(): Int = board.boardLists.size
 
-        override fun createViewHolder(itemView: View): TrelloColumnViewHolder {
-            return TrelloColumnViewHolder(itemView)
-        }
+        override fun createViewHolder(itemView: View) = TrelloColumnViewHolder(itemView)
 
         override fun onViewHolderLaidOut(holder: TrelloColumnViewHolder) {
-            super.onViewHolderLaidOut(holder)
             holder.list?.isOverScrollingEnabled = false
             val ctx = holder.itemView.context
             holder.list?.setBackgroundResource(R.color.trelloListColor)
             holder.itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = (ctx dpToPx 10).toInt()
-                bottomMargin = (ctx dpToPx 10).toInt()
-                marginStart = (ctx dpToPx 10).toInt()
-                marginEnd = (ctx dpToPx 10).toInt()
+                val margin = (ctx dpToPx 10).toInt()
+                topMargin = margin
+                bottomMargin = margin
+                marginStart = margin
+                marginEnd = margin
             }
             holder.headerTextView?.setOnLongClickListener {
                 isZoomedOut = true

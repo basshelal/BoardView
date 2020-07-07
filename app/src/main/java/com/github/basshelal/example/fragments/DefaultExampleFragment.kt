@@ -94,7 +94,7 @@ private class ExampleBoardContainerAdapter(val board: Board<String>) : BoardCont
             return ExampleColumnVH(itemView)
         }
 
-        override fun onViewHolderCreated(holder: ExampleColumnVH) {
+        override fun onViewHolderLaidOut(holder: ExampleColumnVH) {
             holder.header?.also {
                 it.setOnClickListener {
                     when (boardMode) {

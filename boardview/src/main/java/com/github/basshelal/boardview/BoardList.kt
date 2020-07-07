@@ -156,12 +156,13 @@ class BoardList
         }
     }
 
+    /** Used to manage bounds for scrolling and swapping */
     private class BoardListBounds(globalRectF: RectF) {
 
         var verticalScrollBoundsHeight = globalRectF.height() / 10F
 
         // Rectangles
-        var inside = globalRectF
+        val inside = globalRectF
         val scrollUp = RectF()
         val scrollDown = RectF()
         val top = RectF()

@@ -51,8 +51,7 @@ class TrelloFragment : Fragment() {
         super.onActivityCreated(savedInstanceState)
 
         // AppBar's rounded corners
-        activity?.activityRoot_constraintLayout?.setBackgroundResource(
-                R.color.trelloBoardBackground)
+        activity?.activityRoot_constraintLayout?.setBackgroundResource(R.color.trelloBoardBackground)
 
         boardContainer = trelloBoardViewContainer
 
@@ -71,13 +70,8 @@ class TrelloFragment : Fragment() {
 
         boardContainer.itemDragShadow.dragBehavior
                 .addDragListenerIfNotExists(object : ObservableDragBehavior.SimpleDragListener() {
-                    override fun onStartDrag(dragView: View) {
-                        pagerSnapHelper.attachToRecyclerView(null)
-                    }
-
-                    override fun onReleaseDrag(dragView: View, touchPoint: PointF) {
-                        pagerSnapHelper.attachToRecyclerView(boardContainer.boardView)
-                    }
+                    override fun onStartDrag(dragView: View) = pagerSnapHelper.detach()
+                    override fun onReleaseDrag(dragView: View, touchPoint: PointF) = pagerSnapHelper.attach()
                 })
 
         boardContainer.listDragShadow.rotation = 2F
@@ -116,7 +110,7 @@ class TrelloFragment : Fragment() {
         isZoomedOut = !isZoomedOut
         zoom_fab.setImageResource(if (isZoomedOut) R.drawable.zoom_in_icon else R.drawable.zoom_out_icon)
         val onAnimationEnded: (Animation) -> Unit = {
-            pagerSnapHelper.attachToRecyclerView(if (isZoomedOut) null else boardContainer.boardView)
+            if (isZoomedOut) pagerSnapHelper.detach() else pagerSnapHelper.attach()
         }
         boardContainer.boardView.allVisibleViewHolders
                 .map { it as? TrelloColumnViewHolder }
@@ -126,6 +120,10 @@ class TrelloFragment : Fragment() {
                     else it?.scaleUp(onEnd = onAnimationEnded)
                 }
     }
+
+    private fun PagerSnapHelper.attach() = this.attachToRecyclerView(boardContainer.boardView)
+
+    private fun PagerSnapHelper.detach() = this.attachToRecyclerView(null)
 }
 
 private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardContainerAdapter() {
@@ -164,8 +162,8 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
             return TrelloColumnViewHolder(itemView)
         }
 
-        override fun onViewHolderCreated(holder: TrelloColumnViewHolder) {
-            super.onViewHolderCreated(holder)
+        override fun onViewHolderLaidOut(holder: TrelloColumnViewHolder) {
+            super.onViewHolderLaidOut(holder)
             holder.list?.isOverScrollingEnabled = false
             val ctx = holder.itemView.context
             holder.list?.setBackgroundResource(R.color.trelloListColor)

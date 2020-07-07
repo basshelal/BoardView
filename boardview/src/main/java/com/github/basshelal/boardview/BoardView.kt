@@ -81,7 +81,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-open class BoardView
+public open class BoardView
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
@@ -91,7 +91,7 @@ open class BoardView
     /**
      * The width of each column in pixels.
      * [WRAP_CONTENT] is not allowed.
-     * [MATCH_PARENT] is allowed and will be resolved to the value returned by [getWidth].
+     * [MATCH_PARENT] is allowed and will be resolved to the value returned by this [getWidth].
      */
     @Px
     public var columnWidth = context.dpToPx(150).I
@@ -107,9 +107,11 @@ open class BoardView
 
     /**
      * This takes into account if the LayoutManager is using reverse layout, this is important
-     * for [BoardView] because it is horizontal
+     * for [BoardView] because it is horizontal which means RTL layouts must be accommodated
+     *
+     * Returns either [View.LAYOUT_DIRECTION_LTR] or [View.LAYOUT_DIRECTION_RTL]
      */
-    inline val boardLayoutDirection: Int
+    public inline val boardLayoutDirection: Int
         get() {
             return when (layoutDirection) {
                 LAYOUT_DIRECTION_LTR ->
@@ -121,6 +123,8 @@ open class BoardView
                 else -> throw IllegalStateException("Invalid Layout Direction: $layoutDirection")
             }
         }
+
+    //region Private variables
 
     // Horizontal Scrolling info, transient shit
     private val interpolator = LogarithmicInterpolator()
@@ -170,6 +174,8 @@ open class BoardView
         }
     }
 
+    //endregion Private variables
+
     init {
         this.setHasFixedSize(true)
         layoutManager = SaveRestoreLinearLayoutManager(context).also {
@@ -199,7 +205,7 @@ open class BoardView
         bounds.set(this.globalVisibleRectF)
     }
 
-    fun horizontalScroll(touchPoint: PointF) {
+    internal fun horizontalScroll(touchPoint: PointF) {
         val scrollBy: Int
         when (bounds.findSectorForPoint(touchPoint)) {
             INSIDE_LEFT, TOP_INSIDE_LEFT, BOTTOM_INSIDE_LEFT -> {
@@ -252,7 +258,7 @@ open class BoardView
         }
     }
 
-    @Beta
+    @Beta(reason = "Animations are sluggish and not fully correct yet")
     public inline fun switchToSingleColumnModeAt(adapterPosition: Int,
                                                  crossinline onStartAnimation: (Animation) -> Unit = {},
                                                  crossinline onRepeatAnimation: (Animation) -> Unit = {},
@@ -270,8 +276,7 @@ open class BoardView
      * The [adapterPosition] must be a position from a ViewHolder that is currently visible
      * otherwise nothing will happen
      */
-    // TODO: 07-Apr-20 Animations are sluggish!
-    @Beta
+    @Beta(reason = "Animations are sluggish and not fully correct yet")
     public fun switchToSingleColumnModeAt(adapterPosition: Int, animationListener: Animation.AnimationListener) {
         // Caller didn't check their position was valid :/
         if (boardAdapter?.isAdapterPositionNotValid(adapterPosition) == true) return
@@ -318,7 +323,7 @@ open class BoardView
         }
     }
 
-    @Beta
+    @Beta(reason = "Animations are sluggish and not fully correct yet")
     public inline fun switchToMultiColumnMode(newColumnWidth: Int,
                                               crossinline onStartAnimation: (Animation) -> Unit = {},
                                               crossinline onRepeatAnimation: (Animation) -> Unit = {},
@@ -326,8 +331,7 @@ open class BoardView
             switchToMultiColumnMode(newColumnWidth,
                     animationListener(onStartAnimation, onRepeatAnimation, onEndAnimation))
 
-    // TODO: 07-Apr-20 Animations are sluggish!
-    @Beta
+    @Beta(reason = "Animations are sluggish and not fully correct yet")
     public fun switchToMultiColumnMode(newColumnWidth: Int, animationListener: Animation.AnimationListener) {
         (allVisibleViewHolders.first() as? BoardColumnViewHolder)?.also { columnVH ->
             // Initial count of children, should be 1 since we're in Single Column Mode
@@ -445,7 +449,7 @@ open class BoardView
      * @return the [BoardViewSavedState] of this [BoardView]
      */
     @CallSuper
-    open fun saveState(): BoardViewSavedState {
+    public open fun saveState(): BoardViewSavedState {
         val savedState = BoardViewSavedState(super.onSaveInstanceState() as? RecyclerViewState)
         boardAdapter?.also { boardAdapter ->
             allVisibleViewHolders.forEach {
@@ -471,7 +475,7 @@ open class BoardView
      * retrieve the latest [BoardViewSavedState]
      */
     @CallSuper
-    open fun restoreFromState(state: BoardViewSavedState) {
+    public open fun restoreFromState(state: BoardViewSavedState) {
         super.onRestoreInstanceState(state.savedState)
         boardAdapter?.layoutStates?.also { list ->
             state.layoutStates?.also {
@@ -491,12 +495,13 @@ open class BoardView
         else super.onRestoreInstanceState(state)
     }
 
+    /** Used to manage bounds for scrolling and swapping */
     private class BoardViewBounds(globalRectF: RectF) {
 
         var horizontalScrollBoundsWidth = globalRectF.width() / 5F
 
         // Rectangles
-        var inside = globalRectF
+        val inside = globalRectF
         val scrollLeft = RectF()
         val scrollRight = RectF()
         val top = RectF()
@@ -547,6 +552,7 @@ open class BoardView
             })
         }
 
+        // For debugging to see the bounds
         inline fun showAll(view: View) {
             scrollLeft.show(view, Color.RED)
             scrollRight.show(view, Color.BLUE)
@@ -595,8 +601,6 @@ open class BoardView
     }
 }
 
-// TODO: 02-Jul-20 Make it have a Type so that callers can have their own typed ViewHolders that
-//  extend BoardColumnViewHolder
 abstract class BoardAdapter<VH : BoardColumnViewHolder>(var adapter: BoardContainerAdapter) : BaseAdapter<VH>() {
 
     /** A mirror of [BoardView.columnWidth] because we don't want to keep a reference to BoardView */
@@ -615,12 +619,38 @@ abstract class BoardAdapter<VH : BoardColumnViewHolder>(var adapter: BoardContai
         }
     }
 
-    // avoid doing anything else here except creating your VH, instead use onViewHolderCreated
+    /**
+     * Called in [onCreateViewHolder] when a new [RecyclerView.ViewHolder] is needed of type [VH].
+     *
+     * [itemView] has already been inflated for you.
+     *
+     * **This function should only return a new [VH], any initialization should be done in
+     * [onViewHolderLaidOut]**
+     *
+     * A typical implementation will be as follows:
+     * ```kotlin
+     *
+     *     override fun createViewHolder(itemView: View): MyColumnViewHolder {
+     *         return MyColumnViewHolder(itemView)
+     *     }
+     *
+     * ```
+     *
+     * This is because layout and inflation of [BoardColumnViewHolder]s is managed internally and
+     * done in [onCreateViewHolder], however, in order for callers to have their custom typed
+     * [RecyclerView.ViewHolder]s of type [VH], callers must themselves provide their created
+     * [VH]s in this function.
+     */
     abstract fun createViewHolder(itemView: View): VH
 
-    // We handle the creation because we return BoardVH that contains columns
-    // We have to do this ourselves because we resolve the header, footer and list layout as well
-    // as managing list adapters
+    /**
+     * This is handled internally in order to correctly inflate, layout and set up each
+     * [BoardColumnViewHolder] correctly including its [BoardListAdapter], header, footer,
+     * constraints etc
+     *
+     * Callers should be using [createViewHolder] to create their own [VH] that is used here and
+     * [onViewHolderLaidOut] to get a callback when the internal creation and set up is done
+     */
     final override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val inflater = LayoutInflater.from(parent.context)!! // can never be null
         val column = inflater
@@ -676,7 +706,7 @@ abstract class BoardAdapter<VH : BoardColumnViewHolder>(var adapter: BoardContai
                 topToBottom = ConstraintLayout.LayoutParams.UNSET
                 topToTop = ConstraintLayout.LayoutParams.PARENT_ID
             }
-            // List constraints wrt to Footer
+            // List constraints wrt Footer
             if (adapter.isFooterPadded && footer != null) {
                 bottomToBottom = ConstraintLayout.LayoutParams.UNSET
                 bottomToTop = footer.id
@@ -694,15 +724,18 @@ abstract class BoardAdapter<VH : BoardColumnViewHolder>(var adapter: BoardContai
                 viewHolder.list?.setHasFixedSize(true)
             }
         }
-        onViewHolderCreated(viewHolder)
+        onViewHolderLaidOut(viewHolder)
         return viewHolder
     }
 
-    // callback for caller to do stuff after onCreateViewHolder is called
-    // TODO: 02-Jul-20 VH is already created this should be renamed to onVHinflated or onVHlayout
-    //  because that's actually all we did in onCreateViewHolder, we just inflated the column and
-    //  set up its layout constraints and shit
-    open fun onViewHolderCreated(holder: VH) {}
+    /**
+     * Callers can use this callback to do any initialization after [onCreateViewHolder] has
+     * finished its internal set up process.
+     *
+     * @param holder the [RecyclerView.ViewHolder] that was created in [createViewHolder] and set
+     * up internally in [onCreateViewHolder]
+     */
+    open fun onViewHolderLaidOut(holder: VH) {}
 
     @CallSuper
     override fun onBindViewHolder(holder: VH, position: Int) {
@@ -742,18 +775,38 @@ abstract class BoardAdapter<VH : BoardColumnViewHolder>(var adapter: BoardContai
     }
 }
 
+/**
+ * Base [RecyclerView.ViewHolder] used for [BoardView] columns which have a header, a [BoardList]
+ * and a footer.
+ *
+ * Extend this class to use in [BoardAdapter]
+ */
 open class BoardColumnViewHolder(itemView: View) : BaseViewHolder(itemView) {
+
+    /** The header [View], will be `null` if [BoardContainerAdapter.headerLayoutRes] returned `null` */
     var header: View? = null
         internal set
+
+    /** The [BoardList], will only ever be `null` if [BoardAdapter.onCreateViewHolder] has not been called yet */
     var list: BoardList? = null
         internal set
+
+    /** The footer [View], will be `null` if [BoardContainerAdapter.footerLayoutRes] returned `null` */
     var footer: View? = null
         internal set
+
+    /** Shorthand for `this.list?.boardListAdapter` */
     inline val boardListAdapter: BoardListAdapter<*>? get() = list?.boardListAdapter
 }
 
 internal typealias RecyclerViewState = RecyclerView.SavedState
 
+/**
+ * Simple [AbsSavedState] used by [BoardView] to manage its layout state.
+ *
+ * There is no reason for callers to need to extend this class,
+ * but it is left open for convenience
+ */
 open class BoardViewSavedState(val savedState: RecyclerViewState?) : AbsSavedState(savedState) {
 
     var layoutStates: List<LinearState?>? = null

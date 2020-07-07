@@ -177,12 +177,9 @@ open class SaveRestoreLinearLayoutManager(context: Context) : LinearLayoutManage
         return state
     }
 
-    /* inheritDoc */
     override fun canScrollVertically(): Boolean = super.canScrollVertically() && isScrollEnabled
 
-    /* inheritDoc */
     override fun canScrollHorizontally(): Boolean = super.canScrollHorizontally() && isScrollEnabled
 
-    /* inheritDoc */
     override fun supportsPredictiveItemAnimations(): Boolean = supportsPredictiveItemAnimations
 }

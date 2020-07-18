@@ -93,7 +93,7 @@ class BoardList
                     "passed in adapter is of type ${adapter::class.simpleName}")
     }
 
-    fun verticalScroll(touchPoint: PointF) {
+    internal fun verticalScroll(touchPoint: PointF) {
         val scrollBy: Int
         when (bounds.findSectorForPoint(touchPoint)) {
             UP_INSIDE, UP_INSIDE_LEFT, UP_INSIDE_RIGHT -> {

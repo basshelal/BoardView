@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.github.basshelal.example.fragments
 
 import android.graphics.PointF
@@ -7,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
+import android.view.animation.Animation.RELATIVE_TO_SELF
 import android.view.animation.Transformation
 import android.widget.ImageView
 import android.widget.TextView
@@ -22,9 +25,11 @@ import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
 import com.github.basshelal.boardview.BoardViewContainer
 import com.github.basshelal.boardview.drag.ObservableDragBehavior
+import com.github.basshelal.example.AnimationSet
 import com.github.basshelal.example.Board
 import com.github.basshelal.example.ScaleAnimation
 import com.github.basshelal.example.TRELLO_BOARD
+import com.github.basshelal.example.TranslateAnimation
 import com.github.basshelal.example.animationListener
 import com.github.basshelal.example.dpToPx
 import com.github.basshelal.example.now
@@ -32,7 +37,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_trello.*
 import kotlinx.android.synthetic.main.view_header_trello.view.*
 import kotlinx.android.synthetic.main.view_itemview_trello.view.*
-import kotlin.math.roundToInt
 
 private var isZoomedOut = false
 private const val COLUMN_WIDTH_FULL_DP = 280
@@ -116,8 +120,10 @@ class TrelloFragment : Fragment() {
                 .map { it as? TrelloColumnViewHolder }
                 .filter { it?.isAnimating == false }
                 .forEach {
-                    if (isZoomedOut) it?.scaleDown(onEnd = onAnimationEnded)
-                    else it?.scaleUp(onEnd = onAnimationEnded)
+                    boardContainer.boardView.boardAdapter?.also { adapter ->
+                        if (isZoomedOut) it?.scaleDown(adapter, onEnd = onAnimationEnded)
+                        else it?.scaleUp(adapter, onEnd = onAnimationEnded)
+                    }
                 }
     }
 
@@ -137,9 +143,7 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
     override val boardViewAdapter: BoardAdapter<TrelloColumnViewHolder>
         get() = TrelloBoardAdapter()
 
-    override fun onCreateListAdapter(position: Int): BoardListAdapter<*> {
-        return TrelloListAdapter(position)
-    }
+    override fun onCreateListAdapter(position: Int) = TrelloListAdapter(position)
 
     override fun onMoveColumn(draggingColumn: BoardColumnViewHolder, targetPosition: Int): Boolean {
         Log.e("Trello", "onMoveColumn: $targetPosition $now")
@@ -244,43 +248,50 @@ private class TrelloBoardContainerAdapter(val board: Board<String>) : BoardConta
 //  side effects and is generally a bad dirty idea, another possible way is by translating each
 //  column by x amount it was descaled, that makes more sense but we need special cases for the
 //  first and maybe last column
+
+// TODO: 18-Jul-20 Zoom animation is difficult and complicated,worth it???
 private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(itemView) {
 
     val headerTextView: TextView? get() = header?.trello_header_textView
     val headerOptionsImageView: ImageView? get() = header?.trello_header_imageView
     var isAnimating = false
 
-    inline fun scaleDown(crossinline onStart: (Animation) -> Unit = {},
+    inline fun scaleDown(adapter: BoardAdapter<*>,
+                         crossinline onStart: (Animation) -> Unit = {},
                          crossinline onRepeat: (Animation) -> Unit = {},
                          crossinline onEnd: (Animation) -> Unit = {}) {
         isAnimating = true
-        val target = itemView.context?.let { it dpToPx -COLUMN_WIDTH_HALF_DP } ?: 0F
-        itemView.startAnimation(ScaleAnimation(1F, 0.5F, 1F, 0.5F,
-                Animation.RELATIVE_TO_SELF, 0F,
-                Animation.RELATIVE_TO_SELF, 0F) { interpolatedTime: Float, transformation: Transformation ->
-            itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                rightMargin = (target * interpolatedTime).roundToInt()
-            }
-        }.also {
+
+        val isException = this.isFirstIn(adapter)
+
+        val scale = ScaleAnimation(1F, 0.5F, 1F, 0.5F,
+                RELATIVE_TO_SELF, 0F, RELATIVE_TO_SELF, 0F)
+
+        val translate = TranslateAnimation(RELATIVE_TO_SELF, 0F, RELATIVE_TO_SELF, -0.5F,
+                RELATIVE_TO_SELF, 0F, RELATIVE_TO_SELF, 0F)
+
+        itemView.startAnimation(AnimationSet().also {
+            it.addAnimation(scale)
+            if (!isException) it.addAnimation(translate)
             it.duration = 300
             it.fillBefore = true
             it.fillAfter = true
             it.setAnimationListener(animationListener(onStart, onRepeat, onEnd = {
-                itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> { rightMargin = target.toInt() }
                 onEnd(it)
                 isAnimating = false
             }))
         })
     }
 
-    inline fun scaleUp(crossinline onStart: (Animation) -> Unit = {},
+    inline fun scaleUp(adapter: BoardAdapter<*>,
+                       crossinline onStart: (Animation) -> Unit = {},
                        crossinline onRepeat: (Animation) -> Unit = {},
                        crossinline onEnd: (Animation) -> Unit = {}) {
         isAnimating = true
         val target = itemView.context?.let { it dpToPx 10 } ?: 0F
         itemView.startAnimation(ScaleAnimation(0.5F, 1F, 0.5F, 1F,
-                Animation.RELATIVE_TO_SELF, 0F,
-                Animation.RELATIVE_TO_SELF, 0F) { interpolatedTime: Float, transformation: Transformation ->
+                RELATIVE_TO_SELF, 0F,
+                RELATIVE_TO_SELF, 0F) { interpolatedTime: Float, transformation: Transformation ->
             itemView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 // TODO: 03-Jul-20 Calculations are wrong I think
                 rightMargin += ((target - rightMargin) * interpolatedTime).toInt()
@@ -296,6 +307,12 @@ private class TrelloColumnViewHolder(itemView: View) : BoardColumnViewHolder(ite
             }))
         })
     }
+
+    private inline fun isFirstIn(adapter: BoardAdapter<*>): Boolean =
+            adapter.itemCount > 0 && this.adapterPosition == 0
+
+    private inline fun isLastIn(adapter: BoardAdapter<*>): Boolean =
+            adapter.itemCount > 0 && this.adapterPosition == adapter.itemCount
 }
 
 private class TrelloItemViewHolder(itemView: View) : BoardItemViewHolder(itemView) {

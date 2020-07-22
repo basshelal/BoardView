@@ -183,8 +183,8 @@ public class BoardViewContainer
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
                 itemDragShadow.isVisible = false
-                draggingItem.itemViewHolder = null
-                draggingItem.columnViewHolder = null
+                // draggingItem.itemViewHolder = null // TODO: 23-Jul-20 Good idea??
+                //  draggingItem.columnViewHolder = null // TODO: 23-Jul-20 Good idea??
                 requestedItemSwap = null
             }
         })
@@ -224,7 +224,7 @@ public class BoardViewContainer
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
                 listDragShadow.isVisible = false
-                draggingColumn = null
+                //  draggingColumn = null // TODO: 23-Jul-20 Good idea??
                 requestedColumnSwap = null
             }
         })

@@ -13,6 +13,8 @@ import com.github.basshelal.boardview.BoardColumnViewHolder
 import com.github.basshelal.boardview.BoardContainerAdapter
 import com.github.basshelal.boardview.BoardItemViewHolder
 import com.github.basshelal.boardview.BoardListAdapter
+import com.github.basshelal.boardview.BoardViewContainer
+import com.github.basshelal.boardview.drag.ObservableDragBehavior
 import com.github.basshelal.example.Board
 import com.github.basshelal.example.DEFAULT_EXAMPLE_BOARD
 import com.github.basshelal.example.StringListItem
@@ -22,6 +24,8 @@ import kotlinx.android.synthetic.main.view_itemview_default.view.*
 
 class DefaultExampleFragment : Fragment() {
 
+    lateinit var boardViewContainer: BoardViewContainer
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_default_example, container, false)
     }
@@ -29,7 +33,31 @@ class DefaultExampleFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        defaultBoardViewContainer.adapter = ExampleBoardContainerAdapter(DEFAULT_EXAMPLE_BOARD)
+        boardViewContainer = defaultBoardViewContainer
+
+        boardViewContainer.adapter = ExampleBoardContainerAdapter(DEFAULT_EXAMPLE_BOARD)
+
+        boardViewContainer.listDragShadow.dragBehavior.addDragListenerIfNotExists(
+                object : ObservableDragBehavior.SimpleDragListener() {
+                    override fun onStartDrag(dragView: View) {
+                        boardViewContainer.draggingColumn?.itemView?.alpha = 0F
+                    }
+
+                    override fun onEndDrag(dragView: View) {
+                        boardViewContainer.draggingColumn?.itemView?.alpha = 1F
+                    }
+                })
+
+        boardViewContainer.itemDragShadow.dragBehavior.addDragListenerIfNotExists(
+                object : ObservableDragBehavior.SimpleDragListener() {
+                    override fun onStartDrag(dragView: View) {
+                        boardViewContainer.draggingItem.itemViewHolder?.itemView?.alpha = 0F
+                    }
+
+                    override fun onEndDrag(dragView: View) {
+                        boardViewContainer.draggingItem.itemViewHolder?.itemView?.alpha = 1F
+                    }
+                })
     }
 }
 

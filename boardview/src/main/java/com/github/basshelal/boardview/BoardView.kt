@@ -21,6 +21,7 @@ import android.view.animation.AccelerateInterpolator
 import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.CallSuper
+import androidx.annotation.FloatRange
 import androidx.annotation.Px
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.contains
@@ -89,6 +90,26 @@ public open class BoardView
     public inline val boardAdapter: BoardAdapter<*>? get() = this.adapter as? BoardAdapter
 
     /**
+     * A multiplier to modify the rate of horizontal scrolling only
+     * when the user is dragging either a column or item.
+     *
+     * A value less than 1F is used to slow down the scrolling rate,
+     * a value greater than 1F is used to increase the scrolling rate,
+     * values less than 0F are not allowed.
+     *
+     * This is only used internally once in [horizontalScroll] which is the function responsible
+     * for scrolling when the user is dragging something
+     */
+    @FloatRange(from = 0.0)
+    public var dragScrollMultiplier = 1.0F
+        set(value) {
+            if (value < 0.0F)
+                throw IllegalArgumentException("Drag Scroll Multiplier must be at least 0.0F," +
+                        " passed in $value")
+            else field = value
+        }
+
+    /**
      * The width of each column in pixels.
      * [WRAP_CONTENT] is not allowed.
      * [MATCH_PARENT] is allowed and will be resolved to the value returned by this [getWidth].
@@ -99,10 +120,12 @@ public open class BoardView
             if (value < 0 && value != MATCH_PARENT)
                 throw IllegalArgumentException("Column width must be " +
                         "greater than 0 or MATCH_PARENT (-1), passed in $value")
-            val valid = if (value == MATCH_PARENT) this.width else value
-            field = valid
-            boardAdapter?.columnWidth = valid
-            allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = valid } }
+            else {
+                val valid = if (value == MATCH_PARENT) this.width else value
+                field = valid
+                boardAdapter?.columnWidth = valid
+                allVisibleViewHolders.forEach { it.itemView.updateLayoutParamsSafe { width = valid } }
+            }
         }
 
     /**
@@ -187,13 +210,13 @@ public open class BoardView
         isVerticalScrollBarEnabled = false
     }
 
+    /**
+     * We're doing this because of the below exception that is out of our control:
+     * java.lang.NullPointerException: Attempt to read from field
+     * 'int android.view.View.mViewFlags' on a null object reference at
+     * android.view.ViewGroup.dispatchDraw(ViewGroup.java:4111)
+     */
     override fun dispatchDraw(canvas: Canvas?) {
-        /*
-         * We're doing this because of the below exception that is out of our control:
-         * java.lang.NullPointerException: Attempt to read from field
-         * 'int android.view.View.mViewFlags' on a null object reference at
-         * android.view.ViewGroup.dispatchDraw(ViewGroup.java:4111)
-         */
         try {
             super.dispatchDraw(canvas)
         } catch (e: NullPointerException) {
@@ -228,7 +251,7 @@ public open class BoardView
             }
             else -> return
         }
-        this.scrollBy(scrollBy, 0)
+        this.scrollBy((scrollBy * dragScrollMultiplier).I, 0)
     }
 
     private inline fun viewHolderUnderRaw(pointF: PointF): BoardColumnViewHolder? {

@@ -155,7 +155,6 @@ public class BoardViewContainer
                 draggingItem.columnViewHolder = column
                 draggingItem.itemViewHolder = item
                 itemDragShadow.isVisible = true
-                draggingItem.itemViewHolder?.itemView?.alpha = 0F
                 requestedItemSwap = null
             }
 
@@ -183,7 +182,6 @@ public class BoardViewContainer
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
-                draggingItem.itemViewHolder?.itemView?.alpha = 1F
                 itemDragShadow.isVisible = false
                 draggingItem.itemViewHolder = null
                 draggingItem.columnViewHolder = null
@@ -201,7 +199,6 @@ public class BoardViewContainer
                 super.onStartDrag(dragView)
                 draggingColumn = boardView.getViewHolderUnder(touchPoint)
                 listDragShadow.isVisible = true
-                draggingColumn?.itemView?.alpha = 0F
                 requestedColumnSwap = null
             }
 
@@ -226,7 +223,6 @@ public class BoardViewContainer
             /** Animation has ended, drag is finished, finalize everything */
             override fun onEndDrag(dragView: View) {
                 super.onEndDrag(dragView)
-                draggingColumn?.itemView?.alpha = 1F
                 listDragShadow.isVisible = false
                 draggingColumn = null
                 requestedColumnSwap = null

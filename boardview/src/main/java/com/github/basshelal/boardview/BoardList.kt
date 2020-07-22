@@ -8,6 +8,7 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import androidx.annotation.FloatRange
 import androidx.core.graphics.contains
 import androidx.core.view.get
 import androidx.recyclerview.widget.RecyclerView
@@ -30,6 +31,7 @@ import com.github.basshelal.boardview.BoardList.BoardListBounds.Sector.UP_INSIDE
 import com.github.basshelal.boardview.utils.BaseAdapter
 import com.github.basshelal.boardview.utils.BaseRecyclerView
 import com.github.basshelal.boardview.utils.BaseViewHolder
+import com.github.basshelal.boardview.utils.I
 import com.github.basshelal.boardview.utils.LogarithmicInterpolator
 import com.github.basshelal.boardview.utils.SaveRestoreLinearLayoutManager
 import com.github.basshelal.boardview.utils.canScrollVertically
@@ -52,6 +54,26 @@ class BoardList
 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : BaseRecyclerView(context, attrs, defStyleAttr) {
+
+    /**
+     * A multiplier to modify the rate of vertical scrolling only
+     * when the user is dragging either an item.
+     *
+     * A value less than 1F is used to slow down the scrolling rate,
+     * a value greater than 1F is used to increase the scrolling rate,
+     * values less than 0F are not allowed.
+     *
+     * This is only used internally once in [verticalScroll] which is the function responsible
+     * for scrolling when the user is dragging an item
+     */
+    @FloatRange(from = 0.0)
+    public var dragScrollMultiplier = 1.0F
+        set(value) {
+            if (value < 0.0F)
+                throw IllegalArgumentException("Drag Scroll Multiplier must be at least 0.0F," +
+                        " passed in $value")
+            else field = value
+        }
 
     inline val boardListAdapter: BoardListAdapter<*>? get() = this.adapter as? BoardListAdapter
     inline val boardListItemAnimator: BoardListItemAnimator?
@@ -112,7 +134,7 @@ class BoardList
             BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT -> scrollBy = maxScrollBy
             else -> return
         }
-        this.scrollBy(0, scrollBy)
+        this.scrollBy(0, (scrollBy * dragScrollMultiplier).I)
     }
 
     private inline fun viewHolderUnderRaw(pointF: PointF): BoardItemViewHolder? {
